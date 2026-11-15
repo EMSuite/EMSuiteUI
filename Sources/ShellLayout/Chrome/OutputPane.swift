@@ -15,7 +15,7 @@ public struct OutputPane: View {
         VStack(spacing: 0) {
             ProcessPaneHeader(title: "Output") {
                 Button("Clear") { log.clear() }
-                    .disabled(log.messages.isEmpty)
+                    .disabled(log.isEmpty)
                     .help("Clears the output log")
                     .accessibilityIdentifier("bottomWorkspace.output.clear")
             }

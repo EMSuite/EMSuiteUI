@@ -24,6 +24,33 @@ public nonisolated struct ProfileSeries: Identifiable, Equatable, Sendable {
 
     /// The line's length in `spacing` units: the distance of the last sample.
     public var length: Double { values.isEmpty ? 0 : distance(of: values.count - 1) }
+
+    /// One plotted point: the sample's index and value.
+    public struct Point: Equatable, Sendable {
+        public var index: Int
+        public var value: Double
+    }
+
+    /// The samples the chart draws: every sample when there are at most `2 × buckets`, otherwise the lowest and highest sample of each of
+    /// `buckets` equal runs, in their order along the line (min-max decimation, as `SpectrumLayerPlot.columns` thins a spectrum), so a
+    /// narrow peak or dip is never dropped and a long line costs at most `2 × buckets` marks. NaN samples are skipped in a thinned run.
+    public func plotted(buckets: Int = 512) -> [Point] {
+        let n = values.count
+        guard buckets > 0, n > 2 * buckets else { return values.enumerated().map { Point(index: $0.offset, value: $0.element) } }
+        var out: [Point] = []
+        out.reserveCapacity(2 * buckets)
+        for k in 0..<buckets {
+            let from = k * n / buckets, to = (k + 1) * n / buckets   // [from, to)
+            var lo: Int?, hi: Int?
+            for i in from..<to where !values[i].isNaN {
+                if lo.map({ values[i] < values[$0] }) ?? true { lo = i }
+                if hi.map({ values[i] > values[$0] }) ?? true { hi = i }
+            }
+            guard let lo, let hi else { continue }
+            for i in lo == hi ? [lo] : [min(lo, hi), max(lo, hi)] { out.append(Point(index: i, value: values[i])) }
+        }
+        return out
+    }
 }
 
 /// The profile along a line: one coloured line per series (one per element, say), distance on x. `pointerDistance` marks where the pointer is on the map's line.
@@ -48,8 +75,9 @@ public struct ProfileChart: View {
         } else {
             Chart {
                 ForEach(series) { s in
-                    ForEach(Array(s.values.enumerated()), id: \.offset) { i, v in
-                        LineMark(x: .value("Distance", s.distance(of: i)), y: .value(valueTitle, v), series: .value("Series", s.name))
+                    // A long line is thinned to its per-run extremes: one mark per sample made every redraw cost the line's length.
+                    ForEach(s.plotted(), id: \.index) { p in
+                        LineMark(x: .value("Distance", s.distance(of: p.index)), y: .value(valueTitle, p.value), series: .value("Series", s.name))
                             .foregroundStyle(s.color.color)
                             .interpolationMethod(.linear)
                     }
