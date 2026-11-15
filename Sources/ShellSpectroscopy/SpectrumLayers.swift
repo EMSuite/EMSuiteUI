@@ -91,8 +91,8 @@ public nonisolated enum SpectrumLayerPlot {
         return m > 0 ? m : 1
     }
 
-    /// Draws the layers into `rect`: x from `xRange`, y from 0 to `top` (transformed values). Regions are solid lines, a temporary layer is dashed, and a dark
-    /// under-stroke keeps each readable over the room's grid.
+    /// Draws the layers into `rect`: x from `xRange`, y from 0 to `top` (transformed values). Regions are solid lines, a temporary layer is dashed, and an under-stroke
+    /// of the opposite tone (`ink`) keeps each readable over the room's grid in either appearance.
     public static func draw(_ layers: [SpectrumLayer], in context: inout GraphicsContext, rect: CGRect, xRange: ClosedRange<Double>, top: Double,
                             scale: SpectrumScale, normalized: Bool = false) {
         guard top > 0, xRange.upperBound > xRange.lowerBound else { return }
@@ -112,8 +112,27 @@ public nonisolated enum SpectrumLayerPlot {
                 if c.low < c.high { path.addLine(to: point(c.x, c.low)); path.addLine(to: p) }
             }
             let style = StrokeStyle(lineWidth: 1.2, lineJoin: .round, dash: layer.isTemporary ? [4, 3] : [])
-            context.stroke(path, with: .color(.black.opacity(0.35)), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round, dash: layer.isTemporary ? [4, 3] : []))
-            context.stroke(path, with: .color(layer.color.color), style: style)
+            let ink = ink(of: layer.color, in: context.environment.colorScheme)
+            context.stroke(path, with: .color(ink.halo.color.opacity(0.35)), style: StrokeStyle(lineWidth: 2.4, lineJoin: .round, dash: layer.isTemporary ? [4, 3] : []))
+            context.stroke(path, with: .color(ink.line.color), style: style)
+        }
+    }
+
+    /// The line and under-stroke a layer of `color` is drawn with in `scheme`. A neutral colour of the background's own tone (the hovered
+    /// pixel's white on a light window, or a black on a dark one) would vanish, so it flips to the other end of the grey scale with a halo of
+    /// the opposite tone; every other colour keeps itself over a dark halo.
+    public static func ink(of color: RegionColor, in scheme: ColorScheme) -> (line: RegionColor, halo: RegionColor) {
+        let black = RegionColor(red: 0, green: 0, blue: 0), white = RegionColor(red: 1, green: 1, blue: 1)
+        let channels = [color.red, color.green, color.blue]
+        let neutral = (channels.max() ?? 0) - (channels.min() ?? 0) < 0.05
+        let luminance = 0.2126 * color.red + 0.7152 * color.green + 0.0722 * color.blue
+        switch scheme {
+        case .light where neutral && luminance > 0.8:
+            return (RegionColor(red: 0.1, green: 0.1, blue: 0.1), white)
+        case .dark where neutral && luminance < 0.2:
+            return (RegionColor(red: 0.95, green: 0.95, blue: 0.95), black)
+        default:
+            return (color, black)
         }
     }
 }
@@ -121,6 +140,7 @@ public nonisolated enum SpectrumLayerPlot {
 /// The layers' names with their colours, one row per layer: what the plot's lines are. Compact enough for the strip's header.
 public struct SpectrumLayerLegend: View {
     private let layers: [SpectrumLayer]
+    @Environment(\.colorScheme) private var colorScheme
 
     public init(layers: [SpectrumLayer]) {
         self.layers = layers
@@ -130,7 +150,7 @@ public struct SpectrumLayerLegend: View {
         HStack(spacing: 10) {
             ForEach(layers) { layer in
                 HStack(spacing: 4) {
-                    Capsule().fill(layer.color.color).frame(width: 14, height: layer.isTemporary ? 2 : 3)
+                    Capsule().fill(SpectrumLayerPlot.ink(of: layer.color, in: colorScheme).line.color).frame(width: 14, height: layer.isTemporary ? 2 : 3)
                         .overlay { if layer.isTemporary { Capsule().stroke(Color.primary.opacity(0.4), style: StrokeStyle(lineWidth: 0.5, dash: [2, 2])) } }
                     Text(layer.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
