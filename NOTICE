@@ -14,5 +14,5 @@ Sources/ShellMetal/Colormaps.swift builds its colour lookup tables from anchor c
 
 - ColorBrewer's "RdBu" diverging scheme (Copyright 2002 Cynthia Brewer, Mark Harrower and The Pennsylvania State
   University), licensed under the Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0). The scheme
-  is used here as a handful of anchor colours that are interpolated. ColorBrewer is a product of Cynthia Brewer
+  is used here as matplotlib's 11 RdBu colours, interpolated. ColorBrewer is a product of Cynthia Brewer
   (colorbrewer2.org).
