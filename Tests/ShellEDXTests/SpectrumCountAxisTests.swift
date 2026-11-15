@@ -22,7 +22,7 @@ nonisolated final class SpectrumCountAxisTests: XCTestCase {
         XCTAssertEqual(EDXRoomFormat.axisCounts(2_500_000, step: 500_000, locale: us), "2.5\u{2009}M")
         XCTAssertEqual(EDXRoomFormat.axisCounts(500_000, step: 500_000, locale: us), "500\u{2009}k")
         XCTAssertEqual(EDXRoomFormat.axisCounts(150_000, step: 50_000, locale: us), "150\u{2009}k")
-        XCTAssertEqual(EDXRoomFormat.axisCounts(4000, step: 1000, locale: us), "4\u{2009}000")
+        XCTAssertEqual(EDXRoomFormat.axisCounts(4000, step: 1000, locale: us), "4000")
         XCTAssertEqual(EDXRoomFormat.axisCounts(2.5e6, step: 500_000, locale: Locale(identifier: "de_DE")), "2,5\u{2009}M")
         for (v, step) in [(10_000_000.0, 5_000_000.0), (950_000, 50_000), (90_000, 10_000), (9000, 1000)] {
             XCTAssertLessThanOrEqual(EDXRoomFormat.axisCounts(v, step: step, locale: us).count, 6, "\(v)")

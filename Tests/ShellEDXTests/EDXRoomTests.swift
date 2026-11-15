@@ -151,12 +151,12 @@ nonisolated final class EDXRoomTests: XCTestCase {
 
     // MARK: Strings
 
-    func testCountsGroupByThousandsWithAThinSpace() {
+    func testCountsCarryNoGroupingSeparator() {
         XCTAssertEqual(EDXRoomFormat.counts(0), "0")
         XCTAssertEqual(EDXRoomFormat.counts(999), "999")
-        XCTAssertEqual(EDXRoomFormat.counts(1234), "1\u{2009}234")
-        XCTAssertEqual(EDXRoomFormat.counts(1_234_567.4), "1\u{2009}234\u{2009}567")
-        XCTAssertEqual(EDXRoomFormat.counts(-1500), "−1\u{2009}500")
+        XCTAssertEqual(EDXRoomFormat.counts(1234), "1234")
+        XCTAssertEqual(EDXRoomFormat.counts(1_234_567.4), "1234567")
+        XCTAssertEqual(EDXRoomFormat.counts(-1500), "−1500")
         XCTAssertEqual(EDXRoomFormat.counts(.nan), "–")
     }
 
@@ -170,10 +170,10 @@ nonisolated final class EDXRoomTests: XCTestCase {
     }
 
     func testTheRegionSentenceNamesItsPixels() {
-        XCTAssertEqual(EDXRoomFormat.region(.wholeMap, pixels: 12_000), "Whole map · 12\u{2009}000 px")
+        XCTAssertEqual(EDXRoomFormat.region(.wholeMap, pixels: 12_000), "Whole map · 12000 px")
         XCTAssertEqual(EDXRoomFormat.region(.rectangle(PixelRect(x0: 10, y0: 5, x1: 41, y1: 31)), pixels: 806),
                        "Region · x 10–40, y 5–30 · 806 px")
-        XCTAssertEqual(EDXRoomFormat.spectrumSubtitle(counts: 1500, region: .wholeMap, pixels: 4), "1\u{2009}500 counts · Whole map · 4 px")
+        XCTAssertEqual(EDXRoomFormat.spectrumSubtitle(counts: 1500, region: .wholeMap, pixels: 4), "1500 counts · Whole map · 4 px")
     }
 
     func testARegionIsKeyedByItsPixels() {

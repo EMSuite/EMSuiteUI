@@ -18,6 +18,6 @@ nonisolated final class EDXOutOfRangeTests: XCTestCase {
     func testACountPastIntIsADash() {
         XCTAssertEqual(EDXRoomFormat.counts(1e300), "–")
         XCTAssertEqual(EDXRoomFormat.counts(.nan), "–")
-        XCTAssertEqual(EDXRoomFormat.counts(1_234_567), "1\u{2009}234\u{2009}567")
+        XCTAssertEqual(EDXRoomFormat.counts(1_234_567), "1234567")
     }
 }
