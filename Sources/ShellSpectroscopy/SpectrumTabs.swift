@@ -61,17 +61,21 @@ public struct ProfileChart: View {
             .chartXAxisLabel("Distance (\(unit))")
             .chartYAxisLabel(valueTitle)
             .chartLegend(.hidden)
+            // On macOS a Chart reaches the accessibility tree as a group of its x bins and drops a label or value set on it; one element that
+            // ignores the marks carries the summary (macEMSuite/MacEMUI#68).
+            .accessibilityElement(children: .ignore)
             .accessibilityIdentifier("profile.chart")
             .accessibilityLabel("Profile along the line")
-            .accessibilityValue(Self.summary(series, unit: unit))
+            .accessibilityValue(Self.summary(series, unit: unit, valueTitle: valueTitle))
         }
     }
 
-    /// What VoiceOver reads: each series with its range.
-    nonisolated static func summary(_ series: [ProfileSeries], unit: String) -> String {
-        series.compactMap { s in
+    /// What VoiceOver reads: the axes with their units, then each series with its range.
+    nonisolated static func summary(_ series: [ProfileSeries], unit: String, valueTitle: String = "Value") -> String {
+        let ranges = series.compactMap { s -> String? in
             guard let lo = s.values.min(), let hi = s.values.max() else { return nil }
             return "\(s.name): \(lo.formatted(.number.precision(.significantDigits(1...3)))) to \(hi.formatted(.number.precision(.significantDigits(1...3)))) over \(s.length.formatted(.number.precision(.significantDigits(1...3)))) \(unit)"
-        }.joined(separator: "; ")
+        }
+        return "\(valueTitle) against distance (\(unit)). " + ranges.joined(separator: "; ")
     }
 }
