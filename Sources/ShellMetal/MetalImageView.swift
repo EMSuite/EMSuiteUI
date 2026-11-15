@@ -208,7 +208,18 @@ public struct MetalImageView {
         // The shader samples the data texture nearest, so zoomed data pixels
         // stay crisp; this keeps the layer itself from interpolating either.
         view.layer?.magnificationFilter = .nearest
+        Self.tagColorSpace(view.layer as? CAMetalLayer)
         return view
+    }
+
+    /// The colour space the drawn bytes are in: the colormap tables and the RGB mixes are sRGB-encoded 8-bit values, as the
+    /// swatches' `CGImage` (`Colormaps.swatch`) is tagged. An untagged layer is shown in the display's own space, so on a P3
+    /// display the picture and its swatch differed (MacEMUI#129).
+    static let drawnColorSpace = CGColorSpace(name: CGColorSpace.sRGB)
+
+    /// Tags `layer` with `drawnColorSpace`, so the window server converts it to the display as it does the swatches.
+    static func tagColorSpace(_ layer: CAMetalLayer?) {
+        layer?.colorspace = drawnColorSpace
     }
 
     fileprivate func updateMetalView(_ view: MTKView, _ coordinator: Coordinator) {
