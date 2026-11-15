@@ -4,7 +4,16 @@ import Foundation
 /// matplotlib's viridis and inferno tables (CC0) and ColorBrewer's RdBu stops (Apache-2.0), from `ColormapTables`; see `NOTICE`.
 public nonisolated enum Colormaps {
     /// Returns RGBA bytes for the requested colormap.
+    /// The 256-entry LUTs are built once (`lut256`): a colorbar, a map tile and the image view ask for them on every redraw.
     public static func lutRGBA(_ kind: ColormapKind, count: Int = 256) -> [UInt8] {
+        if count == 256, let built = lut256[kind] { return built }
+        return build(kind, count: count)
+    }
+
+    /// Every colormap's 256-entry LUT, built on first use (a `static let` is initialised once, thread-safely).
+    static let lut256: [ColormapKind: [UInt8]] = Dictionary(uniqueKeysWithValues: ColormapKind.allCases.map { ($0, build($0, count: 256)) })
+
+    private static func build(_ kind: ColormapKind, count: Int) -> [UInt8] {
         let stops = anchors(for: kind)
         var output = [UInt8](repeating: 255, count: count * 4)
 
