@@ -51,19 +51,13 @@ public nonisolated enum EDXRoomFormat {
         return hasPicks ? "Identified" : nil
     }
 
-    /// 1 234 567: a thin space between thousands, whatever the locale.
+    /// 1234567: a whole count with no grouping separator, whatever the locale, as both apps write whole numbers (#89).
     public static func counts(_ v: Double) -> String {
         guard v.isFinite, v.magnitude < 1e18 else { return "–" }   // past Int is no count a detector holds
-        let digits = String(Int(v.rounded().magnitude))
-        var out = ""
-        for (i, c) in digits.reversed().enumerated() {
-            if i > 0 && i % 3 == 0 { out.append("\u{2009}") }
-            out.append(c)
-        }
-        return (v < 0 ? "−" : "") + String(out.reversed())
+        return (v < 0 ? "−" : "") + String(Int(v.rounded().magnitude))
     }
 
-    /// A count on the spectrum's axis, short enough for its margin: "250", "12 500", and from a tick step of a thousand on
+    /// A count on the spectrum's axis, short enough for its margin: "250", "12500", and from a tick step of a thousand on
     /// "150 k", from a million on "2.5 M" (the step decides, so one axis never mixes the forms).
     package static func axisCounts(_ v: Double, step: Double, locale: Locale = .autoupdatingCurrent) -> String {
         guard v.isFinite, v != 0 else { return v == 0 ? "0" : "–" }
