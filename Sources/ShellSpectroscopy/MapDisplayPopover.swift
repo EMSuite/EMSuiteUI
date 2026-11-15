@@ -58,7 +58,8 @@ public struct MapDisplayPopover: View {
     private let high: Binding<Double>
     private let gamma: Binding<Double>
     private let reset: (() -> Void)?
-    @Environment(\.self) private var environment
+    // Only what a picked colour resolves against: `@Environment(\.self)` re-evaluated the popover on every environment change (#129).
+    @Environment(\.colorScheme) private var colorScheme
 
     /// `low`, `high`, `gamma`: the map's `MapAdjustment` fields (the window as fractions of the histogram's range). `reset`: what Reset Range does (nil: the full range).
     public init(kind: Kind, histogram: MapDisplayHistogram?,
@@ -66,12 +67,19 @@ public struct MapDisplayPopover: View {
         self.kind = kind; self.histogram = histogram; self.low = low; self.high = high; self.gamma = gamma; self.reset = reset
     }
 
+    /// The environment a picked colour resolves in: the appearance it was picked under, nothing else read.
+    static func resolving(_ scheme: ColorScheme) -> EnvironmentValues {
+        var values = EnvironmentValues()
+        values.colorScheme = scheme
+        return values
+    }
+
     public var body: some View {
         Form {
             Section {
                 switch kind {
                 case .element(let color):
-                    ColorPicker("Colour", selection: Binding(get: { color.wrappedValue.color }, set: { color.wrappedValue = RegionColor($0, resolvedIn: environment) }), supportsOpacity: false)
+                    ColorPicker("Colour", selection: Binding(get: { color.wrappedValue.color }, set: { color.wrappedValue = RegionColor($0, resolvedIn: Self.resolving(colorScheme)) }), supportsOpacity: false)
                         .accessibilityIdentifier("maps.color")
                 case .reference(let colormap):
                     Picker("Colormap", selection: colormap) {
