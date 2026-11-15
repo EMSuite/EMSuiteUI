@@ -1,7 +1,7 @@
 import SwiftUI
 import Foundation
 
-/// Anchor colours from matplotlib's viridis and inferno (CC0) and ColorBrewer's RdBu (Apache-2.0); see `NOTICE`.
+/// matplotlib's viridis and inferno tables (CC0) and ColorBrewer's RdBu stops (Apache-2.0), from `ColormapTables`; see `NOTICE`.
 public nonisolated enum Colormaps {
     /// Returns RGBA bytes for the requested colormap.
     public static func lutRGBA(_ kind: ColormapKind, count: Int = 256) -> [UInt8] {
@@ -66,33 +66,23 @@ public nonisolated enum Colormaps {
         return (1, 1, 1)
     }
 
+    /// A flat RGB table as evenly spaced stops, the first at 0 and the last at 1.
+    private static func stops(_ table: [Double]) -> [(Double, Double, Double, Double)] {
+        let n = table.count / 3
+        return (0..<n).map { i in (Double(i) / Double(n - 1), table[3 * i], table[3 * i + 1], table[3 * i + 2]) }
+    }
+
     private static func anchors(for kind: ColormapKind) -> [(Double, Double, Double, Double)] {
         switch kind {
         case .gray:
             return [(0, 0, 0, 0), (1, 1, 1, 1)]
         case .viridis:
-            return [
-                (0.00, 0.267, 0.005, 0.329),
-                (0.25, 0.254, 0.265, 0.530),
-                (0.50, 0.128, 0.567, 0.551),
-                (0.75, 0.369, 0.789, 0.383),
-                (1.00, 0.993, 0.906, 0.144)
-            ]
+            return stops(ColormapTables.viridis)
         case .inferno:
-            return [
-                (0.00, 0.001, 0.000, 0.014),
-                (0.25, 0.258, 0.039, 0.406),
-                (0.50, 0.578, 0.148, 0.404),
-                (0.75, 0.865, 0.316, 0.226),
-                (0.90, 0.988, 0.645, 0.040),
-                (1.00, 0.988, 0.998, 0.645)
-            ]
+            return stops(ColormapTables.inferno)
         case .rdbu:
-            return [
-                (0.00, 0.129, 0.400, 0.674),
-                (0.50, 0.969, 0.969, 0.969),
-                (1.00, 0.698, 0.094, 0.168)
-            ]
+            // Low values blue, high red, as this map has always run here (matplotlib's RdBu_r): matplotlib's table reversed.
+            return stops(ColormapTables.rdbu).reversed().map { (1 - $0.0, $0.1, $0.2, $0.3) }
         }
     }
 }
