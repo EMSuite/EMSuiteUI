@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import SpectroEDX
 @testable import ShellEDXModel
 
 nonisolated final class EDXPinsCSVLinesTests: XCTestCase {
