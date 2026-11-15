@@ -37,6 +37,9 @@ public final class ActivityLog {
     /// The log as plain strings, for every caller that reads text only.
     public var messages: [String] { lines.map(\.text) }
 
+    /// Whether the log holds no line, read without copying the strings (`messages` maps every line).
+    public var isEmpty: Bool { lines.isEmpty }
+
     /// The next line's id. Not observed: only `lines` drives the view.
     @ObservationIgnored private var nextID = 0
 

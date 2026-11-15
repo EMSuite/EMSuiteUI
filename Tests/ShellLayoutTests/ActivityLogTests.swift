@@ -185,6 +185,16 @@ nonisolated final class ActivityLogTests: XCTestCase {
             XCTAssertEqual(ActivityLog.clockText(instant(iso), locale: de, timeZone: utc), expected, "de_DE \(iso)")
         }
     }
+
+    /// The Output pane's Clear is enabled by `isEmpty`, which reads the lines without copying 300 strings (macEMSuite/MacEMUI#129).
+    @MainActor func testIsEmptyFollowsTheLines() {
+        let log = ActivityLog()
+        XCTAssertTrue(log.isEmpty)
+        log.record("one")
+        XCTAssertFalse(log.isEmpty)
+        log.clear()
+        XCTAssertTrue(log.isEmpty)
+    }
 }
 
 /// Set from `withObservationTracking`'s `onChange`, which runs off the main
