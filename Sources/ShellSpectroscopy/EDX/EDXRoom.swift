@@ -44,6 +44,7 @@ public struct EDXRoom: View {
                     ProgressView(value: session.openProgress)
                         .progressViewStyle(.linear)
                         .frame(maxWidth: EDXLayout.openingBarWidth)
+                        .accessibilityLabel("Opening spectrum image")
                     Text("Opening spectrum image").font(.headline)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

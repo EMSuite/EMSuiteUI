@@ -45,7 +45,7 @@ struct EDXResultsPanel: View {
                         .help(fit.method.kSource.isEmpty ? "The method at% and wt% come from" : "k-factors: \(EDXQuantMaps.sourceWithoutValidationClause(fit.method.kSource))")
                         .accessibilityIdentifier("edx.method")
                 }
-                if isFitting { ProgressView().controlSize(.small) }
+                if isFitting { ProgressView().controlSize(.small).accessibilityLabel("Fitting the spectrum") }
             }
             .padding(.horizontal, LayoutPolicy.infobarHorizontalPadding)
             .frame(height: LayoutPolicy.paneHeaderHeight)
@@ -162,7 +162,7 @@ private struct FitFooter: View {
             HStack(spacing: 6) {
                 if !notes.isEmpty { Text("\(notes.count) \(notes.count == 1 ? "note" : "notes")") ; Text("·") }
                 Text(summary)
-                if isChecking { ProgressView().controlSize(.mini) }
+                if isChecking { ProgressView().controlSize(.mini).accessibilityLabel("Checking the result") }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.up").font(.caption2)
             }
