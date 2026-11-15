@@ -33,7 +33,7 @@ public struct Colorbar: View {
     private static let stripHeight: CGFloat = 9
 
     public var body: some View {
-        // Built here, on the main actor, so the Canvas closure captures plain values.
+        // Read here, on the main actor, so the Canvas closure captures plain values; built once per colormap (`Colormaps.lut256`), not per body.
         // The image's own LUT (`MetalImageView` uploads 256 entries), sampled as its shader samples it.
         let lut = Colormaps.lutRGBA(colormap, count: 256)
         let barGamma = gamma, barLow = low, barHigh = high, barMarksZero = marksZero

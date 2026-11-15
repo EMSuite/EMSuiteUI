@@ -30,3 +30,15 @@ nonisolated final class ColormapTableTests: XCTestCase {
         for channel in [middle.0, middle.1, middle.2] { XCTAssertEqual(Double(channel), 247, accuracy: 2, "white in the middle") }
     }
 }
+
+/// macEMSuite/MacEMUI#129: the 256-entry LUT is built once per colormap, not on every colorbar body or tile redraw.
+nonisolated final class ColormapLUTCacheTests: XCTestCase {
+    func testThe256EntryLUTIsBuiltOnce() {
+        for kind in ColormapKind.allCases {
+            let a = Colormaps.lutRGBA(kind), b = Colormaps.lutRGBA(kind, count: 256)
+            let sameStorage = a.withUnsafeBufferPointer { pa in b.withUnsafeBufferPointer { pb in pa.baseAddress == pb.baseAddress } }
+            XCTAssertTrue(sameStorage, "\(kind): one shared table")
+            XCTAssertEqual(Colormaps.lutRGBA(kind, count: 44).count, 44 * 4, "other sizes are still built on request")
+        }
+    }
+}
