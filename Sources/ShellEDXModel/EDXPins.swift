@@ -93,16 +93,17 @@ public nonisolated enum EDXPins {
     }
 
     private static func quote(_ s: String) -> String {
-        s.contains(where: { $0 == "," || $0 == "\"" || $0 == "\n" }) ? "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" : s
+        s.unicodeScalars.contains(where: { $0 == "," || $0 == "\"" || $0 == "\n" || $0 == "\r" }) ? "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" : s
     }
 
     /// The pins a `csv` file lists: name, shape and geometry (the numbers are recomputed from the image, not read back). nil for a file
-    /// that is not this CSV; a row whose shape or geometry does not parse is skipped.
+    /// that is not this CSV; a row whose shape or geometry does not parse is skipped. Records end at LF, CRLF or CR outside quotes (a file
+    /// saved on Windows), and a quoted name keeps a line break inside it (#96).
     package static func parse(_ text: String) -> [EDXPin]? {
-        let lines = text.split(separator: "\n", omittingEmptySubsequences: true).map(String.init).filter { !$0.hasPrefix("#") }
-        guard let header = lines.first, header.hasPrefix("name,shape,geometry,pixels,counts") else { return nil }
-        return lines.dropFirst().compactMap { line in
-            let cells = split(line)
+        let rows = records(text).filter { !($0.raw.hasPrefix("#")) && !$0.cells.allSatisfy(\.isEmpty) }
+        guard let header = rows.first, header.cells.prefix(5) == ["name", "shape", "geometry", "pixels", "counts"] else { return nil }
+        return rows.dropFirst().compactMap { row in
+            let cells = row.cells
             guard cells.count >= 3, let region = region(shape: cells[1], geometry: cells[2]) else { return nil }
             return EDXPin(name: cells[0], region: region)
         }
@@ -126,20 +127,41 @@ public nonisolated enum EDXPins {
         }
     }
 
-    /// One CSV line into cells, honouring double quotes.
-    private static func split(_ line: String) -> [String] {
-        var cells: [String] = [], cur = "", quoted = false
-        var it = line.makeIterator()
-        var pending: Character?
+    /// The CSV's records, each as its cells and the text it started with (a comment starts with "#"), honouring double quotes. Read by
+    /// Unicode scalar: as `Character`s, CRLF is one character that equals neither "\r" nor "\n". Only LF, CRLF and CR end a record, as
+    /// a text file's lines end; a line break inside quotes is the cell's, written as LF.
+    package static func records(_ text: String) -> [(cells: [String], raw: String)] {
+        var out: [(cells: [String], raw: String)] = []
+        var cells: [String] = [], cell = String.UnicodeScalarView(), raw = String.UnicodeScalarView()
+        var quoted = false, afterCR = false
+        var it = text.unicodeScalars.makeIterator()
+        var pending: Unicode.Scalar?
+        func endRecord() {
+            cells.append(String(cell))
+            out.append((cells, String(raw)))
+            cells = []; cell = .init(); raw = .init()
+        }
         while let c = pending ?? it.next() {
             pending = nil
+            if afterCR { afterCR = false; if c == "\n" { continue } }
             if quoted {
+                raw.append(c)
                 if c == "\"" {
-                    if let n = it.next() { if n == "\"" { cur.append("\"") } else { quoted = false; pending = n } } else { quoted = false }
-                } else { cur.append(c) }
-            } else if c == "\"" { quoted = true } else if c == "," { cells.append(cur); cur = "" } else { cur.append(c) }
+                    if let n = it.next() {
+                        if n == "\"" { cell.append("\""); raw.append(n) } else { quoted = false; pending = n }
+                    } else { quoted = false }
+                } else if c == "\r" {
+                    cell.append("\n"); afterCR = true
+                } else { cell.append(c) }
+            } else if c == "\n" || c == "\r" {
+                endRecord()
+                afterCR = c == "\r"
+            } else {
+                raw.append(c)
+                if c == "\"" { quoted = true } else if c == "," { cells.append(String(cell)); cell = .init() } else { cell.append(c) }
+            }
         }
-        cells.append(cur)
-        return cells
+        if !cell.isEmpty || !cells.isEmpty || !raw.isEmpty { endRecord() }
+        return out
     }
 }
