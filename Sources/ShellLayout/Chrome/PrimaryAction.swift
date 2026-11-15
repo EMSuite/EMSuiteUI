@@ -71,6 +71,16 @@ public nonisolated enum PrimaryActionPresentation: Equatable, Sendable {
         return .verb(prominent: isEnabled)
     }
 
+    /// Cancel's hover help: the operation and its key, ⌘. (both apps' Stop menu item; macEMSuite/MacEMUI#126).
+    public static func cancelHelp(_ operationName: String?) -> String {
+        "Cancel \(operationName ?? "the running operation") (⌘.)"
+    }
+
+    /// What VoiceOver reads for the spinner of a run that cannot be cancelled.
+    public static func spinnerLabel(_ operationName: String?) -> String {
+        operationName.map { "\($0) in progress" } ?? "Working"
+    }
+
     @MainActor
     public static func of(_ action: PrimaryAction?) -> PrimaryActionPresentation {
         guard let action else { return .hidden }
@@ -114,13 +124,15 @@ public struct PrimaryActionButton: View {
                     Label("Cancel", systemImage: "xmark.circle")
                 }
                 .buttonStyle(.bordered)
-                .help(action.operationName ?? "")
+                // The key is the apps' own Stop menu item (⌘., the Mac's stop key); a second ⌘. here would make the key ambiguous.
+                .help(PrimaryActionPresentation.cancelHelp(action.operationName))
                 .accessibilityLabel("Cancel \(action.operationName ?? "the running operation")")
                 .accessibilityIdentifier("workspace.cancelAction")
             case .spinner:
                 ProgressView()
                     .controlSize(.small)
                     .help(action.operationName ?? "")
+                    .accessibilityLabel(PrimaryActionPresentation.spinnerLabel(action.operationName))
             }
         }
     }

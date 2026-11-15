@@ -83,7 +83,7 @@ private struct EDXMapsSection: View {
         case .idle, .done: EmptyView()
         case .blocked(let why): InspectorNote(why).accessibilityIdentifier("edx.mapsStatus")
         case .running:
-            HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Computing \(session.mapMode.title) maps…") }
+            HStack(spacing: 6) { ProgressView().controlSize(.small).accessibilityHidden(true); Text("Computing \(session.mapMode.title) maps…") }
                 .font(.caption).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityIdentifier("edx.mapsStatus")
@@ -105,7 +105,7 @@ private struct EDXElementsSection: View {
                     .disabled(autoID == .running)
                     .help("Propose elements from the region's spectrum (the element proposer)")
                     .accessibilityIdentifier("edx.autoID")
-                if autoID == .running { ProgressView().controlSize(.small) }
+                if autoID == .running { ProgressView().controlSize(.small).accessibilityLabel("Proposing elements") }
             }
             if case .failed(let message) = autoID { InspectorWarning(message, systemImage: "xmark.octagon.fill") }
         }

@@ -161,3 +161,16 @@ nonisolated final class ShellChromeTests: XCTestCase {
         XCTAssertEqual(tab.title, "Output")
     }
 }
+
+/// macEMSuite/MacEMUI#126: Cancel names its key, and the spinner that stands in for an uncancellable run is named.
+nonisolated final class PrimaryActionKeyboardTests: XCTestCase {
+    func testCancelNamesItsKey() {
+        XCTAssertEqual(PrimaryActionPresentation.cancelHelp("Index"), "Cancel Index (⌘.)")
+        XCTAssertEqual(PrimaryActionPresentation.cancelHelp(nil), "Cancel the running operation (⌘.)")
+    }
+
+    func testTheSpinnerIsNamed() {
+        XCTAssertEqual(PrimaryActionPresentation.spinnerLabel("Quantify"), "Quantify in progress")
+        XCTAssertEqual(PrimaryActionPresentation.spinnerLabel(nil), "Working")
+    }
+}
