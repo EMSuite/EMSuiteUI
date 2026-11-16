@@ -60,20 +60,27 @@ public struct Colorbar: View {
                     }, with: .color(.white), lineWidth: 1)
                 }
             }
-            .frame(width: Self.stripWidth, height: Self.stripHeight)
+            // At least the design width, wider when the numbers under it need it, so the strip's ends stay
+            // under the end labels (MacEMUI#160).
+            .frame(minWidth: Self.stripWidth, maxWidth: .infinity, minHeight: Self.stripHeight,
+                   maxHeight: Self.stripHeight)
             .overlay(RoundedRectangle(cornerRadius: 1)
                 .stroke(Color.white.opacity(0.45), lineWidth: 0.5))
 
+            // Each number on one line, never wrapped (a strain range such as -1.23e-05 … 1.23e-05 is wider
+            // than the design width): the row and the strip above it grow instead.
             HStack(spacing: 4) {
-                Text(Self.format(low))
-                Spacer()
-                if marksZero, low < 0, high > 0 { Text("0") }
-                Spacer()
-                Text(Self.format(high))
+                Text(Self.format(low)).lineLimit(1).fixedSize()
+                Spacer(minLength: 4)
+                if marksZero, low < 0, high > 0 { Text("0").lineLimit(1).fixedSize() }
+                Spacer(minLength: 4)
+                Text(Self.format(high)).lineLimit(1).fixedSize()
             }
-            .frame(width: Self.stripWidth)
+            .frame(minWidth: Self.stripWidth, maxWidth: .infinity)
             if !unitLabel.isEmpty {
                 Text(unitLabel)
+                    .lineLimit(1)
+                    .fixedSize()
                     .foregroundStyle(.white.opacity(0.75))
             }
             if showsMasked {
@@ -86,10 +93,14 @@ public struct Colorbar: View {
                         .overlay(RoundedRectangle(cornerRadius: 1)
                             .stroke(Color.white.opacity(0.45), lineWidth: 0.5))
                     Text("masked · no fit")
+                        .lineLimit(1)
+                        .fixedSize()
                         .foregroundStyle(.white.opacity(0.75))
                 }
             }
         }
+        // The plate takes its content's own width: the strip and the number row share it.
+        .fixedSize(horizontal: true, vertical: false)
         .font(.caption2.monospacedDigit())
         .foregroundStyle(.white)
         .padding(.horizontal, 7)
