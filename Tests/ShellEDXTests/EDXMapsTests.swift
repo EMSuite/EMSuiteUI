@@ -380,7 +380,6 @@ nonisolated final class EDXMapsTests: XCTestCase {
         XCTAssertEqual(maps.computeCount, 3, "with the filter off nothing is made or kept")
     }
 
-
     /// A single 9 at the centre of a 3 × 3: the 3 × 3 average makes every pixel 1 (the window holds the centre; reflect keeps the edges inside the picture);
     /// off is the identity; a NaN pixel stays NaN and the others average over the finite ones only.
     func testTheKernelOnAKnownArray() {
