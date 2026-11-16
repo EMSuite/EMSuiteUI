@@ -62,6 +62,8 @@ package nonisolated final class EDXFilteredMaps: Sendable {
         package var values: [Double]
         /// The 1st to 99th percentile of the raw values, with the filter on; nil with it off or with no span.
         package var displayRange: ClosedRange<Double>?
+
+        package init(values: [Double], displayRange: ClosedRange<Double>?) { self.values = values; self.displayRange = displayRange }
     }
 
     private struct Entry: Sendable {
