@@ -100,6 +100,9 @@ public nonisolated enum PeriodicTableGrid {
     public static func cellSize(width: CGFloat) -> CGFloat { (max(width, minimumWidth) - CGFloat(columns - 1) * gap) / CGFloat(columns) }
     /// Half the cell, clamped to 9...13 points.
     public static func symbolSize(cell: CGFloat) -> CGFloat { min(max(0.5 * cell, 9), 13) }
+    /// The symbols' size at a table `width`, in whole half points: the table keeps this, not its width, so a resize redraws the 118 cells
+    /// only when the size steps (at most nine sizes, all between widths 358 and 502), not on every frame of the drag (MacEMUI#158).
+    public static func symbolSize(width: CGFloat) -> CGFloat { (symbolSize(cell: cellSize(width: width)) * 2).rounded() / 2 }
     public static func height(width: CGFloat, rowCount: Int) -> CGFloat {
         rowCount > 0 ? CGFloat(rowCount) * cellSize(width: width) + CGFloat(rowCount - 1) * gap : 0
     }
@@ -127,7 +130,8 @@ struct PeriodicGridLayout: Layout {
 public struct PeriodicTable: View {
     private let actions: PeriodicTableActions
     @State private var foldedOpen = false
-    @State private var width = PeriodicTableGrid.idealWidth
+    /// The symbols' size, from the width (`symbolSize(width:)`); only a change of it redraws the cells.
+    @State private var symbolSize = PeriodicTableGrid.symbolSize(width: PeriodicTableGrid.idealWidth)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var rotorSpace
 
@@ -157,7 +161,7 @@ public struct PeriodicTable: View {
                 PeriodicGridLayout { ForEach(PeriodicTableGrid.folded, id: \.self) { cell($0) } }
             }
         }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .onGeometryChange(for: CGFloat.self) { PeriodicTableGrid.symbolSize(width: $0.size.width) } action: { symbolSize = $0 }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("periodicTable")
         .accessibilityRotor("Mapped") {
@@ -168,7 +172,7 @@ public struct PeriodicTable: View {
     private func cell(_ z: Int) -> some View {
         let state = actions.state(z)
         let sym = PeriodicTableGrid.symbol(z)
-        let size = PeriodicTableGrid.symbolSize(cell: PeriodicTableGrid.cellSize(width: width))
+        let size = symbolSize
         return Button { actions.click(z) } label: {
             Text(sym)
                 .font(.system(size: size, weight: .semibold))

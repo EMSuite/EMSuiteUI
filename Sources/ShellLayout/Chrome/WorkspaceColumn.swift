@@ -152,7 +152,9 @@ public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
     }
 
     /// One pane fills the area; two or more are split by draggable dividers, each with its own stored fraction (the
-    /// first keeps the key the apps have always used).
+    /// first keeps the key the apps have always used). `AnyView` on purpose (MacEMUI#158): the panes are a list the apps register at run
+    /// time and the split nests once per pane, which no static view type can spell; each pane's type is fixed for the window's life and
+    /// this runs only when the column's body does (a pane toggle, a resize), not per frame of a pane's own content.
     private func panes(_ shown: ArraySlice<ProcessTab>, level: Int) -> AnyView {
         guard let first = shown.first else { return AnyView(EmptyView()) }
         if shown.count == 1 { return first.content() }

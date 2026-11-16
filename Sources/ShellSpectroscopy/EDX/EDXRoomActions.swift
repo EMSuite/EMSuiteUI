@@ -22,7 +22,9 @@ public struct EDXRoomActions {
     /// The app's marks over a map tile (mac4DSTEM: its precipitate glyphs), drawn in `MapTileView`'s overlay slot: zoomed with the
     /// picture, under the regions, taking no clicks. Called with the tile's id (`"haadf"`, an element's symbol, or
     /// `EDXGridItem.mixID`) and the tile's `MapTileOverlayContext`; nil draws nothing. Read it only from values (no `@Observable`
-    /// app state in the closure), or every tile redraws on any change of that state.
+    /// app state in the closure), or every tile redraws on any change of that state. `AnyView` on purpose (MacEMUI#158): a stored closure
+    /// of the room's actions cannot carry a generic view type without making the room and both apps' call sites generic, and an overlay
+    /// keeps one concrete type per app, so SwiftUI diffs through the box like the view inside it; nil (both apps today) makes no box at all.
     public var mapOverlay: ((_ tileID: String, _ context: MapTileOverlayContext) -> AnyView)?
     /// The app's one Open, for a file picked with the room's own Open button: an app that routes every door through one Open (Open
     /// Recent, its other rooms, its results) sets it, and the room's session is opened by that Open, not by the button. nil opens the

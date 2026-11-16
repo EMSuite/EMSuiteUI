@@ -107,6 +107,19 @@ nonisolated final class PeriodicTableGridTests: XCTestCase {
         XCTAssertEqual(PeriodicTable.describe(.fitOnly), "fit only")
         XCTAssertEqual(ElementRoleChoice.allCases.map(\.title), ["Quantify", "Fit only", "Off"])
     }
+
+    /// The table keeps the symbols' size, not its width (MacEMUI#158): a resize drag redraws the 118 cells only when the size steps. Across every
+    /// half-point width from 200 to 800 the size takes at most nine values, in half points, and only between widths 358 and 502.
+    func testAResizeChangesTheSymbolSizeInFewSteps() {
+        let widths = stride(from: CGFloat(200), through: 800, by: 0.5)
+        let sizes = widths.map(PeriodicTableGrid.symbolSize(width:))
+        XCTAssertLessThanOrEqual(Set(sizes).count, 9)
+        XCTAssertTrue(sizes.allSatisfy { ($0 * 2).rounded() == $0 * 2 && (9...13).contains($0) })
+        let steps = zip(widths.dropFirst(), zip(sizes, sizes.dropFirst())).filter { pair in pair.1.0 != pair.1.1 }.map { pair in pair.0 }
+        XCTAssertTrue(steps.allSatisfy { (358...502).contains($0) }, "\(steps)")
+        XCTAssertEqual(PeriodicTableGrid.symbolSize(width: 248), 9)
+        XCTAssertEqual(PeriodicTableGrid.symbolSize(width: 600), 13)
+    }
 }
 
 nonisolated final class ColorMixSelectionTests: XCTestCase {

@@ -8,6 +8,7 @@
 //        `MapViewTransform` (`MapTileZoomSync`). An app may draw its own marks over the picture in the overlay slot (mac4DSTEM: its precipitate glyphs).
 //
 
+import Combine
 import ShellControls
 import ShellMetal
 import SwiftUI
@@ -51,6 +52,13 @@ public struct MapTileOverlayContext: Equatable, Sendable {
     }
 }
 
+/// Holds a tile's `PaneZoomModel` for `@StateObject`, whose autoclosure runs once per tile identity. It publishes nothing itself: the views
+/// that read the model observe the model (`@Observable`), never this holder.
+final class PaneZoomHolder: ObservableObject {
+    let model = PaneZoomModel()
+    init(state: ZoomPan) { model.state = state }
+}
+
 public struct MapTileView<Controls: View, Overlay: View>: View {
     private let title: String
     private let detail: String?
@@ -70,7 +78,8 @@ public struct MapTileView<Controls: View, Overlay: View>: View {
     private let placeholder: String?
     @Binding private var transform: MapViewTransform
     /// This tile's pane zoom for its `ImageViewport`: the shared transform in this tile's points (`MapTileZoomSync`).
-    @State private var zoomModel: PaneZoomModel
+    @StateObject private var zoomHolder: PaneZoomHolder
+    private var zoomModel: PaneZoomModel { zoomHolder.model }
     @State private var local: MapPixel?
     @FocusState private var focused: Bool
     @State private var showControls = false
@@ -91,10 +100,11 @@ public struct MapTileView<Controls: View, Overlay: View>: View {
         self.title = title; self.detail = detail; self.image = image; self.size = size; self.scanWidth = scanWidth; self.scanHeight = scanHeight
         self.pixelSize = pixelSize; self.pixelUnit = pixelUnit; self.filteredTag = filteredTag; self.regions = regions; self.inMix = inMix; self.onToggleMix = onToggleMix
         self.onHover = onHover; self.controls = controls(); self.overlay = overlay
-        // The first state is the shared transform already, so the first frame draws it (the sync below keeps it so).
-        let model = PaneZoomModel()
-        model.state = transform.wrappedValue.paneState(in: size)
-        self._zoomModel = State(initialValue: model)
+        // The first state is the shared transform already, so the first frame draws it (the sync below keeps it so). Made once, when the tile
+        // first appears: `@StateObject` takes an autoclosure, where `State(initialValue:)` built a model on every init of every tile and
+        // SwiftUI kept only the first (MacEMUI#158).
+        let first = transform.wrappedValue.paneState(in: size)
+        self._zoomHolder = StateObject(wrappedValue: PaneZoomHolder(state: first))
     }
 
     public var body: some View {
