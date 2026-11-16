@@ -2,6 +2,14 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.12.3](https://github.com/macEMSuite/MacEMUI/compare/0.12.2...0.12.3) (2026-11-16)
+
+
+### Bug Fixes
+
+* the agent door registers an app whose name has a space as one word ([#165](https://github.com/macEMSuite/MacEMUI/issues/165)) ([75d4acf](https://github.com/macEMSuite/MacEMUI/commit/75d4acfde1306264bd3cb3f721edb001fa91ba9d))
+* the agent door registers an app whose name has a space as one word ([#166](https://github.com/macEMSuite/MacEMUI/issues/166)) ([75d4acf](https://github.com/macEMSuite/MacEMUI/commit/75d4acfde1306264bd3cb3f721edb001fa91ba9d))
+
 ## [0.12.2](https://github.com/macEMSuite/MacEMUI/compare/0.12.1...0.12.2) (2026-11-16)
 
 
