@@ -2,6 +2,33 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.12.0](https://github.com/macEMSuite/MacEMUI/compare/0.11.0...0.12.0) (2026-11-16)
+
+
+### Features
+
+* Settings' Scroll wheel: Zoom · Pan for every zoomable picture ([#156](https://github.com/macEMSuite/MacEMUI/issues/156)) ([54804a4](https://github.com/macEMSuite/MacEMUI/commit/54804a4a36bf82e567a82b78610f063e07bf8357))
+
+
+### Bug Fixes
+
+* draw the hovered pixel's spectrum in a tone that reads in light mode ([#148](https://github.com/macEMSuite/MacEMUI/issues/148)) ([3102ed4](https://github.com/macEMSuite/MacEMUI/commit/3102ed48f182dbd2531fd810629c9e1b1f832b50))
+* draw viridis, inferno and RdBu from matplotlib's own tables; map colours change slightly: these colormaps now match matplotlib's exactly, so a map drawn with them differs a little from 0.11.0 ([2e12b2f](https://github.com/macEMSuite/MacEMUI/commit/2e12b2fd21d3fd39b5c59af76724b1b9c4ac16dc))
+* give the profile chart one accessibility element with its axes and units ([#149](https://github.com/macEMSuite/MacEMUI/issues/149)) ([eaf91a1](https://github.com/macEMSuite/MacEMUI/commit/eaf91a15d6bcb52d10a5c68035870b47913909b3))
+* name every progress spinner for VoiceOver and show Cancel's key ([#150](https://github.com/macEMSuite/MacEMUI/issues/150)) ([e27e760](https://github.com/macEMSuite/MacEMUI/commit/e27e760317fb24a6e6da43e3c5e105ff8e7e3859))
+* the EDS pins CSV reads back with Windows line ends and names that hold a line break ([#147](https://github.com/macEMSuite/MacEMUI/issues/147)) ([c2b53ba](https://github.com/macEMSuite/MacEMUI/commit/c2b53ba62d27ff75d8cd16cd4e82a881e7e0043a))
+* the memory glance shows whole figures, then the chip alone, never a cut number ([#159](https://github.com/macEMSuite/MacEMUI/issues/159)) ([09ee052](https://github.com/macEMSuite/MacEMUI/commit/09ee0525740046988c870d50fe8a471653fd9e02))
+* the Metal picture is tagged sRGB, so on a P3 display it shows the colours its swatch shows; map colours change slightly on a wide-gamut display, where 0.11.0 drew them more saturated ([977fd6e](https://github.com/macEMSuite/MacEMUI/commit/977fd6e0f8899409e0665b3501def0a0c1582e90))
+* write EDS counts without a grouping separator ([#145](https://github.com/macEMSuite/MacEMUI/issues/145)) ([a48d240](https://github.com/macEMSuite/MacEMUI/commit/a48d240128d648c862286f76a7219c5e48e4d1c5)), closes [#89](https://github.com/macEMSuite/MacEMUI/issues/89)
+
+
+### Performance Improvements
+
+* build each colormap's 256-entry LUT once instead of on every redraw ([#152](https://github.com/macEMSuite/MacEMUI/issues/152)) ([c226c56](https://github.com/macEMSuite/MacEMUI/commit/c226c56d59730e6a000cb369eff4b40eeaed3c4a))
+* map pictures window and gamma the whole map in Accelerate passes ([#157](https://github.com/macEMSuite/MacEMUI/issues/157)) ([088abc0](https://github.com/macEMSuite/MacEMUI/commit/088abc01bdfe7d9c5c310e769dd20855c89cd2ac))
+* the map Display popover reads only the colour scheme, not the whole environment ([#154](https://github.com/macEMSuite/MacEMUI/issues/154)) ([dbd49d8](https://github.com/macEMSuite/MacEMUI/commit/dbd49d8b550b20a7917e4917900fe096dacde8d7))
+* the profile chart thins a long line to each run's extremes; Output's Clear reads isEmpty ([#153](https://github.com/macEMSuite/MacEMUI/issues/153)) ([4ea3e86](https://github.com/macEMSuite/MacEMUI/commit/4ea3e86cb4cb05ad39fd8cd9bf22b6f478d80836))
+
 ## [0.11.0](https://github.com/macEMSuite/MacEMUI/compare/0.10.0...0.11.0) (2026-11-14)
 
 
