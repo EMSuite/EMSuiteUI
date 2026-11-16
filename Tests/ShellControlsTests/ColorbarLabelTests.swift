@@ -1,3 +1,4 @@
+import ShellMetal
 import SwiftUI
 import XCTest
 @testable import ShellControls
