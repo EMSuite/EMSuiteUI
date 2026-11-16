@@ -63,11 +63,13 @@ nonisolated final class MetalEngineDisplayTests: XCTestCase {
     }
 
     /// An image wider than the 16384 pixels a 2D texture may have draws, at the right columns: 20000 × 1, black up to
-    /// column 16384 and white from there, drawn into 4 pixels that read columns 2500, 7500, 12500 and 17500 (macTEM#562).
+    /// column 15000 and white from there, drawn into 4 pixels of 5000 columns each (macTEM#562). The last pixel averages
+    /// columns 15000 to 19999 only, past the texture limit; before the footprint average (MacEMUI#158) the boundary sat at
+    /// 16384, which a single nearest read at column 17500 did not see.
     @MainActor func testAnImageWiderThanATextureMayBeDrawsAtTheRightColumns() throws {
         let engine = MetalEngine.shared
         let width = 20_000
-        let pixels = (0..<width).map { $0 < 16_384 ? Float(0) : 1 }
+        let pixels = (0..<width).map { $0 < 15_000 ? Float(0) : 1 }
         let data = try XCTUnwrap(engine.device.makeImageBuffer(pixels: pixels, width: width, height: 1))
         let lut = try XCTUnwrap(engine.device.makeLUTTexture(rgba: Colormaps.lutRGBA(.gray, count: 256)))
         let bgra = try Self.render(engine.displayPSO, width: 4, height: 1) { encoder in
@@ -77,6 +79,52 @@ nonisolated final class MetalEngineDisplayTests: XCTestCase {
             encoder.setFragmentTexture(lut, index: 1)
         }
         XCTAssertEqual(bgra, [0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 255, 255])
+    }
+
+    /// Zoomed out, a pane pixel averages its footprint instead of reading one image pixel (MacEMUI#158): a 64 × 64
+    /// one-pixel checkerboard drawn into 8 × 8 pixels is an even gray everywhere. One nearest read per pixel drew it all
+    /// black or all white, the moiré a fitted 375-megapixel image showed.
+    @MainActor func testAZoomedOutCheckerboardAveragesToGray() throws {
+        let engine = MetalEngine.shared
+        let side = 64
+        let pixels = (0..<side * side).map { Float(($0 % side + $0 / side) % 2) }
+        let data = try XCTUnwrap(engine.device.makeImageBuffer(pixels: pixels, width: side, height: side))
+        let lut = try XCTUnwrap(engine.device.makeLUTTexture(rgba: Colormaps.lutRGBA(.gray, count: 256)))
+        let bgra = try Self.render(engine.displayPSO, width: 8, height: 8) { encoder in
+            var display = SIMD4<Float>(0, 1, 1, 0)
+            encoder.setFragmentBytes(&display, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
+            Self.bind(data, width: side, height: side, encoder)
+            encoder.setFragmentTexture(lut, index: 1)
+        }
+        Self.assertEvenGray(bgra, "scalar")
+    }
+
+    /// The RGBA pipeline averages the same way zoomed out: a black and white one-pixel checkerboard of 64 × 64 drawn
+    /// into 8 × 8 pixels is gray.
+    @MainActor func testAZoomedOutRGBACheckerboardAveragesToGray() throws {
+        let engine = MetalEngine.shared
+        let side = 64
+        let rgba: [UInt8] = (0..<side * side).flatMap { index -> [UInt8] in
+            let v: UInt8 = (index % side + index / side) % 2 == 0 ? 0 : 255
+            return [v, v, v, 255]
+        }
+        let texture = try XCTUnwrap(engine.device.makeRGBATexture(rgba: rgba, width: side, height: side))
+        let bgra = try Self.render(engine.displayRGBAPSO, width: 8, height: 8) { encoder in
+            encoder.setFragmentTexture(texture, index: 0)
+        }
+        Self.assertEvenGray(bgra, "RGBA")
+    }
+
+    /// Every pixel of `bgra` is opaque and within one step of mid gray (half of black and white, 127.5).
+    private static func assertEvenGray(_ bgra: [UInt8], _ what: String, file: StaticString = #filePath, line: UInt = #line) {
+        for pixel in stride(from: 0, to: bgra.count, by: 4) {
+            for channel in 0..<3 {
+                let value = Int(bgra[pixel + channel])
+                XCTAssertTrue((127...128).contains(value), "\(what) pixel \(pixel / 4): \(Array(bgra[pixel..<pixel + 4]))",
+                              file: file, line: line)
+            }
+            XCTAssertEqual(bgra[pixel + 3], 255, file: file, line: line)
+        }
     }
 
     /// Whole-number pixels stored one byte each are normalised by the shader over their range: 0, 255 and 51 of 0…255

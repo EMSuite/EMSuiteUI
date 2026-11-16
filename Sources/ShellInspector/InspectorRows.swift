@@ -488,18 +488,71 @@ public struct InspectorActionRow<Content: View>: View {
         self.content = content()
     }
 
+    // One layout over the buttons, not a `ViewThatFits` of a row and a column: there each arrangement held its own copy of the buttons, so
+    // a width flip swapped copies and an open popover or dialog a button owns closed (MacEMUI#158).
     public var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: InspectorMetrics.rowSpacing) {
-                content
-            }
-            VStack(spacing: InspectorMetrics.rowSpacing) {
-                content
-            }
+        InspectorActionRowLayout(spacing: InspectorMetrics.rowSpacing) {
+            content
         }
         .buttonSizing(.flexible)
         .controlSize(.regular)
         .frame(maxWidth: .infinity)
+    }
+}
+
+/// The action row's buttons side by side while their ideal widths fit, else stacked full width. Side by side, every button gets an equal
+/// share of the row, but never less than its own ideal width (the wider keep theirs, the rest share what is left), so a label is never cut.
+struct InspectorActionRowLayout: Layout {
+    var spacing: CGFloat
+
+    /// The widths of buttons of ideal widths `ideal` side by side in `width`; nil when they do not fit (stack them). Pure, so a test holds it.
+    static func rowWidths(ideal: [CGFloat], width: CGFloat?, spacing: CGFloat) -> [CGFloat]? {
+        let gaps = spacing * CGFloat(max(ideal.count - 1, 0))
+        let total = ideal.reduce(0, +) + gaps
+        guard let width, width.isFinite else { return ideal }
+        guard total <= width else { return nil }
+        var widths = ideal, fixed = Set<Int>()
+        // Water-filling: a button wider than the equal share keeps its ideal width; the others split what is left, until none is wider.
+        while true {
+            let free = ideal.indices.filter { !fixed.contains($0) }
+            guard !free.isEmpty else { return widths }
+            let share = (width - gaps - fixed.reduce(0) { $0 + ideal[$1] }) / CGFloat(free.count)
+            let wider = free.filter { ideal[$0] > share }
+            if wider.isEmpty {
+                for i in free { widths[i] = share }
+                return widths
+            }
+            fixed.formUnion(wider)
+        }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let ideal = subviews.map { $0.sizeThatFits(.unspecified).width }
+        if let widths = Self.rowWidths(ideal: ideal, width: proposal.width, spacing: spacing) {
+            let height = zip(subviews, widths).map { $0.sizeThatFits(ProposedViewSize(width: $1, height: nil)).height }.max() ?? 0
+            return CGSize(width: widths.reduce(0, +) + spacing * CGFloat(max(widths.count - 1, 0)), height: height)
+        }
+        let width = proposal.width ?? (ideal.max() ?? 0)
+        let heights = subviews.map { $0.sizeThatFits(ProposedViewSize(width: width, height: nil)).height }
+        return CGSize(width: width, height: heights.reduce(0, +) + spacing * CGFloat(max(heights.count - 1, 0)))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let ideal = subviews.map { $0.sizeThatFits(.unspecified).width }
+        if let widths = Self.rowWidths(ideal: ideal, width: bounds.width, spacing: spacing) {
+            var x = bounds.minX
+            for (view, width) in zip(subviews, widths) {
+                view.place(at: CGPoint(x: x, y: bounds.midY), anchor: .leading, proposal: ProposedViewSize(width: width, height: nil))
+                x += width + spacing
+            }
+            return
+        }
+        var y = bounds.minY
+        for view in subviews {
+            let proposal = ProposedViewSize(width: bounds.width, height: nil)
+            view.place(at: CGPoint(x: bounds.minX, y: y), proposal: proposal)
+            y += view.sizeThatFits(proposal).height + spacing
+        }
     }
 }
 

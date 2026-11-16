@@ -213,6 +213,8 @@ public final class EDXSession {
     /// The windows of the last landed refresh: the net maps the composition pass reads.
     @ObservationIgnored private var lastWindows: EDXCompute.Windows?
     @ObservationIgnored private var tileVersion = 0
+    /// The tiles' display-filtered values and windows, made once per tile version and filter, not on every contrast tick (MacEMUI#158).
+    @ObservationIgnored package let filteredMaps = EDXFilteredMaps()
     /// The newest Auto ID run; an older one that lands later is dropped.
     @ObservationIgnored private var autoIDRun = 0
     /// How many pins and lines were ever made in this image: numbers, default names and palette colours follow them, so a deleted one is not reused.

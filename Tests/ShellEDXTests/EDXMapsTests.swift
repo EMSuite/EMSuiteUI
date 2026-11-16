@@ -359,6 +359,28 @@ nonisolated final class EDXMapsTests: XCTestCase {
 
     // MARK: The display filter of the quantified maps (EDXMapFilter)
 
+    /// A contrast or gamma tick makes a tile's picture again; the filter and the percentile sort are made once per map version and filter, not
+    /// per picture (MacEMUI#158). The kept result equals a fresh one, a new version or filter makes it again, and with the filter off nothing is made.
+    func testTheFilteredMapIsMadeOncePerVersionAndFilter() {
+        var a = [Double](repeating: 0, count: 9); a[4] = 9; a[0] = 3
+        let maps = EDXFilteredMaps()
+        func tile(_ version: Int, _ filter: EDXMapFilter, stored: MapAdjustment? = nil) -> EDXTileDisplay {
+            EDXTileDisplay.make(values: a, width: 3, height: 3, top: 9, filter: filter, stored: stored, memo: (maps: maps, symbol: "Al", version: version))
+        }
+        let fresh = EDXTileDisplay.make(values: a, width: 3, height: 3, top: 9, filter: .mean3x3, stored: nil)
+        let first = tile(1, .mean3x3)
+        XCTAssertEqual(first.values, fresh.values)
+        XCTAssertEqual(first.fallback, fresh.fallback)
+        for gamma in [0.5, 1.5, 2.0] { _ = tile(1, .mean3x3, stored: MapAdjustment(low: 0, high: 1, gamma: gamma)) }
+        XCTAssertEqual(maps.computeCount, 1, "three contrast ticks filter nothing again")
+        _ = tile(2, .mean3x3)
+        _ = tile(2, .gaussian1px)
+        XCTAssertEqual(maps.computeCount, 3, "a new version or filter is made again")
+        XCTAssertEqual(tile(2, .off).values, a)
+        XCTAssertEqual(maps.computeCount, 3, "with the filter off nothing is made or kept")
+    }
+
+
     /// A single 9 at the centre of a 3 × 3: the 3 × 3 average makes every pixel 1 (the window holds the centre; reflect keeps the edges inside the picture);
     /// off is the identity; a NaN pixel stays NaN and the others average over the finite ones only.
     func testTheKernelOnAKnownArray() {

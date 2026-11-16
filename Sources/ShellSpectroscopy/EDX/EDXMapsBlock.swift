@@ -134,7 +134,7 @@ private struct EDXMapTileHost: View {
     }
 
     var body: some View {
-        let spec = Self.spec(for: item, appearance: appearance, filter: state.mapFilter, width: nx)
+        let spec = Self.spec(for: item, appearance: appearance, filter: state.mapFilter, width: nx, memo: session.filteredMaps)
         MapTileView(title: spec.title, detail: spec.detail, image: image, size: size, scanWidth: nx, scanHeight: ny,
                     pixelSize: session.scanPixel?.size, pixelUnit: session.scanPixel?.unit,
                     regions: regions.map { set in
@@ -194,7 +194,9 @@ private struct EDXMapTileHost: View {
     /// The filter a tile is drawn through: composition tiles only, never the net maps or the HAADF.
     static func filter(of tile: EDXMapTile, _ chosen: EDXMapFilter) -> EDXMapFilter { tile.mode == .net ? .off : chosen }
 
-    static func spec(for item: EDXGridItem, appearance: MapAppearance, filter chosen: EDXMapFilter, width: Int) -> Spec {
+    /// `memo`: the session's filtered maps, so a tile's filter and window are made once per map, not per picture (nil: afresh).
+    static func spec(for item: EDXGridItem, appearance: MapAppearance, filter chosen: EDXMapFilter, width: Int,
+                     memo: EDXFilteredMaps? = nil) -> Spec {
         switch item.kind {
         case .scan(let scan):
             let coloring = appearance.coloring(for: "haadf", default: .colormap(.gray)), adjustment = appearance.adjustment(for: "haadf")
@@ -211,13 +213,15 @@ private struct EDXMapTileHost: View {
         case .map(let tile):
             let coloring = appearance.coloring(for: tile.symbol, default: EDXRegionBridge.defaultColoring(tile.symbol)), stored = appearance.adjustments[tile.symbol]
             let values = tile.values, width = tile.width, height = tile.height, top = tile.maxValue, filter = Self.filter(of: tile, chosen)
+            let symbol = tile.symbol, version = tile.version
             return Spec(title: tile.symbol, detail: tile.line.replacingOccurrences(of: tile.symbol + " ", with: ""),
                         valueText: { [symbol = tile.symbol, unit = tile.mode.unit] x, y in
                             let i = y * width + x
                             return i < values.count && values[i].isFinite ? "\(symbol) \(Num.sig(values[i], 4)) \(unit)" : nil
                         },
                         raster: { @Sendable in
-                            let d = EDXTileDisplay.make(values: values, width: width, height: height, top: top, filter: filter, stored: stored)
+                            let d = EDXTileDisplay.make(values: values, width: width, height: height, top: top, filter: filter, stored: stored,
+                                                       memo: memo.map { (maps: $0, symbol: symbol, version: version) })
                             // A missing pixel is the scale's bottom: no width, no hatching.
                             return MapRaster.rgba(values: d.values, coloring: coloring, upper: top > 0 ? top : nil, adjustment: d.adjustment)
                         },
@@ -227,8 +231,10 @@ private struct EDXMapTileHost: View {
                 if let tile = member.tile {
                     let color = appearance.coloring(for: tile.symbol, default: EDXRegionBridge.defaultColoring(tile.symbol)).endColor, stored = appearance.adjustments[tile.symbol]
                     let values = tile.values, width = tile.width, height = tile.height, top = tile.maxValue, filter = Self.filter(of: tile, chosen)
+                    let symbol = tile.symbol, version = tile.version
                     return ({ @Sendable in
-                        let d = EDXTileDisplay.make(values: values, width: width, height: height, top: top, filter: filter, stored: stored)
+                        let d = EDXTileDisplay.make(values: values, width: width, height: height, top: top, filter: filter, stored: stored,
+                                                   memo: memo.map { (maps: $0, symbol: symbol, version: version) })
                         return MapRaster.MixLayer(values: d.values, color: color, upper: top > 0 ? top : nil, adjustment: d.adjustment)
                     }, "\(member.id)-\(color.hashValue)-\(stored.hashValue)-\(filter.rawValue)")
                 }
@@ -258,10 +264,16 @@ nonisolated struct EDXTileDisplay {
     /// The window "Reset Range" returns to: the full range, or the percentile window of a filtered map.
     var fallback: MapAdjustment
 
-    static func make(values: [Double], width: Int, height: Int, top: Double, filter: EDXMapFilter, stored: MapAdjustment?) -> EDXTileDisplay {
+    /// The tile a session's map draws. `memo` (the session's `filteredMaps`, the map's symbol and version) keeps the filtered values and the
+    /// percentile window between pictures, so a contrast or gamma tick only recolours (MacEMUI#158); nil makes them afresh.
+    static func make(values: [Double], width: Int, height: Int, top: Double, filter: EDXMapFilter, stored: MapAdjustment?,
+                     memo: (maps: EDXFilteredMaps, symbol: String, version: Int)? = nil) -> EDXTileDisplay {
+        let filtered = memo.map { $0.maps.result(symbol: $0.symbol, version: $0.version, filter: filter, values: values, width: width, height: height) }
+            ?? EDXFilteredMaps.Result(values: filter.apply(values, width: width, height: height),
+                                      displayRange: filter.isOn ? EDXMapFilter.displayRange(of: values) : nil)
         var fallback = MapAdjustment()
-        if filter.isOn, top > 0, let range = EDXMapFilter.displayRange(of: values) { fallback = MapAdjustment(low: range.lowerBound / top, high: range.upperBound / top) }
-        return EDXTileDisplay(values: filter.apply(values, width: width, height: height), upper: top, adjustment: stored ?? fallback, fallback: fallback)
+        if filter.isOn, top > 0, let range = filtered.displayRange { fallback = MapAdjustment(low: range.lowerBound / top, high: range.upperBound / top) }
+        return EDXTileDisplay(values: filtered.values, upper: top, adjustment: stored ?? fallback, fallback: fallback)
     }
 
     /// The scan image's finite range shifted to start at 0, and the span (the full scale).
@@ -301,7 +313,7 @@ private struct EDXMapPopover: View {
                           low: binding(\.low), high: binding(\.high), gamma: binding(\.gamma),
                           reset: { if let id { state.appearance.adjustments[id] = nil } })
             .formStyle(.grouped).scrollContentBackground(.hidden).fixedSize(horizontal: false, vertical: true)
-            .task(id: key) { shown = await Self.histogram(of: item.kind, filter: state.mapFilter) }
+            .task(id: key) { shown = await Self.histogram(of: item.kind, filter: state.mapFilter, memo: session.filteredMaps) }
     }
 
     private var key: String {
@@ -329,7 +341,7 @@ private struct EDXMapPopover: View {
     }
 
     /// The histogram of what the tile draws, over 0 to the scale's top (the window is a fraction of that range, as the picture applies it).
-    private static func histogram(of kind: EDXGridItem.Kind, filter chosen: EDXMapFilter) async -> Shown? {
+    private static func histogram(of kind: EDXGridItem.Kind, filter chosen: EDXMapFilter, memo: EDXFilteredMaps?) async -> Shown? {
         switch kind {
         case .mix: return nil
         case .scan(let scan):
@@ -339,8 +351,10 @@ private struct EDXMapPopover: View {
             }.value
         case .map(let tile):
             let values = tile.values, (w, h, top) = (tile.width, tile.height, tile.maxValue), filter = EDXMapTileHost.filter(of: tile, chosen)
+            let (symbol, version) = (tile.symbol, tile.version)
             return await Task.detached(priority: .userInitiated) {
-                let d = EDXTileDisplay.make(values: values, width: w, height: h, top: top, filter: filter, stored: nil)
+                let d = EDXTileDisplay.make(values: values, width: w, height: h, top: top, filter: filter, stored: nil,
+                                            memo: memo.map { (maps: $0, symbol: symbol, version: version) })
                 return make(values: d.values, top: top, fallback: d.fallback, title: filter.isOn ? "Histogram · filtered, \(filter.title)" : "Histogram")
             }.value
         }

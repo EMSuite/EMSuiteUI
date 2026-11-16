@@ -55,3 +55,25 @@ nonisolated final class InspectorMetricsConsistencyTests: XCTestCase {
         XCTAssertEqual(InspectorMetrics.numericFieldWidth, LayoutPolicy.numericFieldWidth)
     }
 }
+
+/// The action row's one layout (MacEMUI#158): buttons side by side at equal shares while their ideal widths fit, a wider button keeping
+/// its own width, else stacked (nil). One layout over the same buttons keeps a popover a button owns open when the row flips.
+nonisolated final class InspectorActionRowLayoutTests: XCTestCase {
+    @MainActor func testEqualSharesWhenEveryButtonFitsItsShare() {
+        XCTAssertEqual(InspectorActionRowLayout.rowWidths(ideal: [40, 60], width: 206, spacing: 6), [100, 100])
+    }
+
+    @MainActor func testAWideButtonKeepsItsIdealWidth() {
+        XCTAssertEqual(InspectorActionRowLayout.rowWidths(ideal: [30, 150, 20], width: 252, spacing: 6), [45, 150, 45])
+    }
+
+    @MainActor func testTooWideStacks() {
+        XCTAssertNil(InspectorActionRowLayout.rowWidths(ideal: [100, 100], width: 205, spacing: 6))
+        XCTAssertEqual(InspectorActionRowLayout.rowWidths(ideal: [100, 100], width: 206, spacing: 6), [100, 100])
+    }
+
+    @MainActor func testNoWidthOfferedIsTheIdealRow() {
+        XCTAssertEqual(InspectorActionRowLayout.rowWidths(ideal: [40, 60], width: nil, spacing: 6), [40, 60])
+        XCTAssertEqual(InspectorActionRowLayout.rowWidths(ideal: [], width: 100, spacing: 6), [])
+    }
+}

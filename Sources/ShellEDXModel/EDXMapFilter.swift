@@ -5,6 +5,7 @@
 // 1st to the 99th percentile of the raw map.
 import Foundation
 import ImagoFilters
+import os
 
 package nonisolated enum EDXMapFilter: String, CaseIterable, Identifiable, Sendable {
     case off, mean3x3, gaussian1px
@@ -47,5 +48,48 @@ package nonisolated enum EDXMapFilter: String, CaseIterable, Identifiable, Senda
         }
         let lo = percentile(low), hi = percentile(high)
         return hi > lo ? lo...hi : first...last
+    }
+}
+
+/// The display-filtered values of each map tile and the percentile window of its raw values, made once per tile picture (MacEMUI#158).
+/// A tile's picture is made again on every contrast or gamma tick, and the filter and the percentile sort ran again each time (twice a
+/// map for a colour mix) though neither depends on the window. Kept by the session, one entry per map symbol: a newer version or another
+/// filter replaces it, so what is held is at most one filtered copy of each shown map. Safe from any thread (the pictures are made off
+/// the main actor); the work runs outside the lock, so two tiles never wait on each other's filter.
+package nonisolated final class EDXFilteredMaps: Sendable {
+    package struct Result: Sendable, Equatable {
+        /// The values through the filter (the values themselves with the filter off).
+        package var values: [Double]
+        /// The 1st to 99th percentile of the raw values, with the filter on; nil with it off or with no span.
+        package var displayRange: ClosedRange<Double>?
+    }
+
+    private struct Entry: Sendable {
+        var version: Int
+        var filter: EDXMapFilter
+        var count: Int
+        var result: Result
+    }
+
+    private let entries = OSAllocatedUnfairLock(initialState: [String: Entry]())
+    private let computed = OSAllocatedUnfairLock(initialState: 0)
+
+    package init() {}
+
+    /// How many times a result was made rather than found (tests).
+    package var computeCount: Int { computed.withLock { $0 } }
+
+    /// The filtered values and window of map `symbol` at `version`, made from `values` only when this symbol, version and filter were
+    /// not asked before. With the filter off nothing is kept: the values are drawn as they are.
+    package func result(symbol: String, version: Int, filter: EDXMapFilter, values: [Double], width: Int, height: Int) -> Result {
+        guard filter.isOn else { return Result(values: values, displayRange: nil) }
+        if let hit = entries.withLock({ entries -> Result? in
+            guard let e = entries[symbol], e.version == version, e.filter == filter, e.count == values.count else { return nil }
+            return e.result
+        }) { return hit }
+        let result = Result(values: filter.apply(values, width: width, height: height), displayRange: EDXMapFilter.displayRange(of: values))
+        computed.withLock { $0 += 1 }
+        entries.withLock { $0[symbol] = Entry(version: version, filter: filter, count: values.count, result: result) }
+        return result
     }
 }
