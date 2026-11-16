@@ -5,6 +5,7 @@
 //        own colour. Pixels are made here from a map's values (pure, tested); what the values are is the room's.
 //
 
+import Accelerate
 import ShellMetal
 import SwiftUI
 
@@ -145,6 +146,7 @@ public nonisolated enum MapRaster {
         let top = upper ?? values.reduce(0.0) { max($0, $1.isFinite ? $1 : 0) }
         let lut: [UInt8]? = if case .colormap(let kind) = coloring { Colormaps.lutRGBA(kind) } else { nil }
         let base: RegionColor? = if case .color(let c) = coloring { c } else { nil }
+        let fractions = fractions(values, top: top, adjustment: adjustment)
         var out = [UInt8](repeating: 255, count: values.count * 4)
         for (i, v) in values.enumerated() {
             if let width, width > 0, v.isNaN {
@@ -152,7 +154,7 @@ public nonisolated enum MapRaster {
                 out[4 * i] = g; out[4 * i + 1] = g; out[4 * i + 2] = g
                 continue
             }
-            let f = top > 0 && v.isFinite ? adjustment.apply(min(max(v / top, 0), 1)) : 0
+            let f = fractions[i]
             if let base {
                 out[4 * i] = byte(base.red * f); out[4 * i + 1] = byte(base.green * f); out[4 * i + 2] = byte(base.blue * f)
             } else if let lut {
@@ -181,14 +183,33 @@ public nonisolated enum MapRaster {
         for layer in layers where layer.values.count == count {
             let top = layer.upper ?? layer.values.reduce(0.0) { max($0, $1.isFinite ? $1 : 0) }
             guard top > 0 else { continue }
-            for (i, v) in layer.values.enumerated() where v.isFinite {
-                let f = layer.adjustment.apply(min(max(v / top, 0), 1))
+            let fractions = fractions(layer.values, top: top, adjustment: layer.adjustment)
+            for (i, f) in fractions.enumerated() {
                 sum[3 * i] += layer.color.red * f; sum[3 * i + 1] += layer.color.green * f; sum[3 * i + 2] += layer.color.blue * f
             }
         }
         var out = [UInt8](repeating: 255, count: count * 4)
         for i in 0..<count { out[4 * i] = byte(sum[3 * i]); out[4 * i + 1] = byte(sum[3 * i + 1]); out[4 * i + 2] = byte(sum[3 * i + 2]) }
         return out
+    }
+
+    /// Each value's display fraction, `adjustment.apply(v / top clamped to 0...1)`, for the whole map in a few Accelerate passes (D16,
+    /// MacEMUI#129): the window is vDSP, the gamma one vForce `pow` over the map instead of a `pow` per pixel on every contrast or gamma
+    /// drag tick. A value that is not finite, or every value when `top` is not positive, is 0 (not windowed), as the per-pixel form was.
+    static func fractions(_ values: [Double], top: Double, adjustment: MapAdjustment) -> [Double] {
+        let n = values.count
+        guard n > 0, top > 0 else { return [Double](repeating: 0, count: n) }
+        var f = vDSP.divide(values, top)
+        f = vDSP.clip(f, to: 0...1)
+        let span = max(adjustment.high - adjustment.low, 1e-6)
+        f = vDSP.divide(vDSP.add(-adjustment.low, f), span)
+        f = vDSP.clip(f, to: 0...1)
+        if adjustment.gamma > 0, adjustment.gamma != 1 {
+            let exponents = [Double](repeating: 1 / adjustment.gamma, count: n)
+            f = vForce.pow(bases: f, exponents: exponents)
+        }
+        for i in 0..<n where !values[i].isFinite { f[i] = 0 }
+        return f
     }
 
     private static func byte(_ unit: Double) -> UInt8 { UInt8((min(max(unit, 0), 1) * 255).rounded()) }
