@@ -19,3 +19,21 @@ nonisolated final class InfobarGlanceMinimumTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(LayoutPolicy.statusGlanceMinimumWidth, icon)
     }
 }
+
+/// The glance shows the longest line that fits whole, never a figure cut mid-number (macEMSuite/macEM#726: a wide inspector left
+/// "1(" of "1.2 GB"): the fallbacks drop the trailing facts, then show the chip alone. Red before: one truncating `Text`.
+nonisolated final class InfobarGlanceWholeFigureTests: XCTestCase {
+    func testTheFallbacksDropWholeFactsThenTheText() {
+        XCTAssertEqual(OperationMetricsFormat.runLineFallbacks("1.2 GB"), ["1.2 GB", ""])
+        XCTAssertEqual(OperationMetricsFormat.runLineFallbacks("1.4 GB · resident"), ["1.4 GB · resident", "1.4 GB", ""])
+    }
+
+    func testTheGlanceDrawsOnlyWholeCandidates() throws {
+        let file = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/ShellLayout/Chrome/WorkspaceColumn.swift")
+        let text = try String(contentsOf: file, encoding: .utf8)
+        let glance = try XCTUnwrap(text.components(separatedBy: "public struct InfobarGlance").last)
+        XCTAssertTrue(glance.contains("ForEach(OperationMetricsFormat.runLineFallbacks(full)"))
+        XCTAssertFalse(glance.contains(".truncationMode(.tail)"), "no cut figure")
+    }
+}

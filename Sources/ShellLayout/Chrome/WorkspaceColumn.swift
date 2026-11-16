@@ -440,15 +440,27 @@ public struct InfobarGlance: View {
 
     public var body: some View {
         TimelineView(.periodic(from: .now, by: 2)) { _ in
-            Label {
-                Text(text())
-            } icon: {
-                Image(systemName: "memorychip")
+            let full = text()
+            // The longest line that fits whole (`runLineFallbacks`: "1.4 GB · resident", then "1.4 GB", then the chip alone), never a
+            // figure cut mid-number: a truncated glance read "1(" at a wide inspector (macEMSuite/macEM#726). `.help` and VoiceOver
+            // keep the whole line.
+            ViewThatFits(in: .horizontal) {
+                ForEach(OperationMetricsFormat.runLineFallbacks(full), id: \.self) { candidate in
+                    Group {
+                        if candidate.isEmpty {
+                            Image(systemName: "memorychip")
+                        } else {
+                            Label(candidate, systemImage: "memorychip")
+                        }
+                    }
+                    .lineLimit(1)
+                    .fixedSize()
+                }
             }
             .font(.callout.monospacedDigit())
             .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .truncationMode(.tail)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(full)
             // Constant minimum, ideal and maximum, not a fixed width: none
             // depends on the text, so a ticking value never moves the
             // strip's size (the constraint-loop rule), yet it compresses. A
