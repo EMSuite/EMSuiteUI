@@ -335,18 +335,55 @@ private struct ZoomPanAccessibilityActions: ViewModifier {
     }
 }
 
+/// Settings > *Scroll wheel: Zoom · Pan* (control-placement §6): what the wheel and a two-finger scroll do on a picture. Zoom is the
+/// field's convention (Velox, GMS, ImageJ) and the default; Pan is the Mac's. ⌥ gives the other one either way. One key for both apps,
+/// read by every `zoomPanWheel` pane through `@AppStorage`, so a change shows in each open window at once.
+public nonisolated enum ScrollWheelMode: String, CaseIterable, Identifiable, Sendable {
+    case zoom, pan
+
+    public static let key = "view.scrollWheel"
+    public static let `default` = ScrollWheelMode.zoom
+
+    public var id: String { rawValue }
+    public var title: String { self == .zoom ? "Zoom" : "Pan" }
+
+    /// What one wheel event does: this mode's action, or the other one with ⌥ held.
+    public func action(optionHeld: Bool) -> ScrollWheelMode {
+        optionHeld ? (self == .zoom ? .pan : .zoom) : self
+    }
+}
+
+/// The Settings row for `ScrollWheelMode`: `Scroll wheel · Zoom · Pan`, for either app's Settings window.
+public struct ScrollWheelSettingRow: View {
+    @AppStorage(ScrollWheelMode.key) private var mode = ScrollWheelMode.default
+
+    public init() {}
+
+    public var body: some View {
+        Picker("Scroll wheel", selection: $mode) {
+            ForEach(ScrollWheelMode.allCases) { Text($0.title).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .help("What the scroll wheel does on a picture: zoom about the pointer (Velox, GMS, ImageJ) or pan (the Mac's way). ⌥ gives the other.")
+        .accessibilityIdentifier("settings.scrollWheel")
+    }
+}
+
 private struct ZoomPanWheelModifier: ViewModifier {
     let model: PaneZoomModel
     let box: CGSize
+    @AppStorage(ScrollWheelMode.key) private var mode = ScrollWheelMode.default
 
     func body(content: Content) -> some View {
+        let mode = mode
         // The one AppKit route (`onScrollWheel`, a bounded local monitor; never the old application-wide one).
-        content.onScrollWheel { event in
-            if event.modifiers.contains(.option) {
-                // ⌥-scroll pans, as in Preview's and the EDS maps' zoomed views.
+        return content.onScrollWheel { event in
+            switch mode.action(optionHeld: event.modifiers.contains(.option)) {
+            case .pan:
+                // As in Preview's and the EDS maps' zoomed views.
                 guard event.delta != 0 || event.deltaX != 0 else { return }
                 model.update { $0.scrollPan(deltaX: event.deltaX, deltaY: event.delta, isPrecise: event.isPrecise, in: box) }
-            } else {
+            case .zoom:
                 guard event.delta != 0 else { return }
                 model.update { $0.wheel(delta: event.delta, isPrecise: event.isPrecise, at: event.location, in: box) }
             }
@@ -355,7 +392,8 @@ private struct ZoomPanWheelModifier: ViewModifier {
 }
 
 extension View {
-    /// The wheel and a two-finger scroll zoom about the pointer, as a pinch does; with ⌥ held they pan. Apply it to the same view as `zoomPan`, with
+    /// The wheel and a two-finger scroll zoom about the pointer, as a pinch does, and pan with ⌥ held; Settings' `ScrollWheelMode.pan` swaps
+    /// the two. Apply it to the same view as `zoomPan`, with
     /// the same `box`. Separate from `zoomPan` so a pane that already routes the wheel (or that wants it for scrolling) opts in.
     public func zoomPanWheel(_ model: PaneZoomModel, box: CGSize) -> some View {
         modifier(ZoomPanWheelModifier(model: model, box: box))
