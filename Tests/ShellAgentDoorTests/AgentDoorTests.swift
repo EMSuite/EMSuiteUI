@@ -307,6 +307,15 @@ nonisolated final class AgentDoorTests: XCTestCase {
                        "claude mcp add --transport http mactem http://127.0.0.1:\(port)/mcp --header \"Authorization: Bearer \(door.token)\"")
     }
 
+    /// An app name with a space or other punctuation still registers as one word (guideline 5.2.5's store names have spaces).
+    func testTheServerNameIsOneLowerCaseWord() {
+        XCTAssertEqual(AgentDoor.serverName("mac4DSTEM"), "mac4dstem")
+        XCTAssertEqual(AgentDoor.serverName("macTEM"), "mactem")
+        XCTAssertEqual(AgentDoor.serverName("4DSTEM Studio"), "4dstem-studio")
+        XCTAssertEqual(AgentDoor.serverName("Electron Microscopy Studio"), "electron-microscopy-studio")
+        XCTAssertEqual(AgentDoor.serverName("  A — B  "), "a-b")
+    }
+
     // MARK: MCP
 
     private func mcp(_ message: [String: Any]) throws -> AgentHTTPRequest {

@@ -93,6 +93,24 @@ public final class AgentDoor {
         text.count == 64 && text.allSatisfy(\.isHexDigit)
     }
 
+    /// The name an MCP client registers the app under: the app's name in lower case, each run of characters other than
+    /// letters and digits one hyphen ("mac4dstem"; "4DSTEM Studio" is "4dstem-studio"). A name with a space split the
+    /// connection command into two words, and the App Store builds' names have one (guideline 5.2.5).
+    public var serverName: String { Self.serverName(appName) }
+
+    nonisolated static func serverName(_ appName: String) -> String {
+        var name = ""
+        for character in appName.lowercased() {
+            if character.isASCII && (character.isLetter || character.isNumber) {
+                name.append(character)
+            } else if !name.isEmpty && name.last != "-" {
+                name.append("-")
+            }
+        }
+        while name.last == "-" { name.removeLast() }
+        return name
+    }
+
     /// The address an MCP client connects to; nil while the door is not open.
     public var mcpURL: String? {
         guard case .listening(let port) = status else { return nil }
@@ -103,7 +121,7 @@ public final class AgentDoor {
     /// is not open. Nothing else is installed: the app is the server.
     public func connectionCommand() -> String? {
         guard let mcpURL else { return nil }
-        return "claude mcp add --transport http \(appName.lowercased()) \(mcpURL) --header \"Authorization: Bearer \(token)\""
+        return "claude mcp add --transport http \(serverName) \(mcpURL) --header \"Authorization: Bearer \(token)\""
     }
 
     // MARK: Tools

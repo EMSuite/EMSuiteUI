@@ -55,7 +55,7 @@ extension AgentDoor {
             return .json(Self.rpcResult(id, [
                 "protocolVersion": Self.mcpProtocolVersions.contains(asked) ? asked : Self.mcpProtocolVersions[0],
                 "capabilities": ["tools": ["listChanged": false]],
-                "serverInfo": ["name": appName.lowercased(), "title": appName, "version": appVersion],
+                "serverInfo": ["name": serverName, "title": appName, "version": appVersion],
                 "instructions": mcpInstructions,
             ]))
         case "ping":
@@ -94,7 +94,7 @@ extension AgentDoor {
                 "resultType": "complete",
                 "supportedVersions": Self.mcpModernVersions + Self.mcpProtocolVersions,
                 "capabilities": ["tools": [String: Any]()],
-                "_meta": ["io.modelcontextprotocol/serverInfo": ["name": appName.lowercased(), "title": appName, "version": appVersion]],
+                "_meta": ["io.modelcontextprotocol/serverInfo": ["name": serverName, "title": appName, "version": appVersion]],
                 "instructions": mcpInstructions,
                 "ttlMs": Self.listTTLMilliseconds, "cacheScope": "private",
             ]))
