@@ -2,6 +2,13 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.12.2](https://github.com/macEMSuite/MacEMUI/compare/0.12.1...0.12.2) (2026-11-16)
+
+
+### Bug Fixes
+
+* colour bar numbers stay on one line and the plate widens for a wide range ([#161](https://github.com/macEMSuite/MacEMUI/issues/161)) ([24363d2](https://github.com/macEMSuite/MacEMUI/commit/24363d234678c1610a3e2cf87e1d2901cd9b82a7))
+
 ## [0.12.1](https://github.com/macEMSuite/MacEMUI/compare/0.12.0...0.12.1) (2026-11-16)
 
 
