@@ -2,6 +2,13 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.12.1](https://github.com/macEMSuite/MacEMUI/compare/0.12.0...0.12.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* a zoomed-out picture averages its pixels instead of aliasing, and resizes and contrast ticks redraw less ([#162](https://github.com/macEMSuite/MacEMUI/issues/162)) ([3b1345a](https://github.com/macEMSuite/MacEMUI/commit/3b1345a4859075398dcf2d985b4e07fa974f570a))
+
 ## [0.12.0](https://github.com/macEMSuite/MacEMUI/compare/0.11.0...0.12.0) (2026-11-16)
 
 
