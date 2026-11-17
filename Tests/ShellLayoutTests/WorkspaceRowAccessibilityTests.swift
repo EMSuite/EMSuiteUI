@@ -1,9 +1,8 @@
 // The rooms list to accessibility (EMSuiteUI#131): with the list's selection handed to `WorkspaceRoomsSection`, an available room row
 // is a button whose press chooses the room, and an unavailable one is left alone. Without it the rows are as before. The press is
-// driven twice: through `choose` (the action's one body) and through the hosted list's own accessibility element, as VoiceOver and
-// an AX client press it.
+// driven through `choose`, the action's one body: SwiftUI builds its accessibility nodes only for a live accessibility client, so a
+// unit test cannot reach the hosted row's element (BusyLineAccessibilityTests).
 
-import AppKit
 import SwiftUI
 import XCTest
 @testable import ShellLayout
@@ -15,23 +14,6 @@ private nonisolated enum AXRoom: String, CaseIterable, WorkspaceRoom {
     var title: String { rawValue.uppercased() }
     var symbolName: String { "circle" }
     var subtitle: String { "The \(rawValue) room" }
-}
-
-@Observable private final class AXModel {
-    var selection: AXRoom? = .image
-    var unavailable: Set<AXRoom> = [.edx]
-}
-
-private struct AXSidebar: View {
-    @Bindable var model: AXModel
-
-    var body: some View {
-        WorkspaceSidebarFrame(selection: $model.selection) {
-            WorkspaceRoomsSection(rooms: AXRoom.allCases, tag: { $0 }, isAvailable: { !model.unavailable.contains($0) },
-                                  selection: $model.selection)
-        }
-        .frame(width: 220, height: 300)
-    }
 }
 
 nonisolated final class WorkspaceRowAccessibilityTests: XCTestCase {
@@ -48,34 +30,5 @@ nonisolated final class WorkspaceRowAccessibilityTests: XCTestCase {
         XCTAssertEqual(selected, .fft)
         let bare = WorkspaceRoomsSection(rooms: AXRoom.allCases, tag: { $0 })
         XCTAssertFalse(bare.choose(.fft), "no selection given: the rows are not buttons")
-    }
-
-    /// The hosted list's row element, pressed as VoiceOver presses it, moves the selection. Red under: the rows without the action
-    /// (the issue: AXPress answered success and did nothing).
-    @MainActor func testPressingTheRowsAccessibilityElementChoosesTheRoom() throws {
-        let model = AXModel()
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 220, height: 300), styleMask: [.titled], backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false
-        defer { window.close() }
-        window.contentView = NSHostingView(rootView: AXSidebar(model: model))
-        window.contentView?.layoutSubtreeIfNeeded()
-        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
-
-        let row = try XCTUnwrap(Self.element(identifier: "workspace.fft", in: window.contentView), "no accessibility element for the FFT row")
-        XCTAssertTrue(row.accessibilityPerformPress())
-        RunLoop.main.run(until: Date().addingTimeInterval(0.1))
-        XCTAssertEqual(model.selection, .fft)
-    }
-
-    /// The first element under `root` whose accessibility identifier is `identifier`, depth first through the accessibility children.
-    /// Through `NSObject`'s informal NSAccessibility methods, which every AppKit and SwiftUI element answers.
-    @MainActor private static func element(identifier: String, in root: Any?, depth: Int = 0) -> NSObject? {
-        guard depth < 40, let node = root as? NSObject else { return nil }
-        if node.accessibilityIdentifier() == identifier { return node }
-        let children: [Any] = node.accessibilityChildren() ?? []
-        for child in children {
-            if let found = element(identifier: identifier, in: child, depth: depth + 1) { return found }
-        }
-        return nil
     }
 }
