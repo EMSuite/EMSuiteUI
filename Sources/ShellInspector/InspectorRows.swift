@@ -245,6 +245,8 @@ public struct InspectorRow<Content: View>: View {
     private let label: String
     private let emphasized: Bool
     private let content: Content
+    /// Pairs the label with the control, so VoiceOver reads the control by the row's label (EMSuiteUI#126).
+    @Namespace private var pair
 
     public init(_ label: String, emphasized: Bool = false, @ViewBuilder content: () -> Content) {
         self.label = label
@@ -262,8 +264,10 @@ public struct InspectorRow<Content: View>: View {
             Text(label)
                 .fontWeight(emphasized ? .semibold : .regular)
                 .fixedSize()
+                .accessibilityLabeledPair(role: .label, id: "row", in: pair)
             Spacer(minLength: 0)
             content
+                .accessibilityLabeledPair(role: .content, id: "row", in: pair)
         }
         .controlSize(.regular)
     }
@@ -402,11 +406,28 @@ public struct AdjustmentSlider: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(label)
         .accessibilityValue(Text(value, format: format))
+        // The combined element is not the slider: it takes the slider's increment and decrement
+        // itself (VoiceOver's VO-Up/Down, the Accessibility Keyboard), one step or a tenth of
+        // the range at a time (EMSuiteUI#126).
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: value = Self.nudged(value, up: true, step: step, in: range)
+            case .decrement: value = Self.nudged(value, up: false, step: step, in: range)
+            @unknown default: break
+            }
+        }
         // Double-clicking the label was the only way to reset; this is the
         // same reset for VoiceOver and the keyboard. Present only when there
-        // is a default to reset to. Whether the combined element still offers
-        // the slider's increment/decrement needs a VoiceOver check.
+        // is a default to reset to.
         .modifier(ResetActionModifier(isOffered: defaultValue != nil, reset: resetToDefault))
+    }
+
+    /// One accessibility increment or decrement: by `step` when the slider has one, else by a
+    /// tenth of the range (the system slider's own increment), clamped into `range`. Pure, so a
+    /// test holds it.
+    static func nudged(_ value: Double, up: Bool, step: Double?, in range: ClosedRange<Double>) -> Double {
+        let by = step.flatMap { $0 > 0 ? $0 : nil } ?? (range.upperBound - range.lowerBound) / 10
+        return clamp(value + (up ? by : -by), to: range)
     }
 
     @ViewBuilder
