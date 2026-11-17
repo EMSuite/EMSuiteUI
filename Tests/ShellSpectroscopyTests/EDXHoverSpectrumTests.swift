@@ -10,7 +10,7 @@ import XCTest
 nonisolated final class EDXHoverSpectrumTests: XCTestCase {
 
     /// The sum lands for its own pixel only: another pixel, or no pointer, draws nothing. Red under: the last sum drawn whatever the pointer.
-    func testOnlyTheSpectrumOfThePixelUnderThePointerIsDrawn() {
+    @MainActor func testOnlyTheSpectrumOfThePixelUnderThePointerIsDrawn() {
         let here = EDXHoverPixel(x: 3, y: 4), there = EDXHoverPixel(x: 4, y: 4)
         let value = EDXHoverSpectrumValue(pixel: here, spectrum: [1, 2, 3])
         XCTAssertEqual(EDXHoverSpectrumValue.shown(value, for: here), [1, 2, 3])
