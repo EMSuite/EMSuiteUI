@@ -46,6 +46,7 @@ public struct WorkspaceRoomsSection<Room: WorkspaceRoom, Selection: Hashable, Fo
     private let isAvailable: (Room) -> Bool
     private let unavailableHelp: (Room) -> String
     private let badge: (Room) -> Int
+    private let selection: Binding<Selection?>?
     private let footer: Footer
 
     /// - Parameters:
@@ -57,6 +58,9 @@ public struct WorkspaceRoomsSection<Room: WorkspaceRoom, Selection: Hashable, Fo
     ///     window holds a spectrum image only.").
     ///   - badge: A count as macOS carries one — a `.badge`, which hides itself at zero (mac4DSTEM: saved results
     ///     on Results).
+    ///   - selection: The list's selection, the same binding `WorkspaceSidebarFrame` takes. Given, each available row is a button
+    ///     to accessibility, selected when it is the current room, and its press chooses the room (EMSuiteUI#131: the rows read as static
+    ///     text and VoiceOver's press did nothing). Default nil: the rows are as before.
     ///   - footer: Below the rooms, still in the section (mac4DSTEM's "Next: …" hint).
     public init(
         rooms: [Room],
@@ -64,6 +68,7 @@ public struct WorkspaceRoomsSection<Room: WorkspaceRoom, Selection: Hashable, Fo
         isAvailable: @escaping (Room) -> Bool = { _ in true },
         unavailableHelp: @escaping (Room) -> String = { "\($0.subtitle) — not built yet" },
         badge: @escaping (Room) -> Int = { _ in 0 },
+        selection: Binding<Selection?>? = nil,
         @ViewBuilder footer: () -> Footer
     ) {
         self.rooms = rooms
@@ -71,7 +76,17 @@ public struct WorkspaceRoomsSection<Room: WorkspaceRoom, Selection: Hashable, Fo
         self.isAvailable = isAvailable
         self.unavailableHelp = unavailableHelp
         self.badge = badge
+        self.selection = selection
         self.footer = footer()
+    }
+
+    /// What an accessibility press on `room`'s row does: the room becomes the selection when it can be entered; an unavailable room is
+    /// left alone, as a click on its row is. False when nothing was chosen (no selection given, or the room is unavailable).
+    @discardableResult
+    package func choose(_ room: Room) -> Bool {
+        guard let selection, isAvailable(room) else { return false }
+        selection.wrappedValue = tag(room)
+        return true
     }
 
     public var body: some View {
@@ -109,6 +124,27 @@ public struct WorkspaceRoomsSection<Room: WorkspaceRoom, Selection: Hashable, Fo
         .accessibilityLabel(room.title)
         .accessibilityIdentifier("workspace.\(room.id)")
         .accessibilityHint(available ? room.subtitle : "Not available")
+        .modifier(RoomRowAccessibility(isButton: selection != nil && available,
+                                       isSelected: selection.map { $0.wrappedValue == tag(room) } ?? false,
+                                       press: { choose(room) }))
+    }
+}
+
+/// A room row as a button to accessibility: the button trait, the selected trait on the current room, and the default action that
+/// chooses it. Nothing at all when the row is not a button (no selection was given, or the room cannot be entered).
+private struct RoomRowAccessibility: ViewModifier {
+    let isButton: Bool
+    let isSelected: Bool
+    let press: () -> Void
+
+    func body(content: Content) -> some View {
+        if isButton {
+            content
+                .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+                .accessibilityAction { press() }
+        } else {
+            content
+        }
     }
 }
 
@@ -123,9 +159,10 @@ extension WorkspaceRoomsSection where Footer == EmptyView {
         tag: @escaping (Room) -> Selection,
         isAvailable: @escaping (Room) -> Bool = { _ in true },
         unavailableHelp: @escaping (Room) -> String = { "\($0.subtitle) — not built yet" },
-        badge: @escaping (Room) -> Int = { _ in 0 }
+        badge: @escaping (Room) -> Int = { _ in 0 },
+        selection: Binding<Selection?>? = nil
     ) {
-        self.init(rooms: rooms, tag: tag, isAvailable: isAvailable, unavailableHelp: unavailableHelp, badge: badge) {
+        self.init(rooms: rooms, tag: tag, isAvailable: isAvailable, unavailableHelp: unavailableHelp, badge: badge, selection: selection) {
             EmptyView()
         }
     }
