@@ -364,7 +364,8 @@ public struct InfobarRunReadout: View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let text = line(context.date)
             HStack(spacing: LayoutPolicy.infobarProgressSpacing) {
-                ProgressView(value: progress)
+                // Drawn in SwiftUI, not the animated system bar, so it never trails the count (`RunProgressBar`).
+                RunProgressBar(progress: progress)
                     .frame(width: LayoutPolicy.inlineProgressWidth)
                     .accessibilityLabel(operation ?? "Progress")
                     .accessibilityValue(OperationMetricsFormat.percent(progress))
