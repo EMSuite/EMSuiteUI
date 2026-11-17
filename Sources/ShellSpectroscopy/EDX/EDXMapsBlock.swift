@@ -106,7 +106,7 @@ struct EDXMapsBlock: View {
 }
 
 /// One tile with its picture made off the main actor, and the wiring of its regions, hover and popover.
-private struct EDXMapTileHost: View {
+struct EDXMapTileHost: View {
     let item: EDXGridItem
     let size: CGSize
     let isAnchor: Bool

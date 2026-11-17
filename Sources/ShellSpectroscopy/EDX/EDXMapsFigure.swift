@@ -47,6 +47,11 @@ public struct EDXFigureContent {
     package private(set) var cells: [EDXFigureCell] = []
     /// The room's pins and lines as its colour mix draws them (hidden ones stay hidden, the selected one heavier). nil: only `region`, in white, on every tile.
     public private(set) var regions: SpectralRegionSet?
+    /// The RGBA pixels of each map as the room draws it (by symbol; `EDXFigureContent.mixKey` for the colour mix): its colour, contrast window,
+    /// gamma and display filter, made off the main actor by the same code as the room's tiles (EMSuiteUI#125: the figure drew every map in its
+    /// default colours, so the export was not the picture on screen). A map without one is drawn in its default colouring.
+    package var rasters: [String: [UInt8]] = [:]
+    package static let mixKey = "colourMix"
 
     public init(title: String, subtitle: String, tiles: [EDXMapTile], region: EDXRegion, nx: Int, ny: Int, bar: (fraction: Double, label: String)?,
                 mix: [EDXMapTile] = [], showsScaleBar: Bool = true, showsRegion: Bool = true, cells: [EDXFigureCell] = [], regions: SpectralRegionSet? = nil) {
@@ -91,8 +96,9 @@ public struct EDXMapsFigure: View {
 
     private var mixCell: some View {
         let first = content.mix[0]
-        let layers = content.mix.map { MapRaster.MixLayer(values: $0.values, color: EDXRegionBridge.defaultColoring($0.symbol).endColor) }
-        let image = EDXMapRaster.cgImage(rgba: MapRaster.mix(layers, count: first.values.count), width: first.width, height: first.height)
+        let rgba = content.rasters[EDXFigureContent.mixKey] ?? MapRaster.mix(
+            content.mix.map { MapRaster.MixLayer(values: $0.values, color: EDXRegionBridge.defaultColoring($0.symbol).endColor) }, count: first.values.count)
+        let image = EDXMapRaster.cgImage(rgba: rgba, width: first.width, height: first.height)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text("Colour mix").font(.callout.weight(.semibold))
@@ -107,8 +113,9 @@ public struct EDXMapsFigure: View {
     }
 
     private func cell(_ tile: EDXMapTile) -> some View {
-        let image = EDXMapRaster.cgImage(rgba: EDXMapRaster.rgba(values: tile.values, hue: EDXRoomFormat.hue(symbol: tile.symbol), width: tile.width),
-                                         width: tile.width, height: tile.height)
+        let rgba = content.rasters[tile.symbol]
+            ?? EDXMapRaster.rgba(values: tile.values, hue: EDXRoomFormat.hue(symbol: tile.symbol), width: tile.width)
+        let image = EDXMapRaster.cgImage(rgba: rgba, width: tile.width, height: tile.height)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(tile.symbol).font(.callout.weight(.semibold))
