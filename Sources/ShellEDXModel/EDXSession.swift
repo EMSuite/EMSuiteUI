@@ -191,6 +191,8 @@ public final class EDXSession {
     public private(set) var pools: [EDXPoolRegion] = []
 
     @ObservationIgnored private var cache = EDXComputeCache()
+    /// The room's compute cache (a test's question: what is still kept).
+    package var computeCache: EDXComputeCache { cache }
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     /// The live spectrum of a drag (`previewRegion`): the running sum, the shape waiting for it, and whether the plot shows a preview.
@@ -351,6 +353,8 @@ public final class EDXSession {
         plot = EDXPlot(energyStart: 0, energyStep: 0.01, data: [])
         totalCounts = 0; regionPixels = 0; spectrumCounts = []
         openTask?.cancel(); openTask = nil; isOpening = false
+        // The closed file's maps and spectra go with it (EMSuiteUI#125: the cache, nx · ny · 8 B a map, stayed for the window's life).
+        cache = EDXComputeCache()
     }
 
     private func cancelWork() {
@@ -358,6 +362,10 @@ public final class EDXSession {
         refreshTask?.cancel(); checkTask?.cancel(); autoIDTask?.cancel(); mapsTask?.cancel(); bindTask?.cancel()
         refreshTask = nil; checkTask = nil; autoIDTask = nil; mapsTask = nil; bindTask = nil
         isRefreshing = false
+        // The pins' sums and a drag's preview too (EMSuiteUI#125): a run in flight lands only under its own number, so a previous file's pins
+        // never land on the new one or on a closed room, and the preview loop stops at its next shape.
+        pinDataTask?.cancel(); pinDataTask = nil; pinDataRun += 1
+        previewTask?.cancel(); previewTask = nil; pendingPreview = nil; previewDone = true
     }
 
     /// Stop: ends whatever is running and leaves the room usable. The kit stops a fit or the proposer at its next check; a composition
@@ -483,7 +491,7 @@ public final class EDXSession {
         previewDone = false
         let task = Task.detached(priority: .userInitiated) { [weak self] in
             var next: EDXRegion? = preview
-            while let shape = next {
+            while let shape = next, !Task.isCancelled {
                 // Not through the compute cache: a drag passes through hundreds of shapes, and the cache keeps every region it is given.
                 let spectrum = source.sum(mask: shape.mask(nx: source.nx, ny: source.ny))
                 next = await self?.landPreview(spectrum, generation: committed)

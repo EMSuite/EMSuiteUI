@@ -108,20 +108,70 @@ public nonisolated struct EDXPoolRegion: Equatable, Sendable {
 // MARK: - Cache
 
 /// Spectra by region and maps by line window, written by detached tasks and read by the next one. Keys are the content (the
-/// region's pixels, the window's channels), so nothing in here can be stale; a new file starts a new cache.
+/// region's pixels, the window's channels), so nothing in here can be stale; a new file starts a new cache, and closing the room lets it go.
+/// Bounded (EMSuiteUI#125: every region edit and window edit added an entry for the room's life): the maps keep at most `mapByteBudget` bytes
+/// and the spectra at most `spectrumLimit` entries, the least recently used going first. A read counts as a use.
 public nonisolated final class EDXComputeCache: @unchecked Sendable {
     private let lock = NSLock()
     private var spectra: [String: [UInt64]] = [:]
     private var maps: [String: [Double]] = [:]
+    /// Keys, least recently used first.
+    private var spectrumOrder: [String] = []
+    private var mapOrder: [String] = []
+    private var mapBytes = 0
+    /// The maps' bytes kept: 512 MB, 64 maps of a 1024 × 1024 scan (8 bytes a pixel), far more than the picked elements' windows need at once.
+    package let mapByteBudget: Int
+    /// The region spectra kept: a few channels' worth each (32 KB at 4096 channels).
+    package let spectrumLimit: Int
     private var refinements: [String: AxisRefinementResult] = [:]
     private var proposals: [String: ProposalResult] = [:]
 
-    public init() {}
+    public init() { mapByteBudget = 512 << 20; spectrumLimit = 512 }
 
-    public func spectrum(_ key: String) -> [UInt64]? { lock.withLock { spectra[key] } }
-    package func setSpectrum(_ s: [UInt64], _ key: String) { lock.withLock { spectra[key] = s } }
-    public func map(_ key: String) -> [Double]? { lock.withLock { maps[key] } }
-    package func setMap(_ m: [Double], _ key: String) { lock.withLock { maps[key] = m } }
+    package init(mapByteBudget: Int, spectrumLimit: Int) { self.mapByteBudget = mapByteBudget; self.spectrumLimit = spectrumLimit }
+
+    public func spectrum(_ key: String) -> [UInt64]? {
+        lock.withLock {
+            guard let s = spectra[key] else { return nil }
+            Self.touch(key, in: &spectrumOrder)
+            return s
+        }
+    }
+    package func setSpectrum(_ s: [UInt64], _ key: String) {
+        lock.withLock {
+            spectra[key] = s
+            Self.touch(key, in: &spectrumOrder)
+            while spectrumOrder.count > spectrumLimit { spectra[spectrumOrder.removeFirst()] = nil }
+        }
+    }
+    public func map(_ key: String) -> [Double]? {
+        lock.withLock {
+            guard let m = maps[key] else { return nil }
+            Self.touch(key, in: &mapOrder)
+            return m
+        }
+    }
+    package func setMap(_ m: [Double], _ key: String) {
+        lock.withLock {
+            if let old = maps[key] { mapBytes -= old.count * MemoryLayout<Double>.stride }
+            maps[key] = m
+            mapBytes += m.count * MemoryLayout<Double>.stride
+            Self.touch(key, in: &mapOrder)
+            // The newest map is kept even alone past the budget: the room is drawing it.
+            while mapBytes > mapByteBudget, mapOrder.count > 1 {
+                let oldest = mapOrder.removeFirst()
+                mapBytes -= (maps.removeValue(forKey: oldest)?.count ?? 0) * MemoryLayout<Double>.stride
+            }
+        }
+    }
+    /// The maps' keys, least recently used first (a test's question).
+    package var mapKeys: [String] { lock.withLock { mapOrder } }
+    package var spectrumKeys: [String] { lock.withLock { spectrumOrder } }
+
+    private static func touch(_ key: String, in order: inout [String]) {
+        if let i = order.firstIndex(of: key) { order.remove(at: i) }
+        order.append(key)
+    }
     package func refinement(_ key: String) -> AxisRefinementResult? { lock.withLock { refinements[key] } }
     package func setRefinement(_ r: AxisRefinementResult, _ key: String) { lock.withLock { refinements[key] = r } }
     public func proposal(_ key: String) -> ProposalResult? { lock.withLock { proposals[key] } }
@@ -163,12 +213,18 @@ public nonisolated enum EDXCompute {
         let windows = ElementWindows.build(picks: picks.map { ElementWindows.Pick(symbol: $0.symbol, family: $0.family, lines: $0.lines) },
                                            axis: source.energyAxis, beamEnergyKeV: beamEnergyKeV ?? source.metadata.beamEnergyKeV)
         let counts = ElementWindows.netCounts(spectrum: spectrum, windows: windows)
-        let missing = windows.filter { w in w.window.map { cache.map(EDXComputeCache.key($0)) == nil } ?? false }
+        // The cached maps are read once (a read is a use, so the cache keeps them), the missing ones summed and kept; what is returned is
+        // these, never a second read that a bounded cache could have dropped meanwhile.
+        var found: [String: [Double]] = [:]
+        for w in windows { if let window = w.window { let key = EDXComputeCache.key(window); if let m = cache.map(key) { found[key] = m } } }
+        let missing = windows.filter { w in w.window.map { found[EDXComputeCache.key($0)] == nil } ?? false }
         if !missing.isEmpty {
             let fresh = ElementWindows.maps(image: source, windows: missing)
-            for (w, m) in zip(missing, fresh) { if let w = w.window, let m { cache.setMap(m, EDXComputeCache.key(w)) } }
+            for (w, m) in zip(missing, fresh) {
+                if let w = w.window, let m { let key = EDXComputeCache.key(w); found[key] = m; cache.setMap(m, key) }
+            }
         }
-        let maps = windows.map { w in w.window.flatMap { cache.map(EDXComputeCache.key($0)) } }
+        let maps = windows.map { w in w.window.flatMap { found[EDXComputeCache.key($0)] } }
         return Windows(windows: windows, counts: counts, maps: maps)
     }
 
