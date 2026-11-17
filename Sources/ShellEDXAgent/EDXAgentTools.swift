@@ -4,8 +4,9 @@
 //        room (file, picked elements, region, kept regions, window counts, the quantification table), pick elements, choose the
 //        region, run Auto ID and Quantify, and stop. Each app says how a window reaches its `EDXSession` (`session`).
 //
-//  The tools only call what the room's own controls call (`toggle`, `setRole`, `selectRectangle`, `selectPin`, `runAutoID`,
-//  `quantify`, `stop`), so an agent's run is the person's run. The numbers are SpectroKit's; the table is the room's results CSV.
+//  The tools only call what the room's own controls call (`toggle`, `setRole`, `drawRectangle` and `drawEllipse` as a drawing on a map
+//  does, so a drawn region is kept as the next numbered region as the person's is, `selectPin`, `runAutoID`, `quantify`, `stop`), so an
+//  agent's run is the person's run. The numbers are SpectroKit's; the table is the room's results CSV.
 //
 
 import Foundation
@@ -48,7 +49,8 @@ public enum EDXAgentTools {
                           AgentParameter("remove", .text, summary: "Elements to take out."),
                           AgentParameter("fit_only", .text, summary: "Picked elements to fit but not quantify."),
                           AgentParameter("quantify", .text, summary: "Picked elements to quantify."),
-                          AgentParameter("region", .choice(["whole", "rectangle", "ellipse", "pin"]), summary: "The region the spectrum sums."),
+                          AgentParameter("region", .choice(["whole", "rectangle", "ellipse", "pin"]),
+                                         summary: "The region the spectrum sums. A rectangle or ellipse is drawn as on the map, so it is also kept as a numbered region."),
                           AgentParameter("x0", .integer(0...1_000_000), summary: "Region: first column."),
                           AgentParameter("y0", .integer(0...1_000_000), summary: "Region: first row."),
                           AgentParameter("x1", .integer(1...1_000_000), summary: "Region: column after the last."),

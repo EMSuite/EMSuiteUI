@@ -86,7 +86,7 @@ public struct EDXRoom: View {
             case .failure(let error): actions.present(error)
             }
         }
-        .fileExporter(isPresented: Binding(get: { state.exporting != nil }, set: { if !$0 { state.exporting = nil } }),
+        .fileExporter(isPresented: Binding(get: { state.exporting != nil }, set: { if !$0 { state.exportFinished() } }),
                       document: EDXExportFile(data: state.exportData),
                       contentType: state.exporting?.contentType ?? .commaSeparatedText,
                       defaultFilename: session.exportStem + (state.exporting?.suffix ?? "")) { result in
@@ -94,6 +94,7 @@ public struct EDXRoom: View {
             case .success(let url): actions.report("Exported \(url.lastPathComponent)")
             case .failure(let error): actions.present(error)
             }
+            state.exportFinished()
         }
         // Esc goes back to the arrow tool wherever the focus is in the window (the tools are in the inspector, outside this view, and a
         // tile being drawn on holds no focus, so `onExitCommand` here would rarely hear the key). A key equivalent, enabled only while a
