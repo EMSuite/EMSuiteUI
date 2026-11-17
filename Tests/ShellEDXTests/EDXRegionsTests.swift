@@ -107,11 +107,15 @@ nonisolated final class EDXRegionsTests: XCTestCase {
     }
 
     /// A pixel's spectrum is that pixel's counts, and a pixel off the grid has none.
-    @MainActor func testThePointersPixelSpectrumIsThePixelsCounts() async {
+    @MainActor func testThePointersPixelSpectrumIsThePixelsCounts() async throws {
         let session = await openRoom()
         XCTAssertEqual(session.pixelSpectrum(x: 0, y: 0), Self.left.map { Double($0) })
         XCTAssertEqual(session.pixelSpectrum(x: 1, y: 0), EDXSessionTests.spectra().right.map { Double($0) })
         XCTAssertNil(session.pixelSpectrum(x: 2, y: 0)); XCTAssertNil(session.pixelSpectrum(x: 0, y: -1))
+        // The static the room's hover calls off the main actor sums the same (EMSuiteUI#125).
+        let source = try XCTUnwrap(session.source)
+        XCTAssertEqual(EDXSession.pixelSpectrum(of: source, x: 1, y: 0), session.pixelSpectrum(x: 1, y: 0))
+        XCTAssertNil(EDXSession.pixelSpectrum(of: source, x: 2, y: 0))
     }
 
     // MARK: Lines
