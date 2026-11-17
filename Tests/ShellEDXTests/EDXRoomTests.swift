@@ -231,6 +231,22 @@ nonisolated final class EDXRoomTests: XCTestCase {
         XCTAssertEqual(EDXSpectrumWindow.panned(w, byFraction: 9, domain: domain, minimumSpan: 0.02), 14.0...20.0, "stops at the high end")
     }
 
+    /// The keyboard's and VoiceOver's steps on the spectrum (EMSuiteUI#126): zoom by 1.5 about the middle, pan by a tenth of the window,
+    /// inside the data. Red under: a step that zooms about an edge, pans the wrong way, or leaves the spectrum.
+    func testAKeyboardStepZoomsAboutTheMiddleAndPansATenth() {
+        let domain = 0.0...20.0
+        func step(_ s: EDXSpectrumWindow.Step, _ from: ClosedRange<Double> = 2.0...8.0) -> ClosedRange<Double> {
+            EDXSpectrumWindow.stepped(from, s, domain: domain, minimumSpan: 0.02)
+        }
+        XCTAssertEqual(step(.zoomIn).lowerBound, 3, accuracy: 1e-12); XCTAssertEqual(step(.zoomIn).upperBound, 7, accuracy: 1e-12)
+        XCTAssertEqual(step(.zoomOut).lowerBound, 0.5, accuracy: 1e-12); XCTAssertEqual(step(.zoomOut).upperBound, 9.5, accuracy: 1e-12)
+        XCTAssertEqual(step(.panToHigher).lowerBound, 2.6, accuracy: 1e-12); XCTAssertEqual(step(.panToHigher).upperBound, 8.6, accuracy: 1e-12)
+        XCTAssertEqual(step(.panToLower).lowerBound, 1.4, accuracy: 1e-12)
+        XCTAssertEqual(step(.panToLower, 0.0...6.0), 0.0...6.0, "stops at the low end")
+        XCTAssertEqual(step(.zoomOut, domain), domain, "never wider than the spectrum")
+        XCTAssertEqual(Set(EDXSpectrumWindow.Step.allCases.map(\.name)).count, 4, "each VoiceOver action has its own name")
+    }
+
     func testTicksAreRoundNumbersInsideTheWindow() {
         XCTAssertEqual(EDXSpectrumWindow.ticks(in: 0...20), [0, 5, 10, 15, 20])
         XCTAssertEqual(EDXSpectrumWindow.ticks(in: 1.3...2.1).first ?? 0, 1.4, accuracy: 1e-9)

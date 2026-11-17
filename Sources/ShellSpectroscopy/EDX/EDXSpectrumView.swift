@@ -34,6 +34,30 @@ public nonisolated enum EDXSpectrumWindow {
         return clamp((w.lowerBound + d)...(w.upperBound + d), domain: domain, minimumSpan: minimumSpan)
     }
 
+    /// One keyboard or VoiceOver step on the window (EMSuiteUI#126: the spectrum's zoom and pan were pointer-only): zoom in or out by
+    /// 1.5 about the middle, pan by a tenth of the window. The same rules as the pointer's, so the window stays inside the spectrum.
+    public nonisolated enum Step: Sendable, CaseIterable {
+        case zoomIn, zoomOut, panToLower, panToHigher
+
+        public var name: String {
+            switch self {
+            case .zoomIn: "Zoom In"
+            case .zoomOut: "Zoom Out"
+            case .panToLower: "Show Lower Energies"
+            case .panToHigher: "Show Higher Energies"
+            }
+        }
+    }
+
+    public static func stepped(_ w: ClosedRange<Double>, _ step: Step, domain: ClosedRange<Double>, minimumSpan: Double) -> ClosedRange<Double> {
+        switch step {
+        case .zoomIn: zoomed(w, factor: 1.5, anchor: 0.5, domain: domain, minimumSpan: minimumSpan)
+        case .zoomOut: zoomed(w, factor: 1 / 1.5, anchor: 0.5, domain: domain, minimumSpan: minimumSpan)
+        case .panToLower: panned(w, byFraction: -0.1, domain: domain, minimumSpan: minimumSpan)
+        case .panToHigher: panned(w, byFraction: 0.1, domain: domain, minimumSpan: minimumSpan)
+        }
+    }
+
     /// Channels below this energy are the detector's strobe peak and do not set the count axis' scale.
     public static let strobeCeilingKeV = 0.1
 
@@ -76,6 +100,7 @@ struct EDXSpectrumView: View {
     @State private var pinchStart: ClosedRange<Double>?
     @State private var panStart: ClosedRange<Double>?
     @State private var yStart: Double?
+    @FocusState private var focused: Bool
 
     private var domain: ClosedRange<Double> {
         let end = plot.energyStart + plot.energyStep * Double(plot.data.count)
@@ -141,11 +166,34 @@ struct EDXSpectrumView: View {
                     }
                     .onEnded { _ in panStart = nil; yStart = nil })
                 .onTapGesture(count: 2) { state.window = nil; state.yZoom = 1 }
+                // The keyboard's route to what the pointer does (EMSuiteUI#126): + and − zoom about the middle, ← and → pan, 0 returns to
+                // the automatic window, as the double click does. A click focuses the spectrum.
+                .focusable()
+                .focused($focused)
+                .onKeyPress(characters: CharacterSet(charactersIn: "+=-0")) { press in
+                    switch press.characters {
+                    case "+", "=": step(.zoomIn, from: w)
+                    case "-": step(.zoomOut, from: w)
+                    default: state.window = nil; state.yZoom = 1
+                    }
+                    return .handled
+                }
+                .onKeyPress(.leftArrow) { step(.panToLower, from: w); return .handled }
+                .onKeyPress(.rightArrow) { step(.panToHigher, from: w); return .handled }
                 .accessibilityElement()
                 .accessibilityLabel("Spectrum, \(String(format: "%.2f", w.lowerBound)) to \(String(format: "%.2f", w.upperBound)) keV"
                     + (markers.isEmpty ? "" : ", lines: " + EDXRoomFormat.lines(markers)))
                 .accessibilityIdentifier("edx.spectrum")
+                .accessibilityAction(named: EDXSpectrumWindow.Step.zoomIn.name) { step(.zoomIn, from: w) }
+                .accessibilityAction(named: EDXSpectrumWindow.Step.zoomOut.name) { step(.zoomOut, from: w) }
+                .accessibilityAction(named: EDXSpectrumWindow.Step.panToLower.name) { step(.panToLower, from: w) }
+                .accessibilityAction(named: EDXSpectrumWindow.Step.panToHigher.name) { step(.panToHigher, from: w) }
+                .accessibilityAction(named: "Show Whole Spectrum") { state.window = nil; state.yZoom = 1 }
         }
+    }
+
+    private func step(_ step: EDXSpectrumWindow.Step, from w: ClosedRange<Double>) {
+        state.window = EDXSpectrumWindow.stepped(w, step, domain: domain, minimumSpan: minimumSpan)
     }
 
     nonisolated static let left: CGFloat = 52, bottom: CGFloat = 36, top: CGFloat = 16, right: CGFloat = 8   // read by the nonisolated gesture rule (macTEM's module is nonisolated by default)
