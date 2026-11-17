@@ -444,7 +444,7 @@ public struct InfobarGlance: View {
         TimelineView(.periodic(from: .now, by: 2)) { _ in
             let full = text()
             // The longest line that fits whole (`runLineFallbacks`: "1.4 GB · resident", then "1.4 GB", then the chip alone), never a
-            // figure cut mid-number: a truncated glance read "1(" at a wide inspector (macEMSuite/macEM#726). `.help` and VoiceOver
+            // figure cut mid-number: a truncated glance read "1(" at a wide inspector (EMSuite/Electron-Microscopy-Studio#726). `.help` and VoiceOver
             // keep the whole line.
             ViewThatFits(in: .horizontal) {
                 ForEach(OperationMetricsFormat.runLineFallbacks(full), id: \.self) { candidate in

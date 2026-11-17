@@ -162,7 +162,7 @@ nonisolated final class ShellChromeTests: XCTestCase {
     }
 }
 
-/// macEMSuite/MacEMUI#126: Cancel names its key, and the spinner that stands in for an uncancellable run is named.
+/// EMSuite/EMSuiteUI#126: Cancel names its key, and the spinner that stands in for an uncancellable run is named.
 nonisolated final class PrimaryActionKeyboardTests: XCTestCase {
     func testCancelNamesItsKey() {
         XCTAssertEqual(PrimaryActionPresentation.cancelHelp("Index"), "Cancel Index (⌘.)")

@@ -1,6 +1,6 @@
 //
 //  ProfileThinningTests.swift
-//  The profile chart draws at most 2 × buckets marks for a long line and keeps every run's extremes (macEMSuite/MacEMUI#129): one LineMark per
+//  The profile chart draws at most 2 × buckets marks for a long line and keeps every run's extremes (EMSuite/EMSuiteUI#129): one LineMark per
 //  sample made each redraw cost the line's length.
 //
 
