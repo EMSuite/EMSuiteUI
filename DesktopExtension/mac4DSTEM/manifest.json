@@ -9,7 +9,7 @@
     "name": "mac4DSTEM",
     "url": "https://github.com/EMSuite"
   },
-  "homepage": "https://github.com/EMSuite/MacEMUI",
+  "homepage": "https://github.com/EMSuite/EMSuiteUI",
   "server": {
     "type": "node",
     "entry_point": "server/index.js",

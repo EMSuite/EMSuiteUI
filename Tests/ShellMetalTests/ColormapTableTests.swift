@@ -1,7 +1,7 @@
 import XCTest
 @testable import ShellMetal
 
-/// EMSuite/MacEMUI#129: the 256-entry LUTs are matplotlib's own tables, not a handful of interpolated anchors. Expected bytes are
+/// EMSuite/EMSuiteUI#129: the 256-entry LUTs are matplotlib's own tables, not a handful of interpolated anchors. Expected bytes are
 /// matplotlib 3.9.2's `_viridis_data`, `_inferno_data` and `_RdBu_data` entries times 255, rounded.
 nonisolated final class ColormapTableTests: XCTestCase {
     private func rgb(_ kind: ColormapKind, _ i: Int) -> [UInt8] {
@@ -31,7 +31,7 @@ nonisolated final class ColormapTableTests: XCTestCase {
     }
 }
 
-/// EMSuite/MacEMUI#129: the 256-entry LUT is built once per colormap, not on every colorbar body or tile redraw.
+/// EMSuite/EMSuiteUI#129: the 256-entry LUT is built once per colormap, not on every colorbar body or tile redraw.
 nonisolated final class ColormapLUTCacheTests: XCTestCase {
     func testThe256EntryLUTIsBuiltOnce() {
         for kind in ColormapKind.allCases {
