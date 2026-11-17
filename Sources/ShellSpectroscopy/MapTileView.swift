@@ -8,6 +8,7 @@
 //        `MapViewTransform` (`MapTileZoomSync`). An app may draw its own marks over the picture in the overlay slot (mac4DSTEM: its precipitate glyphs).
 //
 
+import AppKit
 import Combine
 import ShellControls
 import ShellMetal
@@ -173,6 +174,16 @@ public struct MapTileView<Controls: View, Overlay: View>: View {
         .overlay { RoundedRectangle(cornerRadius: 3).strokeBorder(.separator) }
         // A map that is selected on the right wears a ring; a click on a map toggles it (what is shown in the colour mix).
         .overlay { if inMix == true { RoundedRectangle(cornerRadius: 3).strokeBorder(Color.accentColor, lineWidth: 2).allowsHitTesting(false) } }
+        // The keyboard focus, drawn here: the system ring is off (it ran outside the clipped tile), and a focusable tile with no ring
+        // left a keyboard user not knowing which map Space or Delete acts on (EMSuiteUI#126). Outside the mix ring, so both show.
+        .overlay {
+            if focused {
+                RoundedRectangle(cornerRadius: 5)
+                    .strokeBorder(Color(nsColor: .keyboardFocusIndicatorColor), lineWidth: 3)
+                    .padding(-3)
+                    .allowsHitTesting(false)
+            }
+        }
         // The one zoom of the room: this tile's pane and the shared transform kept equal both ways (a gesture in flight here is shared live,
         // never echoed back; nothing stays below the fit).
         .onChange(of: zoomModel.state) { _, state in
@@ -190,11 +201,19 @@ public struct MapTileView<Controls: View, Overlay: View>: View {
         .focused($focused)
         .focusEffectDisabled()
         .onDeleteCommand { regions?.onDelete() }
+        // Space on the focused map does what a click does on it: in the colour mix or out (EMSuiteUI#126: nothing mouse-only).
+        .onKeyPress(.space) {
+            guard let onToggleMix else { return .ignored }
+            onToggleMix()
+            return .handled
+        }
         .help(onToggleMix == nil ? "" : (inMix == true ? "Shown in the colour mix: click to take it out" : "Click to show this map in the colour mix"))
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityName)
         // VoiceOver's zoom and pan actions, the viewport's, listed once, on the labelled tile.
         .zoomPanAccessibilityActions(zoomModel, box: size)
+        .modifier(MixAccessibilityAction(name: TileClickAction.mixActionName(inMix: inMix), toggle: onToggleMix))
+        .accessibilityAction(named: "Colour Controls") { showControls = true }
     }
 
     private var accessibilityName: String {
@@ -218,13 +237,15 @@ public struct MapTileView<Controls: View, Overlay: View>: View {
 
     private var scaleBar: some View {
         let perPoint = (pixelSize ?? 1) * Double(scanWidth) / max(Double(size.width), 1) / Double(transform.zoom)
-        return ScaleBar(unitsPerPoint: perPoint, unitLabel: pixelUnit ?? "px")
-            .padding(4)
-            .contentShape(Rectangle())
-            .onTapGesture { showControls.toggle() }
+        // A button, not a tap gesture: the keyboard reaches it, and VoiceOver presses it (EMSuiteUI#126).
+        return Button { showControls.toggle() } label: {
+            ScaleBar(unitsPerPoint: perPoint, unitLabel: pixelUnit ?? "px")
+                .padding(4)
+                .contentShape(Rectangle())
+        }
+            .buttonStyle(.plain)
             .help("Colour, range and gamma of this map")
             .popover(isPresented: $showControls, arrowEdge: .top) { controls.padding(12).frame(width: 260) }
-            .accessibilityAddTraits(.isButton)
             .accessibilityHint("Opens the colour controls of this map")
             .accessibilityIdentifier("maps.scaleBar.\(title)")
     }
@@ -233,6 +254,12 @@ public struct MapTileView<Controls: View, Overlay: View>: View {
 /// What a click on a map tile does, by its click count. Pure, so a test holds that a double click only resets the view.
 nonisolated enum TileClickAction: Hashable, Sendable {
     case focus, toggleMix, resetView
+
+    /// The VoiceOver action that does what a click does on a selectable map; nil on a map outside the colour mix's choice.
+    static func mixActionName(inMix: Bool?) -> String? {
+        guard let inMix else { return nil }
+        return inMix ? "Take Out of Colour Mix" : "Show in Colour Mix"
+    }
 
     /// A single click focuses the tile and, on a selectable map, toggles it in the colour mix; a double click focuses it and returns
     /// to the whole scan, and nothing else.
@@ -277,5 +304,20 @@ extension MapTileView where Overlay == EmptyView {
         self.init(title: title, detail: detail, image: image, size: size, scanWidth: scanWidth, scanHeight: scanHeight, pixelSize: pixelSize, pixelUnit: pixelUnit,
                   regions: regions, filteredTag: filteredTag, inMix: inMix, onToggleMix: onToggleMix, placeholder: placeholder, transform: transform,
                   onHover: onHover, controls: controls, overlay: { _ in EmptyView() })
+    }
+}
+
+/// A named VoiceOver action, attached only when there is one to offer.
+private struct MixAccessibilityAction: ViewModifier {
+    let name: String?
+    let toggle: (() -> Void)?
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let name, let toggle {
+            content.accessibilityAction(named: name, toggle)
+        } else {
+            content
+        }
     }
 }
