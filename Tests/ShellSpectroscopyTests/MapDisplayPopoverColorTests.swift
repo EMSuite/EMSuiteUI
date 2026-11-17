@@ -1,6 +1,6 @@
 //
 //  MapDisplayPopoverColorTests.swift
-//  The Display popover reads only the appearance a picked colour resolves in, not the whole environment (macEMSuite/MacEMUI#129): the
+//  The Display popover reads only the appearance a picked colour resolves in, not the whole environment (EMSuite/MacEMUI#129): the
 //  colour it stores is the same numbers as before.
 //
 

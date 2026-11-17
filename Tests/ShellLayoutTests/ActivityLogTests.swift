@@ -186,7 +186,7 @@ nonisolated final class ActivityLogTests: XCTestCase {
         }
     }
 
-    /// The Output pane's Clear is enabled by `isEmpty`, which reads the lines without copying 300 strings (macEMSuite/MacEMUI#129).
+    /// The Output pane's Clear is enabled by `isEmpty`, which reads the lines without copying 300 strings (EMSuite/MacEMUI#129).
     @MainActor func testIsEmptyFollowsTheLines() {
         let log = ActivityLog()
         XCTAssertTrue(log.isEmpty)

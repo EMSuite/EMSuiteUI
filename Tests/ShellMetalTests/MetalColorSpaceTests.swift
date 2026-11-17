@@ -1,7 +1,7 @@
 //
 //  MetalColorSpaceTests.swift
 //  The Metal picture's layer is tagged sRGB, as the colormap swatches are, so on a P3 display a colour in the picture is the colour
-//  of its swatch (macEMSuite/MacEMUI#129). Red under: the tag dropped, or a different space than the swatch's.
+//  of its swatch (EMSuite/MacEMUI#129). Red under: the tag dropped, or a different space than the swatch's.
 //
 
 import CoreGraphics

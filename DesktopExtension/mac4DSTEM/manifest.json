@@ -7,9 +7,9 @@
   "long_description": "mac4DSTEM is the MCP server itself, on this Mac only (127.0.0.1). This extension carries Claude's requests to it. In mac4DSTEM, turn on Settings > Agents, press Copy Connection Command and paste the copied line below. The extension talks to no other computer.",
   "author": {
     "name": "mac4DSTEM",
-    "url": "https://github.com/mac4DSTEM"
+    "url": "https://github.com/EMSuite"
   },
-  "homepage": "https://github.com/mac4DSTEM/MacEMUI",
+  "homepage": "https://github.com/EMSuite/MacEMUI",
   "server": {
     "type": "node",
     "entry_point": "server/index.js",

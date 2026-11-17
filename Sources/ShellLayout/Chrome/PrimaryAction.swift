@@ -71,7 +71,7 @@ public nonisolated enum PrimaryActionPresentation: Equatable, Sendable {
         return .verb(prominent: isEnabled)
     }
 
-    /// Cancel's hover help: the operation and its key, ⌘. (both apps' Stop menu item; macEMSuite/MacEMUI#126).
+    /// Cancel's hover help: the operation and its key, ⌘. (both apps' Stop menu item; EMSuite/MacEMUI#126).
     public static func cancelHelp(_ operationName: String?) -> String {
         "Cancel \(operationName ?? "the running operation") (⌘.)"
     }

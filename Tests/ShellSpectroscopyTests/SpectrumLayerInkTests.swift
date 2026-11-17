@@ -2,7 +2,7 @@ import SwiftUI
 import XCTest
 @testable import ShellSpectroscopy
 
-/// macEMSuite/MacEMUI#67: the hovered pixel's white spectrum vanished on a light window.
+/// EMSuite/MacEMUI#67: the hovered pixel's white spectrum vanished on a light window.
 nonisolated final class SpectrumLayerInkTests: XCTestCase {
     private let white = RegionColor(red: 1, green: 1, blue: 1)
 
