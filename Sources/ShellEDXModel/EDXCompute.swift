@@ -267,6 +267,27 @@ public nonisolated enum EDXCompute {
         return outcome(of: result, settings: settings, axis: axis, computedK: computedK, regionName: regionName, refinementNote: refinementNote)
     }
 
+    /// The energy of `element`'s Kα when a computed k can quantify on it: inside the axis and below the beam energy (eXSpy's
+    /// `_get_xray_lines_in_spectral_range`), and at or below half the beam energy, eXSpy's rule for the line it picks per element
+    /// (`_get_lines_from_elements` with `only_one`: the first line under beam / 2), so the line is excited at an overvoltage of 2 or more.
+    /// nil otherwise: Y Kα (14.96 keV) at a 15 keV beam has an overvoltage of 1.003 and stays fit only; at 200 kV it is quantified (EMSuiteUI#142).
+    public static func quantifiableKAlpha(of element: String, axis: EnergyAxis, beamEnergy: Double?) -> Double? {
+        let id = element + "_Ka"
+        guard let line = XRayLines.line(id), !XRayLines.linesInRange([id], axis: axis, beamEnergy: beamEnergy).isEmpty else { return nil }
+        if let beamEnergy, line.energy > beamEnergy / 2 { return nil }
+        return line.energy
+    }
+
+    /// Why an element's Kα cannot carry a computed k, for the fit-only reason: "; Kα 14.96 keV is above half the 15 kV beam" and the like.
+    static func kAlphaShortfall(of element: String, axis: EnergyAxis, beamEnergy: Double?) -> String {
+        guard let line = XRayLines.line(element + "_Ka") else { return "" }
+        if line.energy >= axis.offset + axis.scale * Double(axis.size - 1) { return String(format: "; K\u{03B1} %.2f keV is past the spectrum", line.energy) }
+        if let beamEnergy, line.energy > beamEnergy / 2 {
+            return String(format: "; K\u{03B1} %.2f keV is above half the %.0f kV beam, too weakly excited", line.energy, beamEnergy)
+        }
+        return ""
+    }
+
     /// The room's reading of a proposal: the shipped rules, the picks (an excess beside a listed line is not an element; a find the kit could not
     /// confirm is uncorroborated, never added), the sum-peak suspects and the notes. `settings` and `axis` are the ones the proposal ran with.
     public static func outcome(of result: ProposalResult, settings: FitSettings, axis: EnergyAxis, computedK: Bool, regionName: String,
@@ -300,10 +321,16 @@ public nonisolated enum EDXCompute {
                 continue
             }
             guard EDXElements.unavailableReason(symbol: c.element) == nil else { continue }
-            // A computed k has no L or M lines; a FIB question's remedy is "keep Ga fitted but excluded from Quantify".
-            let noK = computedK && !(XRayLines.line(c.group).map { $0.family == .K } ?? true)
+            // A computed k has no L or M lines; a FIB question's remedy is "keep Ga fitted but excluded from Quantify". An element found by its
+            // L or M group whose Kα the spectrum holds well excited is quantified on that Kα, as Quantify does (`PooledQuantifier` rows take Kα
+            // first): only one without such a Kα is fit only (EMSuiteUI#142).
+            let foundByK = XRayLines.line(c.group).map { $0.family == .K } ?? true
+            let kAlpha = foundByK ? nil : quantifiableKAlpha(of: c.element, axis: axis, beamEnergy: settings.beamEnergy)
+            let noK = computedK && !foundByK && kAlpha == nil
             let fib = c.conflicts.contains { $0.kind == .fibContamination }
-            var reason = (noK ? "fit only (no computed k for L/M lines): " : "") + stats(c)
+            var reason = (noK ? "fit only (no computed k for L/M lines\(kAlphaShortfall(of: c.element, axis: axis, beamEnergy: settings.beamEnergy))): " : "")
+                + (computedK ? kAlpha.map { String(format: "quantified on K\u{03B1} (%.2f keV), found by %@: ", $0, UnlistedLineChecker.displayName(c.group)) } ?? "" : "")
+                + stats(c)
             let questions = c.conflicts.map(\.question)
             if !questions.isEmpty { reason += ". " + questions.joined(separator: " ") }
             if let rule = ruled.ruleReason(for: c.element) { reason += (reason.hasSuffix(".") ? " " : ". ") + rule }

@@ -567,6 +567,35 @@ nonisolated final class EDXSessionTests: XCTestCase {
         XCTAssertTrue(o.uncorroborated.first?.hasPrefix("Ba by") == true, "\(o.uncorroborated)")
     }
 
+    /// An element found by its L group is quantified on its Kα when the spectrum holds that Kα at or below half the beam energy (Y at 200 kV,
+    /// EMSuiteUI#142), and stays fit only, saying why, when the Kα is barely excited (Y Kα 14.96 keV at a 15 kV beam) or past the spectrum.
+    /// Red under: the old rule (every L or M find fit only with a computed k).
+    func testAnLFindIsQuantifiedOnItsKAlphaWhenTheSpectrumHoldsItWellExcited() throws {
+        let y = ElementCandidate(element: "Y", group: "Y_La", energyKeV: 1.92, net: 20_000, sigma: 10, sigmaZero: 10, criticalLevel: 500,
+                                 detectionLimit: 1000, conflicts: [], suggestedRole: .fitOnly, holeRegionNote: nil, misfit: 1)
+        let r = ProposalResult(candidates: [y], sumPeaks: [], refused: [], currie: .standard, notes: [], passes: 1, settled: true)
+        func suggestion(beam: Double, axis: EnergyAxis, computedK: Bool = true) throws -> EDXCompute.Suggestion {
+            let settings = FitSettings.standard(elements: [], axis: axis, resolutionMnKaEV: 130, beamEnergy: beam)
+            return try XCTUnwrap(EDXCompute.outcome(of: r, settings: settings, axis: axis, computedK: computedK, regionName: "R").suggestions.first)
+        }
+        let wide = EnergyAxis(offset: 0, scale: 0.01, size: 4000)   // 0 to 40 keV
+        let tem = try suggestion(beam: 200, axis: wide)
+        XCTAssertEqual(tem.role, .quantify, tem.reason)
+        XCTAssertTrue(tem.reason.hasPrefix("quantified on K\u{03B1} (14.96 keV), found by"), tem.reason)
+
+        let sem = try suggestion(beam: 15, axis: EnergyAxis(offset: 0, scale: 0.01, size: 2000))
+        XCTAssertEqual(sem.role, .fitOnly, "Y K\u{03B1} at an overvoltage of 1.003 carries no k")
+        XCTAssertTrue(sem.reason.contains("above half the 15 kV beam"), sem.reason)
+
+        let short = try suggestion(beam: 200, axis: EnergyAxis(offset: 0, scale: 0.01, size: 1000))   // 0 to 10 keV
+        XCTAssertEqual(short.role, .fitOnly)
+        XCTAssertTrue(short.reason.contains("past the spectrum"), short.reason)
+
+        XCTAssertEqual(try suggestion(beam: 200, axis: wide, computedK: false).role, .quantify, "a typed k is not limited to K lines")
+        XCTAssertEqual(EDXCompute.quantifiableKAlpha(of: "Y", axis: wide, beamEnergy: 30), 14.958, accuracy: 0.01)
+        XCTAssertNil(EDXCompute.quantifiableKAlpha(of: "Y", axis: wide, beamEnergy: 29))
+    }
+
     func testTheFittedCurveIsCutToTheFitRange() {
         let plot = EDXPlot(energyStart: 1, energyStep: 0.5, data: Array(repeating: 0, count: 10), model: (0..<10).map(Double.init), fitChannels: 5..<9)
         let part = plot.fitted(plot.model)
