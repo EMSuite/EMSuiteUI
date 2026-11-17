@@ -62,16 +62,17 @@ nonisolated final class WorkspaceRowAccessibilityTests: XCTestCase {
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
 
         let row = try XCTUnwrap(Self.element(identifier: "workspace.fft", in: window.contentView), "no accessibility element for the FFT row")
-        XCTAssertTrue(row.accessibilityPerformPress?() ?? false)
+        XCTAssertTrue(row.accessibilityPerformPress())
         RunLoop.main.run(until: Date().addingTimeInterval(0.1))
         XCTAssertEqual(model.selection, .fft)
     }
 
     /// The first element under `root` whose accessibility identifier is `identifier`, depth first through the accessibility children.
-    @MainActor private static func element(identifier: String, in root: Any?, depth: Int = 0) -> NSAccessibilityProtocol? {
-        guard depth < 40, let node = root as? NSAccessibilityProtocol else { return nil }
-        if node.accessibilityIdentifier?() == identifier { return node }
-        let children: [Any] = (node.accessibilityChildren?() ?? nil) ?? []
+    /// Through `NSObject`'s informal NSAccessibility methods, which every AppKit and SwiftUI element answers.
+    @MainActor private static func element(identifier: String, in root: Any?, depth: Int = 0) -> NSObject? {
+        guard depth < 40, let node = root as? NSObject else { return nil }
+        if node.accessibilityIdentifier() == identifier { return node }
+        let children: [Any] = node.accessibilityChildren() ?? []
         for child in children {
             if let found = element(identifier: identifier, in: child, depth: depth + 1) { return found }
         }
