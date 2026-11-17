@@ -592,7 +592,7 @@ nonisolated final class EDXSessionTests: XCTestCase {
         XCTAssertTrue(short.reason.contains("past the spectrum"), short.reason)
 
         XCTAssertEqual(try suggestion(beam: 200, axis: wide, computedK: false).role, .quantify, "a typed k is not limited to K lines")
-        XCTAssertEqual(EDXCompute.quantifiableKAlpha(of: "Y", axis: wide, beamEnergy: 30), 14.958, accuracy: 0.01)
+        XCTAssertEqual(try XCTUnwrap(EDXCompute.quantifiableKAlpha(of: "Y", axis: wide, beamEnergy: 30)), 14.958, accuracy: 0.01)
         XCTAssertNil(EDXCompute.quantifiableKAlpha(of: "Y", axis: wide, beamEnergy: 29))
     }
 
