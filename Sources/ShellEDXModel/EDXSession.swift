@@ -647,7 +647,13 @@ public final class EDXSession {
 
     /// The spectrum of one scan pixel, for the pointer's temporary layer; nil off the grid or with no image. One pixel is cheap: it does not touch the cache.
     public func pixelSpectrum(x: Int, y: Int) -> [Double]? {
-        guard let source, x >= 0, y >= 0, x < source.nx, y < source.ny else { return nil }
+        guard let source else { return nil }
+        return Self.pixelSpectrum(of: source, x: x, y: y)
+    }
+
+    /// The same for `source`, from any thread: the room's hover sums it off the main actor (EMSuiteUI#125).
+    public nonisolated static func pixelSpectrum(of source: any SpectrumImageSource, x: Int, y: Int) -> [Double]? {
+        guard x >= 0, y >= 0, x < source.nx, y < source.ny else { return nil }
         return EDXCompute.spectrum(source: source, region: .rectangle(PixelRect(x0: x, y0: y, x1: x + 1, y1: y + 1)), cache: EDXComputeCache()).map { Double($0) }
     }
 

@@ -118,14 +118,12 @@ private struct EDXLowerPane: View {
     let state: EDXRoomState
 
     var body: some View {
-        let layers = EDXRegionBridge.layers(session, pixel: state.hoverPixel.flatMap { session.pixelSpectrum(x: $0.x, y: $0.y) }, plot: session.plot)
+        // The pointer's pixel is read only inside `EDXHoverSpectrum`, so a mouse move redraws the spectrum and nothing here: the line profiles
+        // are made when the line or the maps change, never per hover (EMSuiteUI#125).
         let profile = session.isSingleSpectrum ? [] : EDXRegionBridge.series(session)
         HorizontalPaneSplit(storageKey: "edx.resultsSplit", defaultFraction: 0.6, resizeLabel: "Resize the spectrum and the results", leadingName: "Spectrum",
                             minimumLeading: EDXLayout.spectrumMinimumWidth, minimumTrailing: EDXLayout.resultsWidth.min) {
-            EDXSpectrumView(plot: session.plot, markers: session.markers, hasFit: session.fit != nil, layers: layers, state: state)
-                .overlay(alignment: .topLeading) {
-                    SpectrumLayerLegend(layers: layers.filter { !$0.isTemporary }).padding(.leading, 56).padding(.top, 2)
-                }
+            EDXHoverSpectrum(session: session, state: state)
                 .overlay(alignment: .topTrailing) {
                     if !profile.isEmpty {
                         // The profile along the selected line, over the spectrum: its own colours on a faint plate, so the spectrum stays visible.
@@ -139,6 +137,43 @@ private struct EDXLowerPane: View {
         } trailing: {
             EDXResultsPanel(session: session)
         }
+    }
+}
+
+/// The spectrum with the pins' layers and, while the pointer is over a map, its pixel's spectrum as a temporary layer. The pixel's sum (a
+/// full-grid mask and a pass over the image) runs off the main actor, one per pixel the pointer rests on: a move that comes before it lands
+/// replaces it, and a pixel the pointer has left is never drawn (EMSuiteUI#125: it ran on the main actor at every mouse move).
+private struct EDXHoverSpectrum: View {
+    let session: EDXSession
+    let state: EDXRoomState
+    @State private var hover: EDXHoverSpectrumValue?
+
+    var body: some View {
+        let pixel = EDXHoverSpectrumValue.shown(hover, for: state.hoverPixel)
+        let layers = EDXRegionBridge.layers(session, pixel: pixel, plot: session.plot)
+        EDXSpectrumView(plot: session.plot, markers: session.markers, hasFit: session.fit != nil, layers: layers, state: state)
+            .overlay(alignment: .topLeading) {
+                SpectrumLayerLegend(layers: layers.filter { !$0.isTemporary }).padding(.leading, 56).padding(.top, 2)
+            }
+            .task(id: state.hoverPixel) {
+                guard let at = state.hoverPixel, let source = session.source else { hover = nil; return }
+                let (x, y) = (at.x, at.y)
+                let spectrum = await Task.detached(priority: .userInitiated) { EDXSession.pixelSpectrum(of: source, x: x, y: y) }.value
+                guard !Task.isCancelled else { return }
+                hover = spectrum.map { EDXHoverSpectrumValue(pixel: at, spectrum: $0) }
+            }
+    }
+}
+
+/// One pixel's spectrum and the pixel it is of.
+package struct EDXHoverSpectrumValue: Equatable {
+    package let pixel: EDXHoverPixel
+    package let spectrum: [Double]
+
+    /// The spectrum to draw for the pointer at `pixel`: the one summed for that very pixel, nothing for another or for no pointer.
+    package static func shown(_ value: EDXHoverSpectrumValue?, for pixel: EDXHoverPixel?) -> [Double]? {
+        guard let value, let pixel, value.pixel == pixel else { return nil }
+        return value.spectrum
     }
 }
 
