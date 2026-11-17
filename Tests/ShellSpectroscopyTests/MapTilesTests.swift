@@ -100,6 +100,14 @@ nonisolated final class TileClickActionTests: XCTestCase {
         XCTAssertEqual(TileClickAction.effects(clickCount: 1, selectable: false), [.focus])
         XCTAssertEqual(TileClickAction.effects(clickCount: 0, selectable: true), [])
     }
+
+    /// VoiceOver reaches what a click does on a map: the action names the change it makes, and a map that is not selectable offers
+    /// none (EMSuiteUI#126). Red under: one name for both states, or an action on a tile outside the mix's choice.
+    func testVoiceOverNamesTheMixToggleByWhatItDoes() {
+        XCTAssertEqual(TileClickAction.mixActionName(inMix: false), "Show in Colour Mix")
+        XCTAssertEqual(TileClickAction.mixActionName(inMix: true), "Take Out of Colour Mix")
+        XCTAssertNil(TileClickAction.mixActionName(inMix: nil))
+    }
 }
 
 /// The maps' transform is a view of the panes' `ZoomPan` in a unit tile: the same picture point sits under the same tile point either way,
