@@ -36,7 +36,7 @@ public nonisolated enum EDXSpectrumWindow {
 
     /// One keyboard or VoiceOver step on the window (EMSuiteUI#126: the spectrum's zoom and pan were pointer-only): zoom in or out by
     /// 1.5 about the middle, pan by a tenth of the window. The same rules as the pointer's, so the window stays inside the spectrum.
-    public enum Step: Sendable, CaseIterable {
+    public nonisolated enum Step: Sendable, CaseIterable {
         case zoomIn, zoomOut, panToLower, panToHigher
 
         public var name: String {
