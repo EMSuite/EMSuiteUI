@@ -2,6 +2,26 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.12.4](https://github.com/EMSuite/EMSuiteUI/compare/0.12.3...0.12.4) (2026-11-18)
+
+
+### Bug Fixes
+
+* a map tile shows its keyboard focus, Space toggles it in the mix, and its scale bar is a button ([#176](https://github.com/EMSuite/EMSuiteUI/issues/176)) ([1ba7150](https://github.com/EMSuite/EMSuiteUI/commit/1ba715087214baba688fe7be1cd399d53888b28b))
+* EDS Auto ID quantifies an element found by its L line on its Kα when the spectrum holds it well excited ([#169](https://github.com/EMSuite/EMSuiteUI/issues/169)) ([87bd976](https://github.com/EMSuite/EMSuiteUI/commit/87bd976725460f406a32e206e84afa80ff154b37))
+* the EDS maps export draws each map as the room shows it, off the main actor, and lets the bytes go after saving ([#173](https://github.com/EMSuite/EMSuiteUI/issues/173)) ([56a0f76](https://github.com/EMSuite/EMSuiteUI/commit/56a0f7617165863ec40c0733f1ac97b12fe339b9))
+* the EDS room drops stale pin sums, previews and map pictures, and lets its cache go on close ([#171](https://github.com/EMSuite/EMSuiteUI/issues/171)) ([94e265e](https://github.com/EMSuite/EMSuiteUI/commit/94e265e23e7979de88f707f453f1fec81aca2db6))
+* the EDS spectrum zooms and pans from the keyboard and VoiceOver ([#177](https://github.com/EMSuite/EMSuiteUI/issues/177)) ([1944852](https://github.com/EMSuite/EMSuiteUI/commit/19448525c7a013c2bd7b21f624ec49c7a7635f04))
+* the histogram's log switch sits in its footer, under the plot ([#175](https://github.com/EMSuite/EMSuiteUI/issues/175)) ([1355b90](https://github.com/EMSuite/EMSuiteUI/commit/1355b908744ef02a690006eef27af7c794650de1))
+* the infobar's run bar follows its count instead of trailing it ([#179](https://github.com/EMSuite/EMSuiteUI/issues/179)) ([50d70a6](https://github.com/EMSuite/EMSuiteUI/commit/50d70a65ac8ebc95391f689a59ac44726a0deaa4))
+* VoiceOver adjusts an adjustment row and reads a row's control by its label ([#174](https://github.com/EMSuite/EMSuiteUI/issues/174)) ([4553eb6](https://github.com/EMSuite/EMSuiteUI/commit/4553eb6f47b3f287b3f651247a2abcb6d1da9f7c))
+* workspace rows in the sidebar are buttons to accessibility, and pressing one chooses the room ([#170](https://github.com/EMSuite/EMSuiteUI/issues/170)) ([7e21062](https://github.com/EMSuite/EMSuiteUI/commit/7e210627aa31cd2cd51b30396255ad6764a73f7b))
+
+
+### Performance Improvements
+
+* the EDS room sums the pointer's pixel spectrum off the main actor and makes line profiles only when they change ([#172](https://github.com/EMSuite/EMSuiteUI/issues/172)) ([1037f44](https://github.com/EMSuite/EMSuiteUI/commit/1037f44a727cd2a67d4039100bdf70633142478d))
+
 ## [0.12.3](https://github.com/macEMSuite/MacEMUI/compare/0.12.2...0.12.3) (2026-11-16)
 
 
