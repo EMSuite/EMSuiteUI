@@ -1,10 +1,10 @@
-# Contributing to MacEMUI
+# Contributing to EMSuiteUI
 
 Thank you for your interest. Bug reports, questions, documentation fixes and pull requests are welcome.
 
 ## Build and test
 
-MacEMUI is a Swift package (Swift 6.2 or newer; macOS only: SwiftUI, Metal and a little AppKit).
+EMSuiteUI is a Swift package, still named `MacEMUI` in its `Package.swift` until the module rename (Swift 6.2 or newer; macOS only: SwiftUI, Metal and a little AppKit).
 
 ```bash
 swift build
@@ -16,7 +16,7 @@ Tests use XCTest and Swift Testing. The Metal tests need a GPU and are skipped o
 
 ## Scope
 
-MacEMUI is the window shell, controls and Metal image view that two apps share. A helper only one app uses belongs in
+EMSuiteUI is the window shell, controls and Metal image view that two apps share. A helper only one app uses belongs in
 that app. There are no numerics here; ImagoCore gives `ScaleBarMath`, and the shared EDS room calls SpectroKit, FormatoKit and ImagoFilters for
 every number it shows.
 

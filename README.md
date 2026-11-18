@@ -1,14 +1,14 @@
-<p align="center"><img src="docs/banner.png" width="100%" alt="MacEMUI: one window for both apps, with rooms, inspector and a Metal image view, in SwiftUI"></p>
+<p align="center"><img src="docs/banner.png" width="100%" alt="EMSuiteUI: one window for both apps, with rooms, inspector and a Metal image view, in SwiftUI"></p>
 
-# MacEMUI
+# EMSuiteUI
 
-The shared user interface of the macEM apps, [mac4DSTEM](https://github.com/EMSuite/4DSTEM-Studio) and
-[macEM](https://github.com/EMSuite/Electron-Microscopy-Studio): the window shell, the controls, the inspector rows, the Metal image view
+The shared user interface of the EMSuite apps, [4DSTEM Studio](https://github.com/EMSuite/4DSTEM-Studio) and
+[Electron Microscopy Studio](https://github.com/EMSuite/Electron-Microscopy-Studio): the window shell, the controls, the inspector rows, the Metal image view
 and the spectroscopy room's pieces, as a Swift package. SwiftUI and Metal, with AppKit only where SwiftUI cannot do the
-job (each such place is named in the code). It holds no numerics: the science lives in the macEM kits, and MacEMUI only
+job (each such place is named in the code). It holds no numerics: the science lives in the EMSuite kits, and EMSuiteUI only
 draws what an app hands it.
 
-**Who it is for.** The two macEM apps first. Anyone building a native macOS app for microscopy images and spectra can use
+**Who it is for.** The two EMSuite apps first. Anyone building a native macOS app for microscopy images and spectra can use
 it too: the pieces take values and bindings, not an app's model.
 
 ## Products
