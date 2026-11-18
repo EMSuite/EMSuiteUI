@@ -2,6 +2,14 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.13.0](https://github.com/EMSuite/EMSuiteUI/compare/0.12.4...0.13.0) (2026-11-18)
+
+
+### Features
+
+* Auto ID offers its near misses as one-click Adds ([#143](https://github.com/EMSuite/EMSuiteUI/issues/143)) ([2cd4600](https://github.com/EMSuite/EMSuiteUI/commit/2cd46005474c446d39f9d5cfc334e656dd955cde))
+* Auto ID offers its near misses as one-click Adds ([#181](https://github.com/EMSuite/EMSuiteUI/issues/181)) ([2cd4600](https://github.com/EMSuite/EMSuiteUI/commit/2cd46005474c446d39f9d5cfc334e656dd955cde))
+
 ## [0.12.4](https://github.com/EMSuite/EMSuiteUI/compare/0.12.3...0.12.4) (2026-11-18)
 
 
