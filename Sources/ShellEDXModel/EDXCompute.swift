@@ -253,6 +253,10 @@ public nonisolated enum EDXCompute {
         package var excesses: [String]
         /// Proposals by one L or M line whose K or L line the fitted range cannot hold: shown, never added (the confirm-elements step made explicit).
         public var uncorroborated: [String] = []
+        /// Near misses the user may add with one click (EMSuiteUI#143): above the critical level but not proposed (the kit's `possible`: Mg beside
+        /// Al on AlMgSi, 3.2 × L_D, below the fit-gain bar). Shown as "Also possible", never added by Auto ID itself, as Velox, AZtec and AutoEMX's
+        /// "possible" tier leave the call to the analyst.
+        public var possible: [Suggestion] = []
         /// The proposer's own notes and what it did not test.
         public var notes: [String]
         /// The phase regions whose own spectra were searched as well as `region`'s (mac4DSTEM: the 4D scan's phase pools), in order.
@@ -268,6 +272,10 @@ public nonisolated enum EDXCompute {
             out.alsoSearched.append(pool.region)
             for s in pool.suggestions where !out.suggestions.contains(where: { $0.symbol == s.symbol }) {
                 out.suggestions.append(Suggestion(symbol: s.symbol, role: s.role, reason: "in \(pool.region): \(s.reason)"))
+            }
+            out.possible.removeAll { p in out.suggestions.contains { $0.symbol == p.symbol } }
+            for p in pool.possible where !out.suggestions.contains(where: { $0.symbol == p.symbol }) && !out.possible.contains(where: { $0.symbol == p.symbol }) {
+                out.possible.append(Suggestion(symbol: p.symbol, role: p.role, reason: "in \(pool.region): \(p.reason)"))
             }
             return out
         }
@@ -396,6 +404,14 @@ public nonisolated enum EDXCompute {
         for c in strongestFirst(result.candidates.filter { $0.unconfirmable }) {
             uncorroborated.append("\(c.element) by \(UnlistedLineChecker.displayName(c.group)): \(c.possibleReason ?? "") \(stats(c))")
         }
+        // The near misses: the kit's possible tier, less what is picked, beside a listed line, unconfirmable or not offered by the room (#143).
+        let taken = Set(suggestions.map(\.symbol)).union(settings.elements)
+        var possible: [Suggestion] = []
+        for c in strongestFirst(result.possible) where !c.unconfirmable && !taken.contains(c.element) && !possible.contains(where: { $0.symbol == c.element }) {
+            guard besideLine(c.energyKeV, c.element) == nil, EDXElements.unavailableReason(symbol: c.element) == nil else { continue }
+            possible.append(Suggestion(symbol: c.element, role: .quantify,
+                                       reason: "by \(UnlistedLineChecker.displayName(c.group)): " + (c.possibleReason.map { $0 + " " } ?? "") + stats(c)))
+        }
         let suspects = strongestFirst(ruled.heldQuestions).map { c -> String in
             let sums = c.conflicts.filter { $0.kind == .sumPeak }
             var lead = sums.map { conflict -> String in
@@ -419,7 +435,8 @@ public nonisolated enum EDXCompute {
             notes.append("Withheld by the family rule: " + ruled.familyWithheld.map { "\($0.element) (\($0.familyNote ?? ""))" }.joined(separator: " ") )
         }
         if !ruled.rules.isNone { notes.append("Rules " + ProposalRules.source + ".") }
-        return AutoIDOutcome(region: regionName, suggestions: suggestions, suspects: suspects, excesses: excesses, uncorroborated: uncorroborated, notes: notes)
+        return AutoIDOutcome(region: regionName, suggestions: suggestions, suspects: suspects, excesses: excesses, uncorroborated: uncorroborated,
+                             possible: possible, notes: notes)
     }
 
     // MARK: Quantify

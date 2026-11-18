@@ -108,6 +108,22 @@ private struct EDXElementsSection: View {
                 if autoID == .running { ProgressView().controlSize(.small).accessibilityLabel("Proposing elements") }
             }
             if case .failed(let message) = autoID { InspectorWarning(message, systemImage: "xmark.octagon.fill") }
+            // Near misses Auto ID did not add (EMSuiteUI#143): one click each adds the element, as the periodic table does. Velox, AZtec and
+            // AutoEMX leave this call to the analyst too.
+            let possible = session.alsoPossible.prefix(4)
+            if !possible.isEmpty {
+                InspectorActionRow {
+                    Text("Also possible").font(.caption).foregroundStyle(.secondary)
+                    ForEach(Array(possible), id: \.symbol) { s in
+                        Button("Add \(s.symbol)") { session.addPossible(s.symbol) }
+                            .controlSize(.small)
+                            .help("\(s.symbol) \(s.reason)")
+                            .accessibilityIdentifier("edx.addPossible.\(s.symbol)")
+                    }
+                }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Also possible")
+            }
         }
     }
 }

@@ -171,7 +171,8 @@ public enum EDXAgentTools {
         case .done(let outcome):
             out["auto_id"] = ["region": outcome.region,
                               "suggestions": outcome.suggestions.map { ["symbol": $0.symbol, "reason": $0.reason] },
-                              "uncorroborated": outcome.uncorroborated] as [String: Any]
+                              "uncorroborated": outcome.uncorroborated,
+                              "also_possible": s.alsoPossible.map { ["symbol": $0.symbol, "reason": $0.reason] }] as [String: Any]
         case .failed(let reason): out["auto_id"] = ["failed": reason]
         case .running: out["auto_id"] = "running"
         case .idle: break

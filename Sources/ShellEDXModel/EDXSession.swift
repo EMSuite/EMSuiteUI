@@ -392,6 +392,17 @@ public final class EDXSession {
         if picks.contains(where: { $0.symbol == symbol }) { remove(symbol) } else { add(symbol, role: .quantify, manual: true) }
     }
 
+    /// Auto ID's near misses not picked yet, strongest first (EMSuiteUI#143): offered as one-click Adds, never added by Auto ID itself.
+    public var alsoPossible: [EDXCompute.Suggestion] {
+        (autoID.outcome?.possible ?? []).filter { s in !picks.contains { $0.symbol == s.symbol } }
+    }
+
+    /// Adds one of `alsoPossible` as a pick by hand (Quantify), as a click on the periodic table does.
+    public func addPossible(_ symbol: String) {
+        guard hasImage, alsoPossible.contains(where: { $0.symbol == symbol }) else { return }
+        add(symbol, role: .quantify, manual: true)
+    }
+
     public func setRole(_ role: EDXRole, of symbol: String) {
         guard let i = picks.firstIndex(where: { $0.symbol == symbol }), picks[i].role != role else { return }
         picks[i].role = role
