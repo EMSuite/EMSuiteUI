@@ -106,7 +106,7 @@ struct EDXMapsBlock: View {
 }
 
 /// One tile with its picture made off the main actor, and the wiring of its regions, hover and popover.
-private struct EDXMapTileHost: View {
+struct EDXMapTileHost: View {
     let item: EDXGridItem
     let size: CGSize
     let isAnchor: Bool
@@ -170,7 +170,10 @@ private struct EDXMapTileHost: View {
             .task(id: spec.pictureKey) {
                 if spec.isEmpty { image = nil; return }
                 let make = spec.raster, (w, h) = (nx, ny)
-                image = await Task.detached(priority: .userInitiated) { EDXMapRaster.cgImage(rgba: make(), width: w, height: h) }.value
+                let made = await Task.detached(priority: .userInitiated) { EDXMapRaster.cgImage(rgba: make(), width: w, height: h) }.value
+                // A newer picture's task replaced this one meanwhile (SwiftUI cancels it): the late raster never overwrites it (EMSuiteUI#125).
+                guard !Task.isCancelled else { return }
+                image = made
             }
     }
 
@@ -313,7 +316,11 @@ private struct EDXMapPopover: View {
                           low: binding(\.low), high: binding(\.high), gamma: binding(\.gamma),
                           reset: { if let id { state.appearance.adjustments[id] = nil } })
             .formStyle(.grouped).scrollContentBackground(.hidden).fixedSize(horizontal: false, vertical: true)
-            .task(id: key) { shown = await Self.histogram(of: item.kind, filter: state.mapFilter, memo: session.filteredMaps) }
+            .task(id: key) {
+                let made = await Self.histogram(of: item.kind, filter: state.mapFilter, memo: session.filteredMaps)
+                guard !Task.isCancelled else { return }
+                shown = made
+            }
     }
 
     private var key: String {

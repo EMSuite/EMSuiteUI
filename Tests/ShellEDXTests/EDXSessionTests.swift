@@ -596,6 +596,46 @@ nonisolated final class EDXSessionTests: XCTestCase {
         XCTAssertNil(EDXCompute.quantifiableKAlpha(of: "Y", axis: wide, beamEnergy: 29))
     }
 
+    /// The compute cache is bounded and least-recently-used first: past the budget the oldest map goes, a read keeps a map, the newest is
+    /// kept even alone past the budget; spectra past their limit go the same way (EMSuiteUI#125). Red under: the unbounded dictionaries.
+    func testTheComputeCacheKeepsItsBudgetLeastRecentlyUsedFirst() {
+        let cache = EDXComputeCache(mapByteBudget: 2 * 4 * 8, spectrumLimit: 2)   // two maps of four pixels
+        let m: [Double] = [1, 2, 3, 4]
+        cache.setMap(m, "a"); cache.setMap(m, "b")
+        XCTAssertNotNil(cache.map("a"), "a read is a use: b is now the oldest")
+        cache.setMap(m, "c")
+        XCTAssertEqual(cache.mapKeys, ["a", "c"])
+        XCTAssertNil(cache.map("b"))
+        cache.setMap([Double](repeating: 0, count: 100), "big")
+        XCTAssertEqual(cache.mapKeys, ["big"], "the newest is kept alone past the budget")
+        cache.setSpectrum([1], "r1"); cache.setSpectrum([2], "r2"); cache.setSpectrum([3], "r3")
+        XCTAssertEqual(cache.spectrumKeys, ["r2", "r3"])
+        XCTAssertNil(cache.spectrum("r1"))
+    }
+
+    /// Closing the room lets the file's cached maps and spectra go with it (EMSuiteUI#125). Red under: `close()` keeping the cache.
+    @MainActor func testClosingTheRoomLetsTheCacheGo() async {
+        let session = await openRoom()
+        XCTAssertFalse(session.computeCache.spectrumKeys.isEmpty, "setup: the open summed the whole map")
+        session.close()
+        XCTAssertTrue(session.computeCache.spectrumKeys.isEmpty)
+        XCTAssertTrue(session.computeCache.mapKeys.isEmpty)
+    }
+
+    /// The windows come back with their maps even when the cache cannot keep them all: what is returned is what was read or summed, never a
+    /// second read of a cache that dropped one meanwhile. Red under: the maps read back from a cache too small for them.
+    @MainActor func testTheWindowsKeepTheirMapsWhenTheCacheIsSmall() async throws {
+        let session = await openRoom()
+        let source = try XCTUnwrap(session.source)
+        let picks = session.picks
+        XCTAssertGreaterThan(picks.count, 1, "setup: Auto ID picked several elements")
+        let tiny = EDXComputeCache(mapByteBudget: 1, spectrumLimit: 1)
+        let w = EDXCompute.windows(source: source, spectrum: session.spectrumCounts, picks: picks, cache: tiny)
+        XCTAssertEqual(w.maps.count, w.windows.count)
+        for (window, map) in zip(w.windows, w.maps) where window.window != nil { XCTAssertNotNil(map, window.element) }
+        XCTAssertEqual(tiny.mapKeys.count, 1, "the cache kept only the newest")
+    }
+
     func testTheFittedCurveIsCutToTheFitRange() {
         let plot = EDXPlot(energyStart: 1, energyStep: 0.5, data: Array(repeating: 0, count: 10), model: (0..<10).map(Double.init), fitChannels: 5..<9)
         let part = plot.fitted(plot.model)

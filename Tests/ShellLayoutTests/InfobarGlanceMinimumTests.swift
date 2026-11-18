@@ -20,7 +20,7 @@ nonisolated final class InfobarGlanceMinimumTests: XCTestCase {
     }
 }
 
-/// The glance shows the longest line that fits whole, never a figure cut mid-number (macEMSuite/macEM#726: a wide inspector left
+/// The glance shows the longest line that fits whole, never a figure cut mid-number (EMSuite/Electron-Microscopy-Studio#726: a wide inspector left
 /// "1(" of "1.2 GB"): the fallbacks drop the trailing facts, then show the chip alone. Red before: one truncating `Text`.
 nonisolated final class InfobarGlanceWholeFigureTests: XCTestCase {
     func testTheFallbacksDropWholeFactsThenTheText() {

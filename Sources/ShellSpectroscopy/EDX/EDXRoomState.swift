@@ -119,10 +119,39 @@ public final class EDXRoomState {
         case .mapsPNG:
             let mixIDs = Set(EDXMapsComposition.selection(appearance.mix, scan: session.source?.scanImage, tiles: session.shownTiles))
             let mix = session.shownTiles.filter { mixIDs.contains($0.symbol) }
-            data = session.figureContent(scaleBar: exportScaleBar, regions: exportRegions, mix: mix, linesFocused: linesFocused).flatMap { EDXMapsFigure.png($0) }
+            guard var content = session.figureContent(scaleBar: exportScaleBar, regions: exportRegions, mix: mix, linesFocused: linesFocused) else {
+                data = nil
+                break
+            }
+            content.rasters = await Self.figureRasters(of: session, appearance: appearance, filter: mapFilter)
+            data = EDXMapsFigure.png(content)
         case .compositionByClass: data = nil   // made by the window, which holds the pools (`save`)
         }
         save(data, kind: kind, stem: session.exportStem, directory: directory, report: report)
+    }
+
+    /// The maps as the room's tiles draw them (`EDXMapTileHost.spec`: the person's colours, contrast, gamma and display filter), made off the main
+    /// actor: each element map by its symbol, the colour mix under `EDXFigureContent.mixKey` (EMSuiteUI#125).
+    @MainActor static func figureRasters(of session: EDXSession, appearance: MapAppearance, filter: EDXMapFilter) async -> [String: [UInt8]] {
+        let items = EDXMapsComposition.items(scan: session.source?.scanImage, tiles: session.shownTiles, appearance: appearance)
+        let width = session.source?.nx ?? 0, memo = session.filteredMaps
+        var jobs: [(key: String, raster: @Sendable () -> [UInt8])] = []
+        if let anchor = items.anchor, case .mix(let members) = anchor.kind, !members.isEmpty {
+            jobs.append((EDXFigureContent.mixKey, EDXMapTileHost.spec(for: anchor, appearance: appearance, filter: filter, width: width, memo: memo).raster))
+        }
+        for item in items.rest {
+            guard case .map(let tile) = item.kind else { continue }
+            jobs.append((tile.symbol, EDXMapTileHost.spec(for: item, appearance: appearance, filter: filter, width: width, memo: memo).raster))
+        }
+        let keys = jobs.map(\.key), rasters = jobs.map(\.raster)
+        let made = await Task.detached(priority: .userInitiated) { rasters.map { $0() } }.value
+        return Dictionary(zip(keys, made), uniquingKeysWith: { first, _ in first })
+    }
+
+    /// The save panel closed: its bytes go (EMSuiteUI#125: the maps PNG stayed in the state after saving).
+    package func exportFinished() {
+        exporting = nil
+        exportData = Data()
     }
 
     /// Writes `data` as `kind` through the save panel, or into `directory` (a UI journey's export folder); says why when there is nothing.

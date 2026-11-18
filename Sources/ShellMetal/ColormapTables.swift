@@ -1,6 +1,6 @@
 // The colormaps' tables as matplotlib 3.9.2 ships them: viridis and inferno are its 256-entry `ListedColormap` data (`_cm_listed.py`,
 // CC0), RdBu its 11 ColorBrewer stops (`_cm.py`, Apache-2.0); see `NOTICE`. Generated from the wheel's source text, not typed: a
-// scientist compares these maps with Velox's and py4DSTEM's by eye (macEMSuite/MacEMUI#129).
+// scientist compares these maps with Velox's and py4DSTEM's by eye (EMSuite/EMSuiteUI#129).
 
 nonisolated enum ColormapTables {
     /// viridis: 256 RGB triples, 0...1, entry i at i / 255.

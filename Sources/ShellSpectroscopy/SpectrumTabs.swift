@@ -90,7 +90,7 @@ public struct ProfileChart: View {
             .chartYAxisLabel(valueTitle)
             .chartLegend(.hidden)
             // On macOS a Chart reaches the accessibility tree as a group of its x bins and drops a label or value set on it; one element that
-            // ignores the marks carries the summary (macEMSuite/MacEMUI#68).
+            // ignores the marks carries the summary (EMSuite/EMSuiteUI#68).
             .accessibilityElement(children: .ignore)
             .accessibilityIdentifier("profile.chart")
             .accessibilityLabel("Profile along the line")

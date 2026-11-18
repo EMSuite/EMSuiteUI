@@ -353,8 +353,9 @@ private struct EDXExportSection: View {
 
     private func exportButton(_ kind: EDXExportKind, _ title: String, _ symbol: String, enabled: Bool, help: String) -> some View {
         Button(title, systemImage: symbol) { Task { await state.export(kind, from: session, directory: actions.exportDirectory()) { actions.report($0) } } }
-            .disabled(!enabled)
-            .help(help)
+            // Not while a run is in flight: the export would be of numbers about to change (EMSuiteUI#125).
+            .disabled(!enabled || session.isBusy)
+            .help(session.isBusy && enabled ? "Wait until the room has finished" : help)
             .accessibilityIdentifier("edx.export.\(kind.rawValue)")
     }
 }

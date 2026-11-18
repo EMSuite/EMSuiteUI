@@ -49,7 +49,7 @@ nonisolated final class ProfileSeriesTests: XCTestCase {
         XCTAssertEqual(ProfileChart.summary([s], unit: "nm"), "Value against distance (nm). Mg: 1 to 4 over 1 nm")
     }
 
-    /// macEMSuite/MacEMUI#68: the spoken summary names both axes with their units.
+    /// EMSuite/EMSuiteUI#68: the spoken summary names both axes with their units.
     func testTheSummaryNamesTheAxesAndUnits() {
         let s = ProfileSeries(id: "fe", name: "Fe", color: RegionPalette.color(at: 1), values: [10, 30], spacing: 2)
         XCTAssertEqual(ProfileChart.summary([s], unit: "px", valueTitle: "Net counts"), "Net counts against distance (px). Fe: 10 to 30 over 2 px")

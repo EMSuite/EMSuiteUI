@@ -20,6 +20,17 @@ nonisolated final class InspectorRowsTests: XCTestCase {
         XCTAssertEqual(AdjustmentSlider.clamp(99, to: 0.2...3.0), 3.0)
     }
 
+    /// VoiceOver's increment and decrement on the combined adjustment row: one step, else a tenth of the range,
+    /// never past either end. Red under: `nudged` ignoring `step`, not clamping, or stepping by the whole range.
+    @MainActor func testAnAccessibilityNudgeMovesOneStepOrATenthOfTheRangeWithinIt() {
+        XCTAssertEqual(AdjustmentSlider.nudged(1, up: true, step: 0.5, in: 0...3), 1.5)
+        XCTAssertEqual(AdjustmentSlider.nudged(1, up: false, step: 0.5, in: 0...3), 0.5)
+        XCTAssertEqual(AdjustmentSlider.nudged(1, up: true, step: nil, in: 0...3), 1.3, accuracy: 1e-12)
+        XCTAssertEqual(AdjustmentSlider.nudged(2.9, up: true, step: 0.5, in: 0...3), 3)
+        XCTAssertEqual(AdjustmentSlider.nudged(0.1, up: false, step: nil, in: 0...3), 0)
+        XCTAssertEqual(AdjustmentSlider.nudged(1, up: true, step: 0, in: 0...3), 1.3, accuracy: 1e-12, "a zero step is no step")
+    }
+
     @MainActor func testClampAtEitherBoundReturnsThatBoundExactly() {
         XCTAssertEqual(AdjustmentSlider.clamp(0.2, to: 0.2...3.0), 0.2)
         XCTAssertEqual(AdjustmentSlider.clamp(3.0, to: 0.2...3.0), 3.0)
