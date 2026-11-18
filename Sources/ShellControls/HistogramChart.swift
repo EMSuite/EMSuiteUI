@@ -75,18 +75,6 @@ public struct HistogramChart: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                // Label leading, switch at the trailing edge — the
-                // inspector's one alignment rule.
-                Text("Log y-axis")
-                    .accessibilityHidden(true)   // the switch carries the same label
-                Spacer()
-                Toggle("Log y-axis", isOn: $useLog)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-            }
-
             Canvas { context, size in
                 draw(context: context, size: size)
             }
@@ -116,6 +104,18 @@ public struct HistogramChart: View {
                 }
                 .font(.caption2.monospaced())
                 .foregroundStyle(.secondary)
+            }
+
+            // The footer, under the plot it changes (control-placement §5, EMSuiteUI#126). Label leading, switch at the trailing
+            // edge — the inspector's one alignment rule.
+            HStack {
+                Text("Log y-axis")
+                    .accessibilityHidden(true)   // the switch carries the same label
+                Spacer()
+                Toggle("Log y-axis", isOn: $useLog)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .controlSize(.small)
             }
 
             if isWindowed {
