@@ -26,6 +26,7 @@ let package = Package(
         .library(name: "ShellEDXModel", targets: ["ShellEDXModel"]),
         .library(name: "ShellAgentDoor", targets: ["ShellAgentDoor"]),
         .library(name: "ShellEDXAgent", targets: ["ShellEDXAgent"]),
+        .library(name: "ShellCrystal", targets: ["ShellCrystal"]),
     ],
     dependencies: [
         // ScaleBarMath (PaneFooter/ScaleBar). The apps pin exact tags.
@@ -65,11 +66,15 @@ let package = Package(
         .target(name: "ShellEDXAgent",
                 dependencies: ["ShellAgentDoor", "ShellEDXModel", .product(name: "SpectroEDX", package: "SpectroKit")],
                 swiftSettings: shellSettings),
+        // The crystal view (docs/crystal-view.md): plain atoms, a cell and an orientation in, drawn with RealityKit. Imports no
+        // kit: the app maps its structure and DiffractoKit's bonds into plain data.
+        .target(name: "ShellCrystal", swiftSettings: shellSettings),
         .testTarget(name: "ShellMetalTests", dependencies: ["ShellMetal"], swiftSettings: shellSettings),
         .testTarget(name: "ShellControlsTests", dependencies: ["ShellControls"], swiftSettings: shellSettings),
         .testTarget(name: "ShellInspectorTests", dependencies: ["ShellInspector", "ShellLayout"], swiftSettings: shellSettings),
         .testTarget(name: "ShellLayoutTests", dependencies: ["ShellLayout"], swiftSettings: shellSettings),
         .testTarget(name: "ShellSpectroscopyTests", dependencies: ["ShellSpectroscopy", "ShellMetal", "ShellControls"], swiftSettings: shellSettings),
+        .testTarget(name: "ShellCrystalTests", dependencies: ["ShellCrystal"], swiftSettings: shellSettings),
         .testTarget(name: "ShellAgentDoorTests", dependencies: ["ShellAgentDoor"], swiftSettings: shellSettings),
         .testTarget(name: "ShellEDXTests",
                     dependencies: ["ShellEDXModel", "ShellSpectroscopy", "ShellLayout", "ShellEDXAgent", "ShellAgentDoor",
