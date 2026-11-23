@@ -166,7 +166,9 @@ struct EDXMapTileHost: View {
                 guard let step = EDXRegionBridge.arrowStep(press.key, shift: press.modifiers.contains(.shift)) else { return .ignored }
                 return EDXRegionBridge.nudgeSelected(dx: step.dx, dy: step.dy, in: session, state: state) ? .handled : .ignored
             }
+            // Busy is said, not only dimmed (EMSuiteUI Q8): a word on the tile beside the faded picture.
             .opacity(mapsState == .running ? 0.5 : 1)
+            .overlay { if mapsState == .running { EDXMapTileBusyBadge() } }
             .task(id: spec.pictureKey) {
                 if spec.isEmpty { image = nil; return }
                 let make = spec.raster, (w, h) = (nx, ny)
@@ -395,3 +397,22 @@ nonisolated enum EDXMapOutline {
             }
         }
     }}
+
+/// A tile's "Updating" badge while its maps are computed: the second signal beside the faded picture, legible on the dark stage in
+/// both appearances. VoiceOver hears the inspector's status line, so the badge is one plain element with the same word.
+struct EDXMapTileBusyBadge: View {
+    nonisolated static let text = "Updating…"
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ProgressView().controlSize(.small).accessibilityHidden(true)
+            Text(Self.text).font(.callout)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Color.black.opacity(0.7), in: Capsule())
+        .environment(\.colorScheme, .dark)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("edx.mapTile.busy")
+    }
+}

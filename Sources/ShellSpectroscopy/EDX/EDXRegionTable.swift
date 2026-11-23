@@ -35,6 +35,11 @@ struct EDXRegionTable: View {
                             HStack(spacing: 6) {
                                 Circle().fill(EDXRegionBridge.color(row.pin.color, number: row.pin.number).color).frame(width: LayoutPolicy.regionSwatchSize, height: LayoutPolicy.regionSwatchSize)
                                 Text(row.pin.name).lineLimit(1)
+                                // A hidden region says so with a glyph, not only by fading (EMSuiteUI Q8).
+                                if !row.pin.isVisible {
+                                    Image(systemName: "eye.slash").foregroundStyle(.secondary).help("Hidden on the maps")
+                                        .accessibilityLabel("hidden")
+                                }
                             }
                             .gridColumnAlignment(.leading)
                             .opacity(row.pin.isVisible ? 1 : 0.5)
