@@ -3,7 +3,7 @@
 # candidate by path (the directory takes the package's identity from the app's URL, so `package: "..."` references
 # still resolve), and the whole app builds with xcodebuild as its CI builds it (Debug, unsigned). A break the app would
 # meet on the next chore(deps) PR shows here instead. One macOS job, on the Release PR only (or by hand on a branch);
-# on every other PR only the Linux test of the pointing script runs.
+# on every other PR only the Linux test of the pointing script runs, unless the PR changes this build itself.
 name: App build
 
 on:
@@ -17,6 +17,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 env:
   DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
@@ -29,13 +30,26 @@ jobs:
     name: Test the pointing script
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.changed.outputs.changed }}
     steps:
       - uses: actions/checkout@v7
       - run: tools/app-build/test-point-app.sh
+      - name: Does this PR change the app build itself?
+        id: changed
+        if: github.event_name == 'pull_request'
+        run: |
+          files=$(gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" --name-only)
+          if grep -qE '^(\.github/workflows/app-build\.yml|tools/app-build/)' <<<"$files"; then echo changed=true >> "$GITHUB_OUTPUT"; fi
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
 
   app:
     name: Electron Microscopy Studio builds on the candidate
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release-please--')
+    # The Release PR, a PR that changes this build, or by hand.
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release-please--') || needs.test.outputs.changed == 'true'
     runs-on: macos-26
     timeout-minutes: 60
     steps:
