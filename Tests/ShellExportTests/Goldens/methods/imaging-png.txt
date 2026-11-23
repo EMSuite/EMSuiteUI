@@ -1,0 +1,1 @@
+The image (grain_04.dm4, 1024 × 1024, scale 0.25 nm and beam energy 300 kV as stored) was analysed with Electron Microscopy Studio 2.4.0 (FormatoKit 0.19.0, ImagoKit 0.8.0). Filtering used a Gaussian filter (scikit-image 0.25.2) with sigma 1.5 px. The export shows the image and a scale bar.

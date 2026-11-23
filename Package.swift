@@ -78,8 +78,9 @@ let package = Package(
         // The crystal view (docs/crystal-view.md): plain atoms, a cell and an orientation in, drawn with RealityKit. Imports no
         // kit: the app maps its structure and DiffractoKit's bonds into plain data.
         .target(name: "ShellCrystal", swiftSettings: shellSettings),
-        // The figure scene and its PDF, SVG and PNG renderers: Core Graphics and Core Text, no SwiftUI, off the main actor.
-        // FormatoCore writes the PNG with its text chunks.
+        // The figure scene and its PDF, SVG and PNG renderers, and the methods record and its paragraph: Core Graphics and Core
+        // Text, no SwiftUI, off the main actor.
+        // FormatoCore writes the PNG with its text chunks; a source's calibration is its FormatoMetadataEntry and provenance.
         .target(name: "ShellExport",
                 dependencies: [.product(name: "FormatoCore", package: "FormatoKit")],
                 swiftSettings: modelSettings),
