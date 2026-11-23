@@ -1,0 +1,1 @@
+SPIKE|tag=si500-plainlight-dark|atoms=621|bonds=1024|mode=instanced|lighting=plain|appearance=dark|display_hz=120|frames=601|p50_ms=8.33|p95_ms=8.88|p99_ms=9.31|max_ms=9.33|over_16.7ms=0|over_1.5_intervals=0|build_ms=13.36|window_png=yes|still_ms=55.00

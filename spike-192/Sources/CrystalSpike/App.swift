@@ -45,7 +45,7 @@ final class SpikeModel: ObservableObject {
 
     init() {
         scene = SpikeGeometry.silicon(args.cells, args.cells, args.cells)
-        base = simd_quatf(SpikeGeometry.zoneAxisRotation([1, 1, 0], up: [0, 0, 1]))
+        base = simd_quatf(vector: SIMD4<Float>(SpikeGeometry.zoneAxisRotation([1, 1, 0], up: [0, 0, 1]).vector))
         current = base
     }
 
@@ -185,7 +185,7 @@ struct CrystalSpikeApp: App {
         NSApplication.shared.setActivationPolicy(.regular)
         NSApplication.shared.activate()
     }
-    var body: some Scene {
+    var body: some SwiftUI.Scene {
         WindowGroup("Crystal spike") { SpikeView() }
             .windowResizability(.contentSize)
     }

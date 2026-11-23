@@ -55,24 +55,27 @@ enum SpikeStage {
 
         switch mode {
         case .instanced:
-            let atoms = ModelEntity(mesh: sphere, materials: [atomMat])
-            let data = try LowLevelInstanceData(instanceCount: positions.count)
-            data.withMutableTransforms { t in
-                for (i, p) in positions.enumerated() {
-                    t[i] = Transform(scale: SIMD3(repeating: atomRadius), rotation: simd_quatf(), translation: p).matrix
+            // One MeshInstancesComponent silently draws nothing past roughly 2-4 M triangles (measured on macOS 27.0.1:
+            // 95 spheres of 8064 triangles draw, 621 do not; 8192 cylinders of 256 draw, 16000 do not), so the
+            // instances go out in chunks of at most 1 M triangles each.
+            func addInstanced(_ mesh: MeshResource, _ mat: RealityKit.Material, _ transforms: [float4x4]) throws {
+                let tris = max(1, mesh.contents.models.reduce(0) { $0 + $1.parts.reduce(0) { $0 + ($1.triangleIndices?.count ?? 0) / 3 } })
+                let per = max(1, 1_000_000 / tris)
+                var i = 0
+                while i < transforms.count {
+                    let chunk = transforms[i..<min(i + per, transforms.count)]
+                    let e = ModelEntity(mesh: mesh, materials: [mat])
+                    let data = try LowLevelInstanceData(instanceCount: chunk.count)
+                    data.withMutableTransforms { t in for (k, m) in chunk.enumerated() { t[k] = m } }
+                    e.components.set(try MeshInstancesComponent(mesh: mesh, modelID: nil, instances: data, bounds: nil))
+                    content.addChild(e)
+                    i += per
                 }
             }
-            atoms.components.set(try MeshInstancesComponent(mesh: sphere, modelID: nil, instances: data, bounds: nil))
-            content.addChild(atoms)
-            if !scene.bonds.isEmpty {
-                let bonds = ModelEntity(mesh: cylinder, materials: [bondMat])
-                let bd = try LowLevelInstanceData(instanceCount: scene.bonds.count)
-                bd.withMutableTransforms { t in
-                    for (i, pair) in scene.bonds.enumerated() { t[i] = bondTransform(positions[pair.0], positions[pair.1]) }
-                }
-                bonds.components.set(try MeshInstancesComponent(mesh: cylinder, modelID: nil, instances: bd, bounds: nil))
-                content.addChild(bonds)
-            }
+            // simd_quatf() is the zero quaternion, not the identity; written out here.
+            try addInstanced(sphere, atomMat, positions.map {
+                Transform(scale: SIMD3(repeating: atomRadius), rotation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1), translation: $0).matrix })
+            try addInstanced(cylinder, bondMat, scene.bonds.map { bondTransform(positions[$0.0], positions[$0.1]) })
         case .entities:
             for p in positions {
                 let e = ModelEntity(mesh: sphere, materials: [atomMat])
