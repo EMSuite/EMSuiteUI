@@ -100,6 +100,26 @@ nonisolated final class ActivityLogTests: XCTestCase {
         XCTAssertFalse(before.map(\.id).contains(log.lines[0].id), "ids are not reused after clear")
     }
 
+    // MARK: - What VoiceOver hears (EMSuiteUI#126)
+
+    /// The status line changed with no word to VoiceOver. The log is its events-only channel, so an event is said, without its
+    /// clock, and what the log refuses (a readout, a progress tick, a repeat, an empty line) is never said. Red before: nothing
+    /// was announced at all.
+    @MainActor func testAnEventIsSaidToVoiceOverAndAReadoutIsNot() {
+        let heard = Heard()
+        let log = ActivityLog(now: { Date(timeIntervalSinceReferenceDate: 0) }, announce: { heard.lines.append($0) })
+
+        log.record("Loaded WS2.h5")
+        log.record("Loaded WS2.h5")
+        log.record("Detecting disks… 42 %")
+        log.record("")
+        log.suppressNextRecordOnce()
+        log.record("Pattern x 154, y 152 from WS2.h5")
+        log.record("Disks ✓ 16384 peaks")
+
+        XCTAssertEqual(heard.lines, ["Loaded WS2.h5", "Disks ✓ 16384 peaks"])
+    }
+
     // MARK: - Where the output strip scrolls to
 
     /// The output strip scrolls on `.onChange` of the newest line's id, which
@@ -207,4 +227,10 @@ nonisolated final class ObservationFlag: @unchecked Sendable {
         set { lock.lock(); defer { lock.unlock() }; value = newValue }
     }
 
+}
+
+/// What the injected announcer heard, as a main-actor reference (a captured `var` cannot be mutated from a main-actor closure,
+/// which is Sendable).
+@MainActor final class Heard {
+    var lines: [String] = []
 }

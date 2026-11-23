@@ -1,10 +1,10 @@
 # Status
 
-What is live. 0.5.1 (2026-11-05) is tagged; both apps take MacEMUI by version range and build on it.
+What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version range and build on it.
 
 - The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, `LayoutPolicy`,
-  `MenuActionRelay`, `ActivityLog`, `UITestingPlacement`; `InspectorSection` can start closed and draws a status glyph.
-- The controls (`ShellControls`, `ShellInspector`): zoom and pan (the wheel zooms or pans by Settings, `ScrollWheelMode`), `NumericField` (typing the shown text over a finer stored
+  `MenuActionRelay`, `ActivityLog` (each recorded event is also said to VoiceOver), `UITestingPlacement`; `InspectorSection` can start closed and draws a status glyph.
+- The controls (`ShellControls`, `ShellInspector`): zoom and pan (the wheel zooms or pans by Settings, `ScrollWheelMode`; View > Pan Left, Right, Up, Down with ⌃⌘ and an arrow), `NumericField` (typing the shown text over a finer stored
   value sets it), `PaneFooter`, `ScaleBar`, colorbar, `HistogramChart`, `SegmentedControl` and `SegmentedPicker` (a segment can be
   disabled, with its reason), the inspector row kit.
 - The Metal image view (`ShellMetal`): `MetalEngine`, `MetalImageView` (raw pixels at their own bit depth, a linear or log

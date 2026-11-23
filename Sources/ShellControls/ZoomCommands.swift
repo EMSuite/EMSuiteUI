@@ -12,6 +12,11 @@ import SwiftUI
 /// per screen point, and a menu item must not say otherwise. The step is the VoiceOver step (a factor of 2). With the pointer
 /// over the pane (the shortcut) the zoom is about the pointer; chosen with the mouse it is about the pane's centre.
 ///
+/// Pan Left, Right, Up and Down are the keyboard's drag (EMSuiteUI#126): a fifth of the pane per press, the VoiceOver step, enabled
+/// only while the picture is zoomed past the fit. ⌃⌘ and an arrow, because the plain, ⌥ and ⇧ arrows already belong to the panes
+/// (frames, marks, the cursor; macEM#509) and ⌥⌘↑ and ⌥⌘↓ are 4DSTEM Studio's Next and Previous Task; ⇧⌘ and ⌘ arrows are a text
+/// field's, which a menu key equivalent would take from it.
+///
 /// Native menu items and the standard shortcuts (⌘+, ⌘−, ⌘0); no AppKit. Hooked up by one line in the app's `.commands`.
 public struct ZoomCommands: Commands {
     @FocusedValue(\.paneZoom) private var zoom
@@ -30,6 +35,46 @@ public struct ZoomCommands: Commands {
             Button("Zoom to Fit") { zoom?.fit() }
                 .keyboardShortcut("0", modifiers: .command)
                 .disabled(zoom == nil)
+            Divider()
+            ForEach(PanCommand.allCases, id: \.self) { command in
+                Button(command.title) { zoom?.pan(command.direction) }
+                    .keyboardShortcut(command.key, modifiers: PanCommand.modifiers)
+                    .disabled(zoom?.canPan != true)
+            }
+        }
+    }
+}
+
+/// The four Pan items of the View menu, in menu order: their titles, keys and what each does to the pane's zoom.
+nonisolated enum PanCommand: CaseIterable, Sendable {
+    case left, right, up, down
+
+    static let modifiers: EventModifiers = [.control, .command]
+
+    var title: String {
+        switch self {
+        case .left: "Pan Left"
+        case .right: "Pan Right"
+        case .up: "Pan Up"
+        case .down: "Pan Down"
+        }
+    }
+
+    var key: KeyEquivalent {
+        switch self {
+        case .left: .leftArrow
+        case .right: .rightArrow
+        case .up: .upArrow
+        case .down: .downArrow
+        }
+    }
+
+    var direction: ZoomPan.PanDirection {
+        switch self {
+        case .left: .left
+        case .right: .right
+        case .up: .up
+        case .down: .down
         }
     }
 }
