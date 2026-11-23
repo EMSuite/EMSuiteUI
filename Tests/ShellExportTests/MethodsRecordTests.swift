@@ -93,17 +93,21 @@ final class MethodsRecordTests: XCTestCase {
 
     /// No golden holds a path, this Mac's user name or its host name.
     func testNoGoldenHoldsAPathUserOrHost() throws {
-        let files = try FileManager.default.contentsOfDirectory(at: Self.goldens, includingPropertiesForKeys: nil)
+        let files = try FileManager.default.contentsOfDirectory(at: Self.goldens, includingPropertiesForKeys: nil,
+                                                                options: .skipsHiddenFiles)
         XCTAssertEqual(files.count, 2 * MethodsTestRecords.all.count)
-        var forbidden = MethodsJSON.pathMarkers + ["/Users/", "/home/", "~/", "file://"]
-        for name in [NSUserName(), Self.hostName(), Self.hostName().split(separator: ".").first.map(String.init) ?? ""]
-            where name.count >= 4 {
-            forbidden.append(name)
-        }
+        let forbidden = MethodsJSON.pathMarkers + ["/Users/", "/home/", "~/", "file://"]
+        // A name is matched as a whole word, so a machine called "studio" does not match the app's name.
+        let names = [NSUserName(), Self.hostName(), Self.hostName().split(separator: ".").first.map(String.init) ?? ""]
+            .filter { $0.count >= 4 }.map { $0.lowercased() }
         for file in files {
             let text = try String(contentsOf: file, encoding: .utf8)
             for marker in forbidden {
                 XCTAssertFalse(text.localizedCaseInsensitiveContains(marker), "\(file.lastPathComponent) holds \"\(marker)\"")
+            }
+            let words = Set(text.lowercased().split { !$0.isLetter && !$0.isNumber && $0 != "-" }.map(String.init))
+            for name in names {
+                XCTAssertFalse(words.contains(name), "\(file.lastPathComponent) holds the name \"\(name)\"")
             }
         }
     }

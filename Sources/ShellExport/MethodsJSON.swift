@@ -5,11 +5,13 @@
 //
 //  THE FORM: no whitespace; object keys sorted by their UTF-8 bytes (Python's `sort_keys`); an absent optional is an absent key,
 //  never `null`. Strings are UTF-8 as they are, with `"` and `\` escaped, `\b \f \n \r \t` as such and other control characters
-//  as `\u00xx`; `/` is not escaped. This is Python's `json.dumps(sort_keys=True, separators=(",", ":"), ensure_ascii=False)`.
+//  as `\u00xx`; `/` is not escaped. This is Python's `json.dumps(sort_keys=True, separators=(",", ":"), ensure_ascii=False)`
+//  once whole floats are written as integers.
 //
 //  NUMBERS: an integer as its digits. A Double that is a whole number below 10^15 in size is written as an integer ("200", not
 //  "200.0"; -0 is "0"); any other is Swift's shortest round-trip `description` ("0.02", "4.0495", "1e-05"), which is Python's
-//  `repr` for every finite Double. NaN and infinity are refused. The paragraph writes its numbers the same way.
+//  `repr` for the values a record holds (the two may differ in form for whole numbers from 10^15 to 10^16). NaN and infinity
+//  are refused. The paragraph writes its numbers the same way.
 //
 
 import FormatoCore
