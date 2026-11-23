@@ -1,0 +1,1 @@
+SPIKE|tag=si500-entities-dark|atoms=621|bonds=1024|mode=entities|lighting=studio|appearance=dark|display_hz=120|frames=1201|p50_ms=8.36|p95_ms=8.62|p99_ms=8.78|max_ms=9.09|over_16.7ms=0|over_1.5_intervals=0|build_ms=30.04|window_png=yes|still_ms=131.26

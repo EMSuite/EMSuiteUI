@@ -1,0 +1,9 @@
+Mon Nov 23 16:09:41 UTC 2026
+Apple M5 Pro
+Mac17,9
+memory 64 GB
+27.0.1
+swift-driver version: 1.168.6 Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)
+Chipset Model: Apple M5 Pro
+Resolution: 3024 x 1964 Retina
+Main Display: Yes
