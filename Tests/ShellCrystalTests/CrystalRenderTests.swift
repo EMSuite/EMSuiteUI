@@ -80,4 +80,3 @@ nonisolated final class CrystalRenderTests: XCTestCase {
         CGImageDestinationFinalize(dest)
     }
 }
-
