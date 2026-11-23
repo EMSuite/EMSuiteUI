@@ -1,0 +1,56 @@
+# The consumer build: on the Release PR, Electron Microscopy Studio is built against this candidate before the tag
+# exists. The app's main is checked out beside this checkout, its Package.swift line for this package is pointed at the
+# candidate by path (the directory takes the package's identity from the app's URL, so `package: "..."` references
+# still resolve), and the whole app builds with xcodebuild as its CI builds it (Debug, unsigned). A break the app would
+# meet on the next chore(deps) PR shows here instead. One macOS job, on the Release PR only (or by hand on a branch);
+# on every other PR only the Linux test of the pointing script runs.
+name: App build
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: app-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+  APP_REPO: EMSuite/Electron-Microscopy-Studio
+  # The names this package has had in the app's Package.swift; the URL's last part is the identity the app refers to.
+  NAMES: MacEMUI|EMSuiteUI
+
+jobs:
+  test:
+    name: Test the pointing script
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - run: tools/app-build/test-point-app.sh
+
+  app:
+    name: Electron Microscopy Studio builds on the candidate
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.head_ref, 'release-please--')
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: candidate
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ env.APP_REPO }}
+          path: app
+      - name: Point the app at the candidate
+        run: tools/app-build/point-app.sh app candidate "$NAMES"
+      - name: Build the app
+        run: |
+          xcodebuild build -project app/macTEM.xcodeproj -scheme macTEM -configuration Debug -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" CODE_SIGNING_ALLOWED=NO > "$RUNNER_TEMP/build.log" 2>&1 && rc=0 || rc=$?
+          grep -E "error:|: error|BUILD (SUCCEEDED|FAILED)" "$RUNNER_TEMP/build.log" | tail -60 || true
+          exit $rc
