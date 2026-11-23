@@ -131,8 +131,8 @@ nonisolated final class PanelNavigationTests: XCTestCase {
         XCTAssertEqual(ProcessPaneID("lineage").rawValue, "lineage")
     }
 
-    /// The Show/Hide Sidebar action acts on what is on screen. Showing clears the width collapse; the collapse
-    /// never clears itself, and does not touch the user's intent.
+    /// The Show/Hide Sidebar action acts on what is on screen. Showing clears the width collapse, which does not
+    /// touch the user's intent.
     @MainActor func testToggleSidebarActsOnWhatIsOnScreen() {
         let navigation = PanelNavigation()
         navigation.sidebarCollapsedForWidth = true
@@ -146,5 +146,51 @@ nonisolated final class PanelNavigationTests: XCTestCase {
         navigation.toggleSidebar()
         XCTAssertFalse(navigation.sidebarIsVisible)
         XCTAssertFalse(navigation.showSidebarPane)
+    }
+
+    // MARK: - The sidebar follows the window's width (EMSuiteUI#144)
+
+    /// Red before: a sidebar the window stepped aside stayed hidden however wide the window grew again.
+    @MainActor func testASidebarTheWindowHidComesBackPastTheReturnLine() {
+        let navigation = PanelNavigation()
+        navigation.showInspectorPane = true
+        let line = LayoutPolicy.navigatorLine(inspectorVisible: true)
+        let back = LayoutPolicy.sidebarReturnLine(inspectorVisible: true)
+        XCTAssertEqual(back, line + LayoutPolicy.sidebarWidth.max + LayoutPolicy.splitColumnDividerAllowance)
+
+        navigation.followWindowWidth(line - 1)
+        XCTAssertFalse(navigation.sidebarIsVisible, "below the line the sidebar steps aside")
+
+        navigation.followWindowWidth(line)
+        navigation.followWindowWidth(back - 1)
+        XCTAssertFalse(navigation.sidebarIsVisible, "between the lines nothing changes, so a resize near one cannot flap it")
+
+        navigation.followWindowWidth(back)
+        XCTAssertTrue(navigation.sidebarIsVisible, "past the return line it comes back")
+        XCTAssertFalse(navigation.sidebarCollapsedForWidth)
+    }
+
+    /// Only what the window hid comes back: a sidebar the user hid stays hidden at any width.
+    @MainActor func testASidebarTheUserHidStaysHidden() {
+        let navigation = PanelNavigation()
+        navigation.toggleSidebar()
+        XCTAssertFalse(navigation.showSidebarPane)
+        navigation.followWindowWidth(LayoutPolicy.navigatorLine(inspectorVisible: false) - 1)
+        navigation.followWindowWidth(LayoutPolicy.sidebarReturnLine(inspectorVisible: false) + 500)
+        XCTAssertFalse(navigation.sidebarIsVisible, "the user's choice outlasts any width")
+    }
+
+    /// Hiding the inspector frees its column: the lines move down with it, and the sidebar returns at the narrower line.
+    @MainActor func testHidingTheInspectorMovesTheLines() {
+        let navigation = PanelNavigation()
+        navigation.showInspectorPane = true
+        let width = LayoutPolicy.sidebarReturnLine(inspectorVisible: false)
+        XCTAssertLessThan(width, LayoutPolicy.navigatorLine(inspectorVisible: true), "with the inspector shown this width is too narrow")
+        navigation.followWindowWidth(width)
+        XCTAssertFalse(navigation.sidebarIsVisible)
+
+        navigation.showInspectorPane = false
+        navigation.followWindowWidth(width)
+        XCTAssertTrue(navigation.sidebarIsVisible)
     }
 }

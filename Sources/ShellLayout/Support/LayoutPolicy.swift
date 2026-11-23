@@ -74,6 +74,14 @@ public nonisolated enum LayoutPolicy {
         return max(comfortable, widest)
     }
 
+    /// The width at which a sidebar the window stepped aside comes back by itself (EMSuiteUI#144): the step-aside line plus the
+    /// sidebar at its widest. From here the science panes keep at least the width they had just before the sidebar stepped aside,
+    /// so the returning sidebar fits in the window instead of growing it (a return right at the line grew it, 1150 → 1420 pt,
+    /// 2026-09-30 drive), and the gap between the two lines keeps a resize near either from flapping the sidebar.
+    public static func sidebarReturnLine(inspectorVisible: Bool) -> CGFloat {
+        navigatorLine(inspectorVisible: inspectorVisible) + sidebarWidth.max + splitColumnDividerAllowance
+    }
+
     /// Science: a diffraction or real-space pane below this stops being an
     /// image and becomes a smudge.
     public static let imagePaneMinimum: CGFloat = 180

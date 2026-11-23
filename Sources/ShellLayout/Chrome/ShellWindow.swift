@@ -114,12 +114,12 @@ public struct ShellWindow<Sidebar: View, Canvas: View, Inspector: View, ToolbarI
         .modifier(DropOutline(onDropURLs: onDropURLs, isTargeted: $dropTargeted))
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { windowWidth = $0 }
         // Steps aside when the window narrows past the line (and at a narrow
-        // launch); never comes back by itself — a returning sidebar made
-        // macOS grow the window (1150 -> 1420 pt, 2026-09-30 drive). The user
-        // brings it back with the toggle, which clears the flag.
-        .onChange(of: sidebarFits, initial: true) {
-            if !sidebarFits { navigation.sidebarCollapsedForWidth = true }
-        }
+        // launch), and comes back once the window is wide enough to hold it
+        // without growing (`LayoutPolicy.sidebarReturnLine`; a return right at
+        // the line made macOS grow the window, 1150 -> 1420 pt, 2026-09-30
+        // drive). The toggle brings it back at any width.
+        .onChange(of: windowWidth, initial: true) { navigation.followWindowWidth(windowWidth) }
+        .onChange(of: navigation.inspectorIsVisible) { navigation.followWindowWidth(windowWidth) }
         .onAppear {
             navigation.showSidebarPane = savedSidebarVisible
             navigation.showInspectorPane = savedInspectorVisible
@@ -172,7 +172,7 @@ public struct ShellWindow<Sidebar: View, Canvas: View, Inspector: View, ToolbarI
                     // failed on screen (2026-09-30): SwiftUI does not shrink a
                     // column whose maximum drops below its width, and the
                     // overflow looped. What keeps 460 inside a narrow window is
-                    // the sidebar stepping aside (`sidebarFits`).
+                    // the sidebar stepping aside (`followWindowWidth`).
                     max: LayoutPolicy.inspectorWidth.max
                 )
                 // The inspector's own toolbar carries its Settings · Info
@@ -213,13 +213,6 @@ public struct ShellWindow<Sidebar: View, Canvas: View, Inspector: View, ToolbarI
                 }
             }
         )
-    }
-
-    /// Whether the sidebar fits beside the inspector and two comfortable
-    /// science panes at this window's width (`LayoutPolicy.navigatorFits`).
-    private var sidebarFits: Bool {
-        LayoutPolicy.navigatorFits(windowWidth: windowWidth,
-                                   inspectorVisible: navigation.inspectorIsVisible)
     }
 
     /// Capture scaffolding (see `onAppear`): only a launch flag writes here.
