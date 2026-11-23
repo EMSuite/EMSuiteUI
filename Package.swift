@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // MacEMUI: the window shell, controls and Metal image view that mac4DSTEM and macTEM share.
 // An app package, not a kit: it has UI, Metal and (named, minimal) AppKit. Kits stay pure Swift; imported here are ImagoCore for
-// `ScaleBarMath` (ShellControls) and, for the shared EDS room, SpectroKit, FormatoKit and ImagoFilters. No numerics live here.
+// `ScaleBarMath` (ShellControls), for the shared EDS room SpectroKit, FormatoKit and ImagoFilters, and FormatoCore's PNG writer
+// (ShellExport). No numerics live here.
 // Settings: Swift 6 language mode and MainActor default isolation, as macTEM; mac4DSTEM (Swift 5 mode) consumes it unchanged.
 import PackageDescription
 
@@ -11,6 +12,13 @@ let shellSettings: [SwiftSetting] = [
     .defaultIsolation(MainActor.self),
     .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
     .enableUpcomingFeature("InferIsolatedConformances"),
+    .enableUpcomingFeature("MemberImportVisibility"),
+]
+
+// A model target that draws off the main actor (ShellExport): the shell's settings without the MainActor default.
+let modelSettings: [SwiftSetting] = [
+    .swiftLanguageMode(.v6),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
     .enableUpcomingFeature("MemberImportVisibility"),
 ]
 
@@ -27,6 +35,7 @@ let package = Package(
         .library(name: "ShellAgentDoor", targets: ["ShellAgentDoor"]),
         .library(name: "ShellEDXAgent", targets: ["ShellEDXAgent"]),
         .library(name: "ShellCrystal", targets: ["ShellCrystal"]),
+        .library(name: "ShellExport", targets: ["ShellExport"]),
     ],
     dependencies: [
         // ScaleBarMath (PaneFooter/ScaleBar). The apps pin exact tags.
@@ -69,12 +78,21 @@ let package = Package(
         // The crystal view (docs/crystal-view.md): plain atoms, a cell and an orientation in, drawn with RealityKit. Imports no
         // kit: the app maps its structure and DiffractoKit's bonds into plain data.
         .target(name: "ShellCrystal", swiftSettings: shellSettings),
+        // The figure scene and its PDF, SVG and PNG renderers: Core Graphics and Core Text, no SwiftUI, off the main actor.
+        // FormatoCore writes the PNG with its text chunks.
+        .target(name: "ShellExport",
+                dependencies: [.product(name: "FormatoCore", package: "FormatoKit")],
+                swiftSettings: modelSettings),
         .testTarget(name: "ShellMetalTests", dependencies: ["ShellMetal"], swiftSettings: shellSettings),
         .testTarget(name: "ShellControlsTests", dependencies: ["ShellControls"], swiftSettings: shellSettings),
         .testTarget(name: "ShellInspectorTests", dependencies: ["ShellInspector", "ShellLayout"], swiftSettings: shellSettings),
         .testTarget(name: "ShellLayoutTests", dependencies: ["ShellLayout"], swiftSettings: shellSettings),
         .testTarget(name: "ShellSpectroscopyTests", dependencies: ["ShellSpectroscopy", "ShellMetal", "ShellControls"], swiftSettings: shellSettings),
         .testTarget(name: "ShellCrystalTests", dependencies: ["ShellCrystal"], swiftSettings: shellSettings),
+        .testTarget(name: "ShellExportTests",
+                    dependencies: ["ShellExport", .product(name: "FormatoCore", package: "FormatoKit")],
+                    exclude: ["Goldens"],
+                    swiftSettings: modelSettings),
         .testTarget(name: "ShellAgentDoorTests", dependencies: ["ShellAgentDoor"], swiftSettings: shellSettings),
         .testTarget(name: "ShellEDXTests",
                     dependencies: ["ShellEDXModel", "ShellSpectroscopy", "ShellLayout", "ShellEDXAgent", "ShellAgentDoor",

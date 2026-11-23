@@ -21,6 +21,7 @@ it too: the pieces take values and bindings, not an app's model.
 | `ShellLayout` | the window skeleton: rooms (`WorkspaceRoom`, `PanelNavigation`), toolbar, sidebar and inspector frames, the centre column, `LayoutPolicy`, `MenuActionRelay`, `ActivityLog`, `SystemMonitor` |
 | `ShellSpectroscopy` | the spectroscopy room: map tiles and the fitted map grid, the colour mix, regions (draw, edit, list), spectrum and profile panes, the periodic table, the map display popover; the EDS room both apps show (`EDXRoom`, `EDXRoomSettings`, `EDXRoomInfo`, `EDXRoomState`) |
 | `ShellEDXModel` | the EDS room's model and session (`EDXSession`, regions, pins, maps, exports), no SwiftUI; the app passes its names and file opener in `EDXRoomHost`; numbers from SpectroKit |
+| `ShellExport` | the figure scene (`FigureScene`, `FigureLayer`, `FigureStyle`: 90, 140 or 190 mm wide, 7 pt Helvetica) and `FigureRenderer`, which draws it as PDF and SVG with live text and as PNG, the picture at its own pixels, with `FigureMetadata` embedded; Core Graphics and Core Text, no SwiftUI |
 
 `CHANGELOG.md` lists every public piece as it was added.
 

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="140mm" height="50mm" viewBox="0 0 396.85 141.732">
+<title>Map</title>
+<desc>EMSuiteUI tests</desc>
+<image x="10" y="10" width="160" height="120" preserveAspectRatio="none" style="image-rendering:optimizeSpeed;image-rendering:pixelated" xlink:href="data:image/png;base64,PNG"/>
+<path d="M180 11.75 L187 11.75 L187 18.75 L180 18.75 Z" fill="#ff0000"/>
+<text x="194" y="17.7" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#000000">Fe</text>
+<path d="M180 22.25 L187 22.25 L187 29.25 L180 29.25 Z" fill="#009900"/>
+<text x="194" y="28.2" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#000000">Ni</text>
+<path d="M180 32.75 L187 32.75 L187 39.75 L180 39.75 Z" fill="#0000ff"/>
+<text x="194" y="38.7" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#000000">Cr</text>
+</svg>

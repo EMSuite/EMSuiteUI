@@ -19,6 +19,10 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
 - The crystal view (`ShellCrystal`, `docs/crystal-view.md`): a phase's unit cell in 3D with RealityKit, seen down the beam in
   parallel projection, turned by drag, ⌥ drag, the arrow keys and VoiceOver actions; plain atoms, a cell and an orientation
   in, orientation changes out; its own element colours in one file; a still mode and an offscreen snapshot.
+- Figures (`ShellExport`, not yet in a release): a figure as one value, `FigureScene` (a picture at its own pixels, paths,
+  markers in six shapes, one-line labels, a ruled table, a legend; 90, 140 or 190 mm wide, 7 pt Helvetica), drawn by
+  `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Core
+  Graphics and Core Text only, off the main actor.
 - The agent door (`ShellAgentDoor`, since 0.6.0): a local API, off until the person turns it on in Settings, through which
   an agent on this Mac looks at the app's open windows; each app registers its own tools. The app is the MCP server itself,
   over HTTP at `/mcp`; Claude desktop connects through the extension in `DesktopExtension/` (`docs/agent-door.md`). Since
