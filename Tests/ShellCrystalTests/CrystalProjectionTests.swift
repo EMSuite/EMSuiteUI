@@ -1,4 +1,5 @@
 import CoreGraphics
+import Foundation
 import simd
 import XCTest
 @testable import ShellCrystal
@@ -60,5 +61,25 @@ nonisolated final class CrystalProjectionTests: XCTestCase {
         XCTAssertEqual(CrystalMotion.transition(from: a, to: b, dragging: true, reduceMotion: false), .none)
         let step = CrystalTurn.turned(a, by: CrystalTurn.step(.tiltLeft))
         XCTAssertEqual(CrystalMotion.transition(from: a, to: step, dragging: false, reduceMotion: true), .none)
+    }
+}
+
+/// The state the agent door reads back (app #846).
+nonisolated final class CrystalSummaryTests: XCTestCase {
+    func testSummaryRoundTripsAndNamesTheView() throws {
+        let scene = CrystalGeometryTests.silicon()
+        let m = CrystalTurn.lookingDown(scene.cell! * [1, 1, 0], up: scene.cell! * [0, 0, 1])
+        let summary = CrystalSummary(scene: scene, orientation: m, showsUnitCell: true)
+        XCTAssertEqual(summary.atoms, 18)
+        XCTAssertEqual(summary.bonds, 16)
+        XCTAssertEqual(summary.elements, [CrystalSummary.Element(atomicNumber: 14, symbol: "Si", atoms: 18)])
+        XCTAssertEqual(summary.cellLengths?[0] ?? 0, 5.4309, accuracy: 1e-12)
+        XCTAssertEqual(summary.viewDirection[0], 1 / 2.0.squareRoot(), accuracy: 1e-12)
+        XCTAssertEqual(summary.viewDirection[1], 1 / 2.0.squareRoot(), accuracy: 1e-12)
+        XCTAssertEqual(summary.orientationRows[0][0], m.columns.0.x, accuracy: 0)
+        XCTAssertEqual(summary.orientationRows[0][2], m.columns.2.x, accuracy: 0)
+        let data = try JSONEncoder().encode(summary)
+        XCTAssertEqual(try JSONDecoder().decode(CrystalSummary.self, from: data), summary)
+        XCTAssertFalse(CrystalSummary(scene: .empty, orientation: m, showsUnitCell: true).showsUnitCell)
     }
 }

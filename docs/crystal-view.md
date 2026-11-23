@@ -35,7 +35,9 @@ visible atoms carry their element symbol. An orientation set from outside (a typ
 turns over 0.35 s, or crossfades under Reduce Motion; drags and key steps are set at once.
 
 `CrystalInteraction.still` draws the same picture with no gestures and no focus (the Add Phase thumbnail).
-`CrystalSnapshot.image` renders a picture with no window (Copy Image, tests).
+`CrystalSnapshot.image` renders a picture with no window (Copy Image, tests, the agent door) and `CrystalSummary` holds the
+view's state as Codable data (atoms and bonds per element, cell lengths, orientation, view direction) for the door's
+`get_crystal_view` (app #846).
 
 ## Look
 
