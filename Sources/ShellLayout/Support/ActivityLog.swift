@@ -15,6 +15,7 @@
 
 import Foundation
 import Observation
+import SwiftUI
 
 @Observable
 public final class ActivityLog {
@@ -51,8 +52,16 @@ public final class ActivityLog {
     /// clock is a clock.
     @ObservationIgnored private let now: () -> Date
 
-    public init(now: @escaping () -> Date = Date.init) {
+    /// Says a recorded event to VoiceOver (EMSuiteUI#126). The log is the status line's events-only channel: a readout, a progress
+    /// tick and a repeat never reach `lines`, so they are never spoken either, and the pointer's pixel readout stays silent.
+    /// Injected so a test can hear what is said.
+    @ObservationIgnored private let announce: @MainActor (String) -> Void
+
+    /// - `announce`: what a recorded event is said through; VoiceOver's announcement by default.
+    public init(now: @escaping () -> Date = Date.init,
+                announce: @escaping @MainActor (String) -> Void = ActivityLog.announceToVoiceOver) {
         self.now = now
+        self.announce = announce
     }
 
     /// Set by the app's `showReadout` for the one write that follows it.
@@ -104,6 +113,14 @@ public final class ActivityLog {
         if lines.count > Self.capacity {
             lines.removeFirst(lines.count - Self.capacity)
         }
+        // The message alone, without the clock: VoiceOver says what happened, not when.
+        announce(message)
+    }
+
+    /// VoiceOver's announcement, the system's own route for a change that happens away from the focus. Nothing is said when
+    /// VoiceOver is off.
+    public static func announceToVoiceOver(_ message: String) {
+        AccessibilityNotification.Announcement(message).post()
     }
 
     /// The status line's clock: "HH:mm:ss" in the person's locale and time zone (both injectable for the pins in `ActivityLogTests`).

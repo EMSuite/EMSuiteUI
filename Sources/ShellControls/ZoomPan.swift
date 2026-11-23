@@ -202,6 +202,13 @@ public final class PaneZoomModel {
     /// Back to 1×, the image fitted to the pane (what a double-click does).
     public func fit() { update { $0.reset() } }
 
+    /// View > Pan Left, Right, Up, Down (⌃⌘ and an arrow): the keyboard's drag. One step is VoiceOver's, a fifth of the pane, through
+    /// the drag's clamp, so it never passes the picture's edge and does nothing at the fit.
+    public func pan(_ direction: ZoomPan.PanDirection) { update { $0.pan(direction, in: box) } }
+
+    /// Whether a pan has anywhere to go: the picture is zoomed past the fit (the clamp holds every pan at zero there).
+    public var canPan: Bool { state.zoom > 1 }
+
     private func step(_ factor: CGFloat) {
         let anchor = pointer.map { ZoomPan.anchor(for: $0, in: box) } ?? .zero
         update { $0.step(by: factor, in: box, anchor: anchor) }
