@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="90mm" height="60mm" viewBox="0 0 255.118 170.079">
+<title>Pattern with table</title>
+<desc>EMSuiteUI tests</desc>
+<image x="10" y="10" width="150" height="150" preserveAspectRatio="none" style="image-rendering:optimizeSpeed;image-rendering:pixelated" xlink:href="data:image/png;base64,PNG"/>
+<text x="170" y="17.7" font-family="Helvetica, Arial, sans-serif" font-size="7" font-weight="bold" fill="#000000">hkl</text>
+<text x="224" y="17.7" font-family="Helvetica, Arial, sans-serif" font-size="7" font-weight="bold" text-anchor="end" fill="#000000">d (Å)</text>
+<text x="244" y="17.7" font-family="Helvetica, Arial, sans-serif" font-size="7" font-weight="bold" text-anchor="end" fill="#000000">I</text>
+<text x="170" y="28.2" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#000000">111</text>
+<text x="224" y="28.2" font-family="Helvetica, Arial, sans-serif" font-size="7" text-anchor="end" fill="#000000">2.338</text>
+<text x="244" y="28.2" font-family="Helvetica, Arial, sans-serif" font-size="7" text-anchor="end" fill="#000000">100</text>
+<text x="170" y="38.7" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#000000">200</text>
+<text x="224" y="38.7" font-family="Helvetica, Arial, sans-serif" font-size="7" text-anchor="end" fill="#000000">2.025</text>
+<text x="244" y="38.7" font-family="Helvetica, Arial, sans-serif" font-size="7" text-anchor="end" fill="#000000">47</text>
+<text x="170" y="49.2" font-family="Helvetica, Arial, sans-serif" font-size="7" fill="#000000">220</text>
+<text x="224" y="49.2" font-family="Helvetica, Arial, sans-serif" font-size="7" text-anchor="end" fill="#000000">1.432</text>
+<text x="244" y="49.2" font-family="Helvetica, Arial, sans-serif" font-size="7" text-anchor="end" fill="#000000">22</text>
+<path d="M170 10 L244 10" fill="none" stroke="#000000" stroke-width="0.5"/>
+<path d="M170 20.5 L244 20.5" fill="none" stroke="#000000" stroke-width="0.5"/>
+<path d="M170 52 L244 52" fill="none" stroke="#000000" stroke-width="0.5"/>
+</svg>
