@@ -73,8 +73,8 @@ final class FigureRendererTests: XCTestCase {
 
     func testSVGTextIsPlainTextInHelvetica() {
         let svg = FigureRenderer.svg(FigureTestScenes.table.scene, metadata: FigureTestScenes.table.metadata)
-        XCTAssertTrue(svg.contains(#"<text x="170" y="17.7" font-family="Helvetica, Arial, sans-serif" font-size="7" font-weight="bold" fill="#000000">hkl</text>"#))
-        XCTAssertTrue(svg.contains(#"<text x="224" y="28.2" font-family="Helvetica, Arial, sans-serif" font-size="7" text-anchor="end" fill="#000000">2.338</text>"#))
+        XCTAssertTrue(svg.contains(##"<text x="170" y="17.7" font-family="Helvetica, Arial, sans-serif" font-size="7" font-weight="bold" fill="#000000">hkl</text>"##))
+        XCTAssertTrue(svg.contains(##"<text x="224" y="28.2" font-family="Helvetica, Arial, sans-serif" font-size="7" text-anchor="end" fill="#000000">2.338</text>"##))
         XCTAssertTrue(svg.hasPrefix(#"<?xml version="1.0" encoding="UTF-8"?>"#))
         XCTAssertTrue(svg.contains(#" width="90mm" height="60mm" viewBox="0 0 255.118 170.079">"#))
     }
