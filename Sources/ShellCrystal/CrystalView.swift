@@ -52,19 +52,51 @@ public struct CrystalView: View {
     /// The orientation while a drag runs (view state, never the document's), and where the drag started.
     @State private var live: simd_double3x3?
     @State private var dragStart: simd_double3x3?
+    /// The pointer over the pane, for the hover chip; nil when it is outside.
+    @State private var hover: CGPoint?
+    /// The opacity of the crossfade under Reduce Motion.
+    @State private var fade = 1.0
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
 
     private var shown: simd_double3x3 { live ?? orientation }
 
     public var body: some View {
         GeometryReader { proxy in
+            let projection = CrystalProjection(scene: scene, orientation: shown, size: proxy.size)
             CrystalStage(scene: scene, orientation: shown, showsUnitCell: showsUnitCell,
-                         increasedContrast: contrast == .increased,
+                         increasedContrast: contrast == .increased, dragging: live != nil, reduceMotion: reduceMotion,
                          aspect: Float(proxy.size.width / max(proxy.size.height, 1)))
+                .opacity(fade)
+                .overlay {
+                    if differentiateWithoutColor { CrystalSymbols(scene: scene, projection: projection).opacity(fade) }
+                }
+                .overlay(alignment: .topLeading) {
+                    if interaction == .interactive, let hover, let index = projection.atom(at: hover, in: scene) {
+                        CrystalHoverChip(atomicNumber: scene.atoms[index].atomicNumber)
+                            .position(x: min(hover.x + 70, proxy.size.width - 70), y: max(hover.y - 22, 16))
+                    }
+                }
+                .onContinuousHover(coordinateSpace: .local) { phase in
+                    switch phase {
+                    case .active(let point): hover = point
+                    case .ended: hover = nil
+                    }
+                }
         }
         .background(Color(red: CrystalPalette.stage.x, green: CrystalPalette.stage.y, blue: CrystalPalette.stage.z))
         .overlay(alignment: .bottomLeading) {
             if scene.cell != nil { CrystalTriad(cell: scene.cell!, orientation: shown).padding(10) }
+        }
+        .overlay(alignment: .topTrailing) {
+            if !scene.atoms.isEmpty { CrystalLegend(scene: scene).padding(10) }
+        }
+        .onChange(of: orientation) { old, new in
+            guard CrystalMotion.transition(from: old, to: new, dragging: live != nil, reduceMotion: reduceMotion) == .crossfade else { return }
+            withAnimation(.linear(duration: CrystalMotion.duration / 2)) { fade = 0.2 } completion: {
+                withAnimation(.linear(duration: CrystalMotion.duration / 2)) { fade = 1 }
+            }
         }
         .modifier(CrystalInteractionModifier(enabled: interaction == .interactive, turn: turn, drag: drag, dragEnded: dragEnded,
                                              copyImage: copyImage, returnToZoneAxis: onReturnToZoneAxis))
@@ -112,6 +144,8 @@ private struct CrystalStage: View {
     let orientation: simd_double3x3
     let showsUnitCell: Bool
     let increasedContrast: Bool
+    let dragging: Bool
+    let reduceMotion: Bool
     let aspect: Float
 
     @State private var holder = CrystalEntityHolder()
@@ -120,10 +154,10 @@ private struct CrystalStage: View {
         RealityView { content in
             content.add(holder.anchor)
             holder.rebuild(scene, showsUnitCell: showsUnitCell, increasedContrast: increasedContrast, aspect: aspect)
-            holder.turn(orientation)
+            holder.turn(orientation, dragging: true, reduceMotion: reduceMotion)
         } update: { _ in
-            holder.rebuild(scene, showsUnitCell: showsUnitCell, increasedContrast: increasedContrast, aspect: aspect)
-            holder.turn(orientation)
+            let rebuilt = holder.rebuild(scene, showsUnitCell: showsUnitCell, increasedContrast: increasedContrast, aspect: aspect)
+            holder.turn(orientation, dragging: dragging || rebuilt, reduceMotion: reduceMotion)
         }
     }
 }
@@ -136,10 +170,14 @@ final class CrystalEntityHolder {
     private var key: (scene: CrystalScene, cell: Bool, contrast: Bool)?
     private var cameraKey: (radius: Float, aspect: Float)?
 
-    func rebuild(_ scene: CrystalScene, showsUnitCell: Bool, increasedContrast: Bool, aspect: Float) {
+    private var shown: simd_double3x3?
+
+    /// Builds the tree for a new scene; returns true when it did (the new tree takes the orientation at once).
+    @discardableResult
+    func rebuild(_ scene: CrystalScene, showsUnitCell: Bool, increasedContrast: Bool, aspect: Float) -> Bool {
         if let key, key.scene == scene, key.cell == showsUnitCell, key.contrast == increasedContrast {
             placeCamera(aspect: aspect)
-            return
+            return false
         }
         key = (scene, showsUnitCell, increasedContrast)
         anchor.children.removeAll()
@@ -147,6 +185,7 @@ final class CrystalEntityHolder {
         built = try? CrystalEntities.build(scene, showsUnitCell: showsUnitCell, increasedContrast: increasedContrast)
         if let built { anchor.addChild(built.root) }
         placeCamera(aspect: aspect)
+        return true
     }
 
     private func placeCamera(aspect: Float) {
@@ -157,10 +196,22 @@ final class CrystalEntityHolder {
         anchor.addChild(CrystalEntities.camera(radius: built.radius, aspect: aspect))
     }
 
-    func turn(_ orientation: simd_double3x3) {
+    /// Turns the pivot: at once while dragging, for small steps and under Reduce Motion (the view crossfades); otherwise a spin.
+    func turn(_ orientation: simd_double3x3, dragging: Bool, reduceMotion: Bool) {
+        guard let pivot = built?.pivot, orientation != shown else { return }
+        let motion = shown.map { CrystalMotion.transition(from: $0, to: orientation, dragging: dragging, reduceMotion: reduceMotion) } ?? .none
+        shown = orientation
         let r = CrystalTurn.viewRotation(orientation)
         let m = simd_float3x3(columns: (SIMD3<Float>(r.columns.0), SIMD3<Float>(r.columns.1), SIMD3<Float>(r.columns.2)))
-        built?.pivot.orientation = simd_normalize(simd_quatf(m))
+        let q = simd_normalize(simd_quatf(m))
+        pivot.stopAllAnimations()
+        if motion == .spin {
+            var target = pivot.transform
+            target.rotation = q
+            pivot.move(to: target, relativeTo: pivot.parent, duration: CrystalMotion.duration, timingFunction: .easeInOut)
+        } else {
+            pivot.orientation = q
+        }
     }
 }
 
@@ -213,6 +264,68 @@ private struct ReturnAction: ViewModifier {
     let action: (() -> Void)?
     func body(content: Content) -> some View {
         if let action { content.accessibilityAction(named: "Return to Zone Axis", action) } else { content }
+    }
+}
+
+/// The legend: one row per element, its colour and its symbol, so an element is never told by colour alone.
+struct CrystalLegend: View {
+    let scene: CrystalScene
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(CrystalDescription.legend(scene), id: \.atomicNumber) { row in
+                HStack(spacing: 6) {
+                    let c = CrystalPalette.color(z: row.atomicNumber)
+                    Circle().fill(Color(red: c.x, green: c.y, blue: c.z)).frame(width: 10, height: 10)
+                    Text(row.symbol).font(.callout)
+                }
+                .help(row.name)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(row.name)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+        .environment(\.colorScheme, .dark)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The hover chip: the element under the pointer, by symbol and name.
+struct CrystalHoverChip: View {
+    let atomicNumber: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            let c = CrystalPalette.color(z: atomicNumber)
+            Circle().fill(Color(red: c.x, green: c.y, blue: c.z)).frame(width: 10, height: 10)
+            Text("\(CrystalElements.symbol(z: atomicNumber)) · \(CrystalElements.name(z: atomicNumber))").font(.callout)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+        .environment(\.colorScheme, .dark)
+        .fixedSize()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Element symbols on the atoms, drawn under Differentiate Without Color: dark letters on the light balls, on the visible atoms only.
+struct CrystalSymbols: View {
+    let scene: CrystalScene
+    let projection: CrystalProjection
+
+    var body: some View {
+        Canvas { context, _ in
+            for label in projection.labelledAtoms(in: scene) {
+                let symbol = CrystalElements.symbol(z: scene.atoms[label.index].atomicNumber)
+                context.draw(Text(symbol).font(.caption.weight(.semibold)).foregroundStyle(.black), at: label.point)
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 

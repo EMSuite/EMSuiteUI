@@ -29,6 +29,11 @@ room after Index and the Add Phase preview (plan 5.1, design 5.4). EMSuiteUI iss
 | VoiceOver | One element: the app's label (phase, zone axis, tilt), the view's value (atoms per element, bonds, cell); actions Tilt Left, Right, Up, Down, Rotate Clockwise, Counterclockwise, Return to Zone Axis |
 | Context menu | Copy Image, Return to Zone Axis |
 
+Hovering an atom shows a chip with its symbol and name; the legend in the top right names every element drawn. Both are
+picked by the view's own projection (`CrystalProjection`), not RealityKit hit testing. Under Differentiate Without Color the
+visible atoms carry their element symbol. An orientation set from outside (a typed zone axis, Return to Zone Axis, Index)
+turns over 0.35 s, or crossfades under Reduce Motion; drags and key steps are set at once.
+
 `CrystalInteraction.still` draws the same picture with no gestures and no focus (the Add Phase thumbnail).
 `CrystalSnapshot.image` renders a picture with no window (Copy Image, tests).
 
@@ -49,5 +54,5 @@ a key light from the upper left with a shadow and a fill from the lower right, b
 - `OrthographicCameraComponent.scale` is the half-height of the view volume.
 - `RealityRenderer` has no default light; the view carries its own lights, so window and snapshot match.
 
-Later: hover chip, legend and the Differentiate Without Color and Reduce Motion behaviour (#194); space filling,
+Later: space filling,
 polyhedra and perspective (MU4, 2.4); the slab and its box (2.5).
