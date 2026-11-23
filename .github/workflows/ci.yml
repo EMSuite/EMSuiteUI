@@ -2,7 +2,7 @@
 # pictures attached to the PR), the Claude desktop extension's Node tests and pack, a scan for private references, the shared lint job and, on a tag, the
 # CHANGELOG version check.
 #
-# Two toolchains, each Xcode pinned. `macos-26` with Xcode 26.6 (Swift 6.3) is what the apps' CI builds MacEMUI with, so it
+# Two toolchains, each Xcode pinned (the second off on ordinary PRs, see the matrix). `macos-26` with Xcode 26.6 (Swift 6.3) is what the apps' CI builds MacEMUI with, so it
 # must stay green there; `xcode-27` (macOS 27, Xcode 27.1, GitHub's preview image; not its 27.2 release candidate) is the
 # toolchain the package is written for. The package deploys to macOS 26 (Package.swift: `.macOS(.v26)`).
 # ShellMetalTests skip when the runner has no Metal device. `swift build` with Xcode 26.6 copies Colormaps.metal into the
@@ -26,16 +26,13 @@ jobs:
     name: test (${{ matrix.runner }}, Xcode ${{ matrix.xcode }})
     strategy:
       fail-fast: false
+      # The xcode-27 leg runs on main, on tags, on release-please's Release PR and by hand, never on other PRs: GitHub's preview
+      # image queues behind the org's five macOS runners, and the leg is not a required check (Paul, 2026-11-23). An ordinary PR
+      # gets the macos-26 leg only; a break on Xcode 27.1 shows on main after the merge and on the Release PR before a release.
+      # `mac`: the org's Mac (macOS 27, Xcode 27.1) while the org variable MACEM_MAC_RUNNER is set; never for a fork PR.
       matrix:
-        include:
-          - runner: macos-26
-            xcode: '26.6'
-            # The snapshot references are drawn here (Tests/ShellSnapshotTests); the other leg skips them.
-            snapshots: true
-          - runner: xcode-27
-            xcode: '27.1'
-            # The org's Mac (macOS 27, Xcode 27.1) while the org variable MACEM_MAC_RUNNER is set; never for a fork PR.
-            mac: true
+        # The snapshot references are drawn on the macos-26 leg (`snapshots`, Tests/ShellSnapshotTests); the other leg skips them.
+        include: ${{ fromJSON((github.event_name != 'pull_request' || startsWith(github.head_ref, 'release-please--')) && '[{"runner":"macos-26","xcode":"26.6","snapshots":true},{"runner":"xcode-27","xcode":"27.1","mac":true}]' || '[{"runner":"macos-26","xcode":"26.6","snapshots":true}]') }}
     permissions:
       contents: write        # the pr-pictures branch (snapshots)
       pull-requests: write   # the snapshots comment
