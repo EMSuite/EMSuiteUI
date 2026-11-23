@@ -1,4 +1,5 @@
-# MacEMUI CI: `swift test -c release --parallel`, the Claude desktop extension's Node tests and pack, a scan for private references, the shared lint job and, on a tag, the
+# MacEMUI CI: `swift test -c release --parallel` (on the macos-26 leg with the snapshot tests compared and new or changed
+# pictures attached to the PR), the Claude desktop extension's Node tests and pack, a scan for private references, the shared lint job and, on a tag, the
 # CHANGELOG version check.
 #
 # Two toolchains, each Xcode pinned. `macos-26` with Xcode 26.6 (Swift 6.3) is what the apps' CI builds MacEMUI with, so it
@@ -29,10 +30,15 @@ jobs:
         include:
           - runner: macos-26
             xcode: '26.6'
+            # The snapshot references are drawn here (Tests/ShellSnapshotTests); the other leg skips them.
+            snapshots: true
           - runner: xcode-27
             xcode: '27.1'
             # The org's Mac (macOS 27, Xcode 27.1) while the org variable MACEM_MAC_RUNNER is set; never for a fork PR.
             mac: true
+    permissions:
+      contents: write        # the pr-pictures branch (snapshots)
+      pull-requests: write   # the snapshots comment
     runs-on: ${{ matrix.mac && vars.MACEM_MAC_RUNNER && !github.event.pull_request.head.repo.fork && fromJSON(vars.MACEM_MAC_RUNNER) || matrix.runner }}
     timeout-minutes: 60
     steps:
@@ -68,7 +74,16 @@ jobs:
           fi
           xcrun -sdk macosx metal --version
       - name: swift test -c release --parallel
+        env:
+          SNAPSHOTS: ${{ matrix.snapshots && '1' || '' }}
+          SNAPSHOT_ARTIFACTS: ${{ runner.temp }}/snapshots
         run: swift test -c release --parallel
+      # New and changed snapshot pictures go on the pr-pictures branch and into one comment on the PR (suite#137).
+      - name: Attach new and changed snapshots to the pull request
+        if: always() && matrix.snapshots && github.event_name == 'pull_request' && !github.event.pull_request.head.repo.fork
+        run: tools/snapshots/publish.sh "$RUNNER_TEMP/snapshots" "${{ github.event.pull_request.number }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   desktop-extension:
     name: Claude desktop extension (Node tests, pack)
