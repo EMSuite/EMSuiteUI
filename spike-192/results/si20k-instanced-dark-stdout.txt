@@ -1,1 +1,0 @@
-SPIKE|tag=si20k-instanced-dark|atoms=23171|bonds=43904|mode=instanced|lighting=studio|appearance=dark|display_hz=120|frames=140|p50_ms=71.69|p95_ms=73.53|p99_ms=74.66|max_ms=75.30|over_16.7ms=140|over_1.5_intervals=140|build_ms=18.72|window_png=yes|still_ms=784.46

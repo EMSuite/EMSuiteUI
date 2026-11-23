@@ -1,1 +1,0 @@
-SPIKE|tag=si500-instanced-light|atoms=621|bonds=1024|mode=instanced|lighting=studio|appearance=light|display_hz=120|frames=1201|p50_ms=8.33|p95_ms=8.66|p99_ms=9.27|max_ms=9.33|over_16.7ms=0|over_1.5_intervals=0|build_ms=12.92|window_png=yes|still_ms=77.54
