@@ -31,7 +31,7 @@ nonisolated final class SharedViewSnapshotTests: XCTestCase {
     }
 
     @MainActor func testColorbars() throws {
-        try check("colorbars", size: CGSize(width: 220, height: 150)) {
+        try check("colorbars", size: CGSize(width: 220, height: 240)) {
             VStack(alignment: .leading, spacing: 12) {
                 Colorbar(colormap: .viridis, low: 0, high: 1250, unitLabel: "counts")
                 Colorbar(colormap: .rdbu, low: -0.02, high: 0.02, unitLabel: "strain", marksZero: true)
@@ -55,12 +55,10 @@ nonisolated final class SharedViewSnapshotTests: XCTestCase {
     }
 
     @MainActor func testRunProgressBar() throws {
-        try check("run-progress-bar", size: CGSize(width: 240, height: 60)) {
-            VStack(spacing: 16) {
-                RunProgressBar(progress: 0.4)
-                RunProgressBar(progress: nil)
-            }
-            .padding()
+        try check("run-progress-bar", size: CGSize(width: 240, height: 40)) {
+            // Determinate only: the indeterminate bar animates, so its picture depends on when it is drawn.
+            RunProgressBar(progress: 0.4)
+                .padding()
         }
     }
 }
