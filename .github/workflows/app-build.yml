@@ -61,7 +61,10 @@ jobs:
           repository: ${{ env.APP_REPO }}
           path: app
       - name: Point the app at the candidate
-        run: tools/app-build/point-app.sh app candidate "$NAMES"
+        # From a copy: the script moves the candidate checkout it lives in.
+        run: |
+          cp candidate/tools/app-build/point-app.sh "$RUNNER_TEMP/point-app.sh"
+          "$RUNNER_TEMP/point-app.sh" app candidate "$NAMES"
       - name: Build the app
         run: |
           xcodebuild build -project app/macTEM.xcodeproj -scheme macTEM -configuration Debug -destination 'platform=macOS' \
