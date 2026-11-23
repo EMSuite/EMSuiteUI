@@ -16,6 +16,9 @@ What is live. 0.5.1 (2026-11-05) is tagged; both apps take MacEMUI by version ra
   pins, maps, exports) that both apps showed as copies; each app passes `EDXRoomHost`, `EDXRoomActions` and its Open panel
   extensions. Results name the kept region, carry the whole value and its sigma, and say no "unvalidated"; the typed-k and
   factors sheets read either decimal separator and keep their accessibility identifiers.
+- The crystal view (`ShellCrystal`, `docs/crystal-view.md`): a phase's unit cell in 3D with RealityKit, seen down the beam in
+  parallel projection, turned by drag, ⌥ drag, the arrow keys and VoiceOver actions; plain atoms, a cell and an orientation
+  in, orientation changes out; its own element colours in one file; a still mode and an offscreen snapshot.
 - The agent door (`ShellAgentDoor`, since 0.6.0): a local API, off until the person turns it on in Settings, through which
   an agent on this Mac looks at the app's open windows; each app registers its own tools. The app is the MCP server itself,
   over HTTP at `/mcp`; Claude desktop connects through the extension in `DesktopExtension/` (`docs/agent-door.md`). Since
