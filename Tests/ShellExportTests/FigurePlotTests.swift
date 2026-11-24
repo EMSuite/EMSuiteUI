@@ -23,6 +23,7 @@ final class FigurePlotTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(ticks.last ?? 0, 2_048)
         XCTAssertTrue((4...10).contains(ticks.count), "\(ticks)")
         XCTAssertEqual(FigurePlot.ticks(low: 1, high: 1), [])
+        XCTAssertEqual(FigurePlot.ticks(low: 0.3, high: 0.9).first ?? 0, 0.3, accuracy: 1e-12, "a low on a tick starts there")
     }
 
     func testTickNumbersCarryTheirStepsDecimals() {

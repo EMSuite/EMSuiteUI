@@ -1,6 +1,6 @@
 # Status: EMSuiteUI 0.16.0 <!-- x-release-please-version -->
 
-What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by version range and build on it.
+What is live. 0.16.0 is the latest tag; both apps take EMSuiteUI by version range and build on it.
 
 - The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, `LayoutPolicy`,
   `MenuActionRelay`, `ActivityLog` (each recorded event is also said to VoiceOver), `UITestingPlacement`; `InspectorSection` can start closed and draws a status glyph.

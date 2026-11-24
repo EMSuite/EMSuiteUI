@@ -140,7 +140,8 @@ public enum FigurePlot {
         let raw = (high - low) / 5
         let magnitude = pow(10, (log10(raw)).rounded(.down))
         let step = [1.0, 2, 5, 10].map { $0 * magnitude }.first { (high - low) / $0 <= 8 } ?? 10 * magnitude
-        let first = (low / step).rounded(.down) * step, last = (high / step).rounded(.up) * step
+        // A hair of tolerance: 0.3 / 0.1 is 2.9999999999999996, and 0.3 is a tick, not a step past one.
+        let first = (low / step + 1e-9).rounded(.down) * step, last = (high / step - 1e-9).rounded(.up) * step
         let count = Int(((last - first) / step).rounded())
         return (0...count).map { first + Double($0) * step }
     }
