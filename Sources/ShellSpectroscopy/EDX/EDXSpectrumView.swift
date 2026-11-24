@@ -89,6 +89,35 @@ public nonisolated enum EDXSpectrumDrag {
     public static func yZoom(start: Double, dy: Double) -> Double { min(max(start * exp(-dy / 150), 1), 1000) }
 }
 
+/// The spectrum's curves once the fit has run, each told by its shape and named in the legend under the plot, never by colour alone
+/// (EMSuiteUI Q8): the measured spectrum is a filled line, the continuum a dashed line, the fit a solid line.
+public nonisolated enum EDXSpectrumSeries: CaseIterable, Sendable {
+    case spectrum, continuum, fit
+
+    public var title: String {
+        switch self {
+        case .spectrum: "spectrum"
+        case .continuum: "continuum"
+        case .fit: "fit"
+        }
+    }
+
+    /// The line's dash; empty is solid.
+    public var dash: [CGFloat] { self == .continuum ? [4, 3] : [] }
+    /// Whether the area under the line is filled.
+    public var isFilled: Bool { self == .spectrum }
+    /// The lines' width: Increase Contrast thickens them.
+    public static func lineWidth(increasedContrast: Bool) -> CGFloat { increasedContrast ? 1.75 : 1 }
+
+    var color: Color {
+        switch self {
+        case .spectrum: .accentColor
+        case .continuum: .orange
+        case .fit: .red
+        }
+    }
+}
+
 struct EDXSpectrumView: View {
     let plot: EDXPlot
     let markers: [EDXMarker]
@@ -101,6 +130,7 @@ struct EDXSpectrumView: View {
     @State private var panStart: ClosedRange<Double>?
     @State private var yStart: Double?
     @FocusState private var focused: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
 
     private var domain: ClosedRange<Double> {
         let end = plot.energyStart + plot.energyStep * Double(plot.data.count)
@@ -118,7 +148,7 @@ struct EDXSpectrumView: View {
         GeometryReader { geo in
             let plotWidth = max(geo.size.width - Self.left - Self.right, 1)
             // The canvas is a view of its own with the window and the counts zoom as stored values: a change of either is a change of the view.
-            EDXSpectrumCanvas(window: w, yZoom: yZoom, spectrum: self)
+            EDXSpectrumCanvas(window: w, yZoom: yZoom, increasedContrast: contrast == .increased, spectrum: self)
                 .contentShape(Rectangle())
                 .gesture(MagnifyGesture()
                     .onChanged { v in
@@ -182,6 +212,7 @@ struct EDXSpectrumView: View {
                 .onKeyPress(.rightArrow) { step(.panToHigher, from: w); return .handled }
                 .accessibilityElement()
                 .accessibilityLabel("Spectrum, \(String(format: "%.2f", w.lowerBound)) to \(String(format: "%.2f", w.upperBound)) keV"
+                    + (hasFit && !plot.model.isEmpty ? ", with the fitted continuum and fit" : "")
                     + (markers.isEmpty ? "" : ", lines: " + EDXRoomFormat.lines(markers)))
                 .accessibilityIdentifier("edx.spectrum")
                 .accessibilityAction(named: EDXSpectrumWindow.Step.zoomIn.name) { step(.zoomIn, from: w) }
@@ -198,7 +229,9 @@ struct EDXSpectrumView: View {
 
     nonisolated static let left: CGFloat = 52, bottom: CGFloat = 36, top: CGFloat = 16, right: CGFloat = 8   // read by the nonisolated gesture rule (macTEM's module is nonisolated by default)
 
-    fileprivate func draw(_ context: inout GraphicsContext, size: CGSize, window w: ClosedRange<Double>, yZoom: Double) {
+    fileprivate func draw(_ context: inout GraphicsContext, size: CGSize, window w: ClosedRange<Double>, yZoom: Double, increasedContrast: Bool = false) {
+        let lineWidth = EDXSpectrumSeries.lineWidth(increasedContrast: increasedContrast)
+        let showsFit = hasFit && !plot.model.isEmpty
         let area = CGRect(x: Self.left, y: Self.top, width: max(size.width - Self.left - Self.right, 1),
                           height: max(size.height - Self.top - Self.bottom, 1))
         let span = w.upperBound - w.lowerBound
@@ -238,7 +271,16 @@ struct EDXSpectrumView: View {
             context.draw(Text(EDXRoomFormat.axisCounts(v, step: countStep)).font(.caption2).foregroundStyle(.secondary), at: CGPoint(x: area.minX - 4, y: y(v)), anchor: .trailing)
         }
         // The axes are named outside the plot: the energy under the ticks, the unit of the counts over their labels.
-        context.draw(Text("energy (keV)").font(.caption2).foregroundStyle(.secondary), at: CGPoint(x: area.midX, y: area.maxY + 25))
+        // With a fit the legend takes the row's leading end and the axis name moves to its trailing end; a legend that would meet
+        // the axis name is left out (VoiceOver's label names the curves either way).
+        let axisName = Text("energy (keV)").font(.caption2).foregroundStyle(.secondary)
+        if showsFit {
+            let axisWidth = context.resolve(axisName).measure(in: CGSize(width: 200, height: 20)).width
+            context.draw(axisName, at: CGPoint(x: area.maxX, y: area.maxY + 25), anchor: .trailing)
+            Self.drawLegend(&context, at: CGPoint(x: area.minX, y: area.maxY + 25), limit: area.maxX - axisWidth - 12, lineWidth: lineWidth)
+        } else {
+            context.draw(axisName, at: CGPoint(x: area.midX, y: area.maxY + 25))
+        }
         context.draw(Text("counts").font(.caption2).foregroundStyle(.secondary), at: CGPoint(x: area.minX - 4, y: area.minY - 8), anchor: .trailing)
 
         // The line of one series, one point per pixel column.
@@ -266,15 +308,19 @@ struct EDXSpectrumView: View {
             fill.addLine(to: CGPoint(x: area.maxX, y: area.maxY)); fill.addLine(to: CGPoint(x: area.minX, y: area.maxY)); fill.closeSubpath()
             context.fill(fill, with: .color(.accentColor.opacity(0.12)))
         }
-        context.stroke(line, with: .color(.accentColor), lineWidth: 1)
-        if hasFit, !plot.model.isEmpty {
+        context.stroke(line, with: .color(EDXSpectrumSeries.spectrum.color), lineWidth: lineWidth)
+        if showsFit {
             // The fitted curves cover the fitted channels only.
             func clipped(_ values: [Double]) -> Path {
                 let part = plot.fitted(values)
                 return path(part.values, start: part.start, step: plot.energyStep)
             }
-            if !plot.background.isEmpty { context.stroke(clipped(plot.background), with: .color(.orange), lineWidth: 1) }
-            context.stroke(clipped(plot.model), with: .color(.red), lineWidth: 1)
+            if !plot.background.isEmpty {
+                context.stroke(clipped(plot.background), with: .color(EDXSpectrumSeries.continuum.color),
+                               style: StrokeStyle(lineWidth: lineWidth, dash: EDXSpectrumSeries.continuum.dash))
+            }
+            context.stroke(clipped(plot.model), with: .color(EDXSpectrumSeries.fit.color),
+                           style: StrokeStyle(lineWidth: lineWidth, dash: EDXSpectrumSeries.fit.dash))
         }
 
         SpectrumLayerPlot.draw(layers, in: &context, rect: area, xRange: w, top: top, scale: .linear)
@@ -299,13 +345,40 @@ struct EDXSpectrumView: View {
     }
 }
 
+extension EDXSpectrumView {
+    /// The legend: a short sample of each curve, drawn as the curve is, and its name, left to right from `origin` (the row's
+    /// vertical middle). Nothing is drawn when the whole legend would pass `limit`.
+    fileprivate static func drawLegend(_ context: inout GraphicsContext, at origin: CGPoint, limit: CGFloat, lineWidth: CGFloat) {
+        let sample: CGFloat = 16, gap: CGFloat = 4, spacing: CGFloat = 12
+        let entries = EDXSpectrumSeries.allCases.map { series in
+            (series, context.resolve(Text(series.title).font(.caption2).foregroundStyle(.secondary)))
+        }
+        let total = entries.reduce(CGFloat(0)) { sum, entry in
+            sum + sample + gap + entry.1.measure(in: CGSize(width: 200, height: 20)).width + spacing
+        } - spacing
+        guard origin.x + total <= limit else { return }
+        var x = origin.x
+        for (series, text) in entries {
+            var p = Path(); p.move(to: CGPoint(x: x, y: origin.y)); p.addLine(to: CGPoint(x: x + sample, y: origin.y))
+            if series.isFilled {
+                context.fill(Path(CGRect(x: x, y: origin.y, width: sample, height: 4)), with: .color(series.color.opacity(0.12)))
+            }
+            context.stroke(p, with: .color(series.color), style: StrokeStyle(lineWidth: lineWidth, dash: series.dash))
+            x += sample + gap
+            context.draw(text, at: CGPoint(x: x, y: origin.y), anchor: .leading)
+            x += text.measure(in: CGSize(width: 200, height: 20)).width + spacing
+        }
+    }
+}
+
 /// The spectrum's drawing, with the window and the counts zoom as stored values (see the call site).
 private struct EDXSpectrumCanvas: View {
     let window: ClosedRange<Double>
     let yZoom: Double
+    let increasedContrast: Bool
     let spectrum: EDXSpectrumView
 
     var body: some View {
-        Canvas { context, size in spectrum.draw(&context, size: size, window: window, yZoom: yZoom) }
+        Canvas { context, size in spectrum.draw(&context, size: size, window: window, yZoom: yZoom, increasedContrast: increasedContrast) }
     }
 }

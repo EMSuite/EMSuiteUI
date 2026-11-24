@@ -23,9 +23,27 @@ public struct EDXFigureCell: Identifiable {
     public private(set) var width: Int
     public private(set) var height: Int
     public private(set) var footer: String?
+    /// The colour bar under the picture: the ramp it is drawn with and the values at its ends. nil: no bar (a colour mix, a flat map).
+    public private(set) var colourBar: EDXFigureColourBar?
 
-    public init(id: String, title: String, detail: String, rgba: [UInt8], width: Int, height: Int, footer: String?) {
+    public init(id: String, title: String, detail: String, rgba: [UInt8], width: Int, height: Int, footer: String?,
+                colourBar: EDXFigureColourBar? = nil) {
         self.id = id; self.title = title; self.detail = detail; self.rgba = rgba; self.width = width; self.height = height; self.footer = footer
+        self.colourBar = colourBar
+    }
+}
+
+/// A cell's colour bar (Electron-Microscopy-Studio#861): the ramp the cell's picture is drawn with, `width` × 1 RGBA from the low end to the
+/// high end, and the values at those ends in words with their unit ("0.21", "0.85 t/λ"). The room makes both with the same colouring,
+/// window and gamma as the picture, so the bar reads the picture.
+public nonisolated struct EDXFigureColourBar: Equatable, Sendable {
+    public private(set) var rgba: [UInt8]
+    public private(set) var width: Int
+    public private(set) var low: String
+    public private(set) var high: String
+
+    public init(rgba: [UInt8], width: Int, low: String, high: String) {
+        self.rgba = rgba; self.width = width; self.low = low; self.high = high
     }
 }
 
@@ -143,11 +161,29 @@ public struct EDXMapsFigure: View {
                 .aspectRatio(CGFloat(max(c.width, 1)) / CGFloat(max(c.height, 1)), contentMode: .fit)
                 .overlay { if let image { Image(decorative: image, scale: 1).interpolation(.none).resizable() } }
                 .overlay { GeometryReader { geo in overlay(size: geo.size) } }
+            if let bar = c.colourBar { colourBar(bar) }
             if let footer = c.footer {
                 Text(footer).font(.caption2).foregroundStyle(.white.opacity(0.7)).fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(width: Self.cellWidth, alignment: .leading)
+    }
+
+    /// The low value, the ramp and the high value on one line under the picture, the ramp as wide as the line leaves.
+    private func colourBar(_ bar: EDXFigureColourBar) -> some View {
+        HStack(spacing: 6) {
+            Text(bar.low).font(.caption2.monospacedDigit())
+            Group {
+                if let ramp = EDXMapRaster.cgImage(rgba: bar.rgba, width: bar.width, height: 1) {
+                    Image(decorative: ramp, scale: 1).interpolation(.medium).resizable()
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(height: EDXLayout.figureColourBarThickness)
+            .overlay { Rectangle().stroke(.white.opacity(0.4), lineWidth: 0.5) }
+            Text(bar.high).font(.caption2.monospacedDigit())
+        }
     }
 
     private func overlay(size: CGSize, isMix: Bool = false) -> some View {

@@ -1,4 +1,4 @@
-# Status
+# Status: EMSuiteUI 0.14.0 <!-- x-release-please-version -->
 
 What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version range and build on it.
 
@@ -16,6 +16,17 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
   pins, maps, exports) that both apps showed as copies; each app passes `EDXRoomHost`, `EDXRoomActions` and its Open panel
   extensions. Results name the kept region, carry the whole value and its sigma, and say no "unvalidated"; the typed-k and
   factors sheets read either decimal separator and keep their accessibility identifiers.
+- The crystal view (`ShellCrystal`, `docs/crystal-view.md`): a phase's unit cell in 3D with RealityKit, seen down the beam in
+  parallel projection, turned by drag, ⌥ drag, the arrow keys and VoiceOver actions; plain atoms, a cell and an orientation
+  in, orientation changes out; its own element colours in one file; a still mode and an offscreen snapshot.
+- Figures (`ShellExport`, not yet in a release): a figure as one value, `FigureScene` (a picture at its own pixels, paths,
+  markers in six shapes, one-line labels, a ruled table, a legend; 90, 140 or 190 mm wide, 7 pt Helvetica), drawn by
+  `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Core
+  Graphics and Core Text only, off the main actor. The methods record (`MethodsRecord`, schema `emsuite.methods/1`,
+  `docs/schema/emsuite.methods-1.schema.json`): app, kit and reference versions, sources by file name, size and SHA-256 with
+  their calibrations as FormatoCore's `FormatoMetadataEntry` and `FormatoProvenance`, phases with source and licence, steps
+  with every setting, results, what was drawn, what to cite; canonical JSON (sorted keys, shortest round-trip numbers) that
+  refuses a path, and `MethodsParagraph`, the paragraph for a paper. Pins M1 and M2: golden records and paragraphs.
 - The agent door (`ShellAgentDoor`, since 0.6.0): a local API, off until the person turns it on in Settings, through which
   an agent on this Mac looks at the app's open windows; each app registers its own tools. The app is the MCP server itself,
   over HTTP at `/mcp`; Claude desktop connects through the extension in `DesktopExtension/` (`docs/agent-door.md`). Since
@@ -23,6 +34,10 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
   analyses" (`runsAllowed`).
 - Snapshot tests (`ShellSnapshotTesting`, test support for this package and the apps): a view drawn in light and dark and
   compared with its committed PNG on CI's macos-26 leg; new and changed pictures are attached to the pull request.
+- The Help menu (`ShellHelp`, not yet in a release): `HelpCommands` puts the support page, the documentation and Report a Problem… in place of the
+  missing help book; `FeedbackWindow` shows the person's report with a diagnostics summary (version, channel, macOS, Mac model,
+  memory) and opens it as an email or a GitHub issue draft in their own apps; `DiagnosticReportCollector` keeps the system's
+  crash and hang reports in the app's own folder, which the window shows. The app sends nothing.
 
 Since 0.3.2: 0.4.0 (2026-10-29) brought the shared EDS room; 0.5.0 (2026-11-01) `ImageViewport`, the keyboard and zoom routes,
 the narrowed EDS room API and the deletion of the superseded map tile API; 0.5.1 (2026-11-05) the EDS sheet and header fixes.

@@ -1,0 +1,1 @@
+The spectrum image (map_07.emd, 64 × 64 × 2048, scale 0.01 keV as stored) and the survey image (survey_07.dm4, 512 × 512) were analysed with Electron Microscopy Studio 2.4.0 (FormatoKit 0.19.0, SpectroKit 0.13.0). Binning used sum binning with factor 2.

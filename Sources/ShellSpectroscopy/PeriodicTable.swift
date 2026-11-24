@@ -1,7 +1,8 @@
 //
 //  PeriodicTable.swift
 //  Role: the periodic table of the spectroscopy rooms' element control (design 2026-10-22; moved from mac4DSTEM's PeriodicTableView / spec 2 D-9): 18 columns, periods 1 to 6, the f-block
-//        and period 7 folded below. States are told by fill only: mapped (accent fill), proposed (accent outline), fit only (hollow), off (a quiet well), not detectable (dim). A click toggles
+//        and period 7 folded below. States are told by fill and outline, never by colour alone (EMSuiteUI Q8): mapped (accent fill), proposed (dashed accent outline), fit only (solid
+//        outline), off (a quiet well), not detectable (dim). Increase Contrast thickens the outlines and lifts the dim and the well. A click toggles
 //        Quantify and Off; a right-click gives the role (Quantify, Fit only, Off) and, per line family, the lines to check with their energies, and "Default lines". The table knows nothing of
 //        a session: the app answers each question through `PeriodicTableActions`.
 //
@@ -133,6 +134,7 @@ public struct PeriodicTable: View {
     /// The symbols' size, from the width (`symbolSize(width:)`); only a change of it redraws the cells.
     @State private var symbolSize = PeriodicTableGrid.symbolSize(width: PeriodicTableGrid.idealWidth)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
     @Namespace private var rotorSpace
 
     public init(actions: PeriodicTableActions) { self.actions = actions }
@@ -173,14 +175,16 @@ public struct PeriodicTable: View {
         let state = actions.state(z)
         let sym = PeriodicTableGrid.symbol(z)
         let size = symbolSize
+        let high = contrast == .increased
         return Button { actions.click(z) } label: {
             Text(sym)
                 .font(.system(size: size, weight: .semibold))
                 .lineLimit(1).minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .foregroundStyle(Self.ink(state))
-                .background(RoundedRectangle(cornerRadius: Self.corner).fill(Self.fill(state)))
-                .overlay(RoundedRectangle(cornerRadius: Self.corner).strokeBorder(Self.border(state), lineWidth: 1.2))
+                .foregroundStyle(Self.ink(state, increasedContrast: high))
+                .background(RoundedRectangle(cornerRadius: Self.corner).fill(Self.fill(state, increasedContrast: high)))
+                .overlay(RoundedRectangle(cornerRadius: Self.corner)
+                    .strokeBorder(Self.border(state), style: StrokeStyle(lineWidth: Self.borderWidth(increasedContrast: high), dash: Self.dash(state))))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -218,20 +222,30 @@ public struct PeriodicTable: View {
 
     private static let corner: CGFloat = 3
 
-    static func fill(_ s: PeriodicCellState) -> Color {
+    static func fill(_ s: PeriodicCellState, increasedContrast: Bool = false) -> Color {
         switch s {
         case .quantify: .accentColor
-        case .off: Color.primary.opacity(0.06)
+        case .off: Color.primary.opacity(offWellOpacity(increasedContrast: increasedContrast))
         case .fitOnly, .suggested, .unavailable: .clear
         }
     }
-    static func ink(_ s: PeriodicCellState) -> Color {
+    static func ink(_ s: PeriodicCellState, increasedContrast: Bool = false) -> Color {
         switch s {
         case .quantify: .white
-        case .unavailable: Color.primary.opacity(0.25)
+        case .unavailable: Color.primary.opacity(unavailableInkOpacity(increasedContrast: increasedContrast))
         default: .primary
         }
     }
+    /// The outline's dash: proposed is dashed and fit only is solid, so the two outlines differ by shape and not by colour alone.
+    nonisolated static func dash(_ s: PeriodicCellState) -> [CGFloat] {
+        if case .suggested = s { return [3, 2] }
+        return []
+    }
+    nonisolated static func borderWidth(increasedContrast: Bool) -> CGFloat { increasedContrast ? 2 : 1.2 }
+    /// A not-detectable symbol: dim, and still legible under Increase Contrast.
+    nonisolated static func unavailableInkOpacity(increasedContrast: Bool) -> Double { increasedContrast ? 0.55 : 0.35 }
+    /// The off cells' quiet well.
+    nonisolated static func offWellOpacity(increasedContrast: Bool) -> Double { increasedContrast ? 0.14 : 0.06 }
     static func border(_ s: PeriodicCellState) -> Color {
         switch s {
         case .suggested: .accentColor

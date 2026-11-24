@@ -1,3 +1,4 @@
+import CoreGraphics
 import Observation
 
 /// A process-area pane's identity (Output, Lineage, ...). The package knows `.output`; an app registers its
@@ -88,11 +89,24 @@ public final class PanelNavigation {
     /// Set by the window, never by a click: the sidebar steps aside when the
     /// window narrows past the line where the science panes would fall under
     /// `LayoutPolicy.sciencePaneComfortable`, as Xcode hides its navigator
-    /// (owner's decision 2026-09-30). Cleared only by the user showing the
-    /// sidebar (`toggleSidebar`) — it never returns by itself, because a
-    /// returning sidebar grows the window. Never saved, so the intent above
-    /// survives a relaunch.
+    /// (owner's decision 2026-09-30). Cleared by the user showing the
+    /// sidebar (`toggleSidebar`), and by the window widening past
+    /// `LayoutPolicy.sidebarReturnLine` (`followWindowWidth`, EMSuiteUI#144):
+    /// a pane the window hid comes back when there is room again, as Apple's
+    /// split view guidance asks. Never saved, so the intent above survives a relaunch.
     public var sidebarCollapsedForWidth = false
+
+    /// The window's width changed, or the inspector came or went: the sidebar steps aside below the step-aside line and comes
+    /// back past the return line, if the window (not the user) hid it. Between the two lines nothing changes. Writes only a
+    /// change, so a live resize does not re-evaluate the window on every tick.
+    public func followWindowWidth(_ width: CGFloat) {
+        let inspector = inspectorIsVisible
+        if !LayoutPolicy.navigatorFits(windowWidth: width, inspectorVisible: inspector) {
+            if !sidebarCollapsedForWidth { sidebarCollapsedForWidth = true }
+        } else if sidebarCollapsedForWidth, width >= LayoutPolicy.sidebarReturnLine(inspectorVisible: inspector) {
+            sidebarCollapsedForWidth = false
+        }
+    }
 
     public var sidebarIsVisible: Bool { showSidebarPane && !sidebarCollapsedForWidth }
 

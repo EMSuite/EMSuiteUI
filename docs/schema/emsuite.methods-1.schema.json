@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/EMSuite/EMSuiteUI/blob/main/docs/schema/emsuite.methods-1.schema.json",
+  "title": "emsuite.methods/1",
+  "description": "The methods record of one export from the EMSuite apps (ShellExport's MethodsRecord). Files are named by name, size and SHA-256 fingerprint; the record holds no path, user name or host name.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "app", "room", "exportKind", "kits", "references", "sources", "phases", "steps", "results", "drawn", "citations", "paragraph"],
+  "properties": {
+    "schema": { "const": "emsuite.methods/1" },
+    "app": { "$ref": "#/$defs/software" },
+    "room": { "type": "string", "description": "The room the export came from: diffraction, eds, imaging, maps ..." },
+    "exportKind": { "type": "string", "description": "The export's kind: figure-pdf, spectrum-csv, png, ang, hspy ..." },
+    "kits": { "type": "array", "items": { "$ref": "#/$defs/software" } },
+    "references": { "type": "array", "items": { "$ref": "#/$defs/software" } },
+    "sources": { "type": "array", "items": { "$ref": "#/$defs/source" } },
+    "phases": { "type": "array", "items": { "$ref": "#/$defs/phase" } },
+    "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+    "results": { "type": "array", "items": { "$ref": "#/$defs/quantity" } },
+    "drawn": { "type": "array", "items": { "type": "string" } },
+    "citations": { "type": "array", "items": { "$ref": "#/$defs/citation" } },
+    "paragraph": { "type": "string", "description": "The paragraph for a paper, written from the rest of the record." }
+  },
+  "$defs": {
+    "software": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "value": {
+      "description": "FormatoCore's FormatoValue: a number, a text, a flag or a list of texts.",
+      "type": ["number", "string", "boolean", "array"],
+      "items": { "type": "string" }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fileName", "byteCount", "fingerprint", "kind", "shape", "calibrations"],
+      "properties": {
+        "fileName": { "type": "string", "pattern": "^[^/\\\\]+$", "description": "The file's name, never a path." },
+        "byteCount": { "type": "integer", "minimum": 0 },
+        "fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256, lowercase hexadecimal." },
+        "kind": { "type": "string" },
+        "shape": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
+        "calibrations": { "type": "array", "items": { "$ref": "#/$defs/calibration" } }
+      }
+    },
+    "calibration": {
+      "description": "FormatoCore's FormatoMetadataEntry: a value under its metadata key, with its FormatoProvenance.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "value", "provenance"],
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "$ref": "#/$defs/value" },
+        "units": { "type": "string" },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "source", "rule"],
+          "properties": {
+            "file": { "type": "string", "pattern": "^[^/\\\\]+$" },
+            "source": { "type": "string" },
+            "rule": { "type": "string" }
+          }
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "spaceGroup", "cell", "source", "licence", "latticeEdited"],
+      "properties": {
+        "name": { "type": "string" },
+        "spaceGroup": { "type": "string" },
+        "cell": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["a", "b", "c", "alpha", "beta", "gamma"],
+          "properties": {
+            "a": { "type": "number" },
+            "b": { "type": "number" },
+            "c": { "type": "number" },
+            "alpha": { "type": "number" },
+            "beta": { "type": "number" },
+            "gamma": { "type": "number" }
+          }
+        },
+        "source": { "type": "string" },
+        "fetched": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "licence": { "type": "string" },
+        "latticeEdited": { "type": "boolean" }
+      }
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value"],
+      "properties": {
+        "name": { "type": "string" },
+        "value": { "$ref": "#/$defs/value" },
+        "units": { "type": "string" }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "method", "settings"],
+      "properties": {
+        "name": { "type": "string" },
+        "method": { "type": "string" },
+        "reference": { "$ref": "#/$defs/software" },
+        "settings": { "type": "array", "items": { "$ref": "#/$defs/quantity" } }
+      }
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string" },
+        "doi": { "type": "string" }
+      }
+    }
+  }
+}
