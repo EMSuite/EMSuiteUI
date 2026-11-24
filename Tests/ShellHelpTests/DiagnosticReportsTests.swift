@@ -43,6 +43,16 @@ nonisolated final class DiagnosticReportsTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: other.path), "a file that is not a report is never removed")
     }
 
+    /// Two deliveries in one second keep all their reports (EMSuiteUI#233). Red before: the second replaced the first's file.
+    func testTwoDeliveriesInOneSecondKeepEveryReport() throws {
+        let store = DiagnosticReportStore(folder: folder)
+        let date = Date(timeIntervalSince1970: 1_795_445_702)
+        try store.save([Data("a".utf8)], receivedAt: date)
+        let second = try store.save([Data("b".utf8), Data("c".utf8)], receivedAt: date)
+        XCTAssertEqual(second.map(\.lastPathComponent), ["diagnostic-20261123-145502-2.json", "diagnostic-20261123-145502-3.json"])
+        XCTAssertEqual(try store.reports().map { String(decoding: try Data(contentsOf: $0), as: UTF8.self) }, ["a", "b", "c"])
+    }
+
     func testNothingIsWrittenForAnEmptyDelivery() throws {
         let store = DiagnosticReportStore(folder: folder)
         XCTAssertEqual(try store.save([]), [])
