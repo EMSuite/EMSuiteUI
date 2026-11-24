@@ -22,6 +22,8 @@ public nonisolated enum EDXLayout {
     package static let factorsSheetWidth: CGFloat = 400
     /// The scale bar's thickness in a figure.
     package static let figureBarThickness: CGFloat = 3
+    /// A map's colour bar under its picture in a figure.
+    package static let figureColourBarThickness: CGFloat = 8
     /// The particle table sheet's smallest size.
     public static let tableSheetMinimum = CGSize(width: 560, height: 360)
     /// The opening bar.
