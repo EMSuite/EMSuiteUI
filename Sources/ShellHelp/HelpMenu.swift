@@ -4,7 +4,8 @@
 //        say help is unavailable; in its place the support page, the documentation and Report a Problem…, which opens a window
 //        holding the report and the diagnostics summary. The person sends it from their own mail app or browser.
 //
-//  Hooked up by two lines in the app: `HelpCommands(links)` in `.commands`, and `FeedbackWindow(links)` among its scenes.
+//  Hooked up by three lines in the app: `HelpCommands(links)` in `.commands`, `FeedbackWindow(links)` among its scenes, and
+//  `DiagnosticReportCollector.start()` once at launch, kept for the app's life.
 //
 
 import SwiftUI
@@ -72,11 +73,26 @@ struct FeedbackView: View {
     let links: HelpLinks
     @State private var message = ""
     @State private var summary: DiagnosticsSummary
+    /// The crash and hang reports kept on this Mac (`DiagnosticReportCollector`), read when the window opens.
+    @State private var reports: [URL]
+    private let reportFolder: URL?
     @Environment(\.openURL) private var openURL
 
     init(links: HelpLinks) {
         self.links = links
         _summary = State(initialValue: .current(appName: links.appName, channel: links.channel))
+        let store = DiagnosticReportStore.standard()
+        reportFolder = store?.folder
+        _reports = State(initialValue: store?.reports() ?? [])
+    }
+
+    /// "2 crash or hang reports are kept on this Mac." nil with none.
+    nonisolated static func reportsLine(count: Int) -> String? {
+        switch count {
+        case 0: nil
+        case 1: "1 crash or hang report is kept on this Mac. Attach it to your email if you like."
+        default: "\(count) crash or hang reports are kept on this Mac. Attach any of them to your email if you like."
+        }
     }
 
     var body: some View {
@@ -104,6 +120,15 @@ struct FeedbackView: View {
                 .accessibilityLabel("Diagnostics summary")
                 .accessibilityValue(summary.lines.joined(separator: ", "))
                 .accessibilityIdentifier("feedback.summary")
+            if let line = Self.reportsLine(count: reports.count), let folder = reportFolder {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(line).font(.callout).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Button("Show in Finder") { openURL(folder) }
+                        .help("Opens the folder that holds the reports")
+                        .accessibilityIdentifier("feedback.reports")
+                }
+            }
             Text(Self.privacyNote)
                 .font(.callout)
                 .foregroundStyle(.secondary)
