@@ -167,13 +167,15 @@ struct AddPhaseRow: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text(Self.stability(row.lowestEnergyAboveHull)).font(.caption).monospacedDigit()
-                if let n = row.siteCount { Text("\(n) sites").font(.caption).foregroundStyle(.secondary) }
+                if let n = row.siteCount { Text(Self.sites(n)).font(.caption).foregroundStyle(.secondary) }
             }
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("addPhase.row.\(row.materialID)")
     }
+
+    static func sites(_ n: Int) -> String { n == 1 ? "1 site" : "\(n) sites" }
 
     /// "Stable" on the hull, else its height above it in eV per atom.
     static func stability(_ energy: Double?) -> String {

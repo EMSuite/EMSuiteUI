@@ -47,6 +47,8 @@ nonisolated final class AddPhaseSheetTests: XCTestCase {
         XCTAssertEqual(AddPhaseRow.stability(0), "Stable")
         XCTAssertEqual(AddPhaseRow.stability(0.0123), "0.012 eV/atom above hull")
         XCTAssertEqual(AddPhaseRow.stability(nil), "No stability data")
+        XCTAssertEqual(AddPhaseRow.sites(1), "1 site")
+        XCTAssertEqual(AddPhaseRow.sites(4), "4 sites")
     }
 
     // MARK: Snapshots

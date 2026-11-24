@@ -123,7 +123,7 @@ let package = Package(
         .testTarget(name: "ShellPhaseViewsTests",
                     dependencies: ["ShellPhaseViews", "ShellPhaseLibrary", "ShellSnapshotTesting",
                                    .product(name: "DiffractoCore", package: "DiffractoKit")],
-                    resources: [.copy("Fixtures")], swiftSettings: shellSettings),
+                    exclude: ["__Snapshots__"], resources: [.copy("Fixtures")], swiftSettings: shellSettings),
         .testTarget(name: "ShellAgentDoorTests", dependencies: ["ShellAgentDoor"], swiftSettings: shellSettings),
         .testTarget(name: "ShellHelpTests", dependencies: ["ShellHelp"], swiftSettings: shellSettings),
         .testTarget(name: "ShellEDXTests",
