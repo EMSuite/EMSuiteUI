@@ -154,9 +154,10 @@ public struct FigureRaster: Sendable, Equatable {
         case .rgb8:
             return pixels
         case .gray8:
-            var out = [UInt8]()
-            out.reserveCapacity(pixels.count * 3)
-            for value in pixels { out.append(contentsOf: [value, value, value]) }
+            var out = [UInt8](repeating: 0, count: pixels.count * 3)
+            for (i, value) in pixels.enumerated() {
+                out[3 * i] = value; out[3 * i + 1] = value; out[3 * i + 2] = value
+            }
             return out
         }
     }

@@ -47,10 +47,17 @@ public nonisolated struct DiagnosticReportStore: Sendable {
         guard !reports.isEmpty else { return [] }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         var written: [URL] = []
-        for (i, data) in reports.enumerated() {
-            let url = folder.appending(path: Self.fileName(for: date, index: i + 1), directoryHint: .notDirectory)
+        // The next free index of this second: a second delivery in the same second never replaces the first's files.
+        var index = 1
+        for data in reports {
+            var url = folder.appending(path: Self.fileName(for: date, index: index), directoryHint: .notDirectory)
+            while FileManager.default.fileExists(atPath: url.path) {
+                index += 1
+                url = folder.appending(path: Self.fileName(for: date, index: index), directoryHint: .notDirectory)
+            }
             try data.write(to: url, options: [.atomic])
             written.append(url)
+            index += 1
         }
         let all = self.reports()
         for old in all.prefix(max(all.count - capacity, 0)) { try? FileManager.default.removeItem(at: old) }

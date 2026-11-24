@@ -44,6 +44,8 @@ public actor MaterialsProjectClient {
     /// Two requests a second at most.
     public nonisolated static let minimumInterval: TimeInterval = 0.5
     public nonisolated static let cacheLifetime: TimeInterval = 24 * 3600
+    /// The most search answers kept in memory.
+    nonisolated static let cacheCapacity = 200
     public nonisolated static let keyHeader = "X-API-KEY"
 
     /// What went wrong, in the words the sheet shows. A newer search superseding this one is `CancellationError`, not a failure.
@@ -65,7 +67,8 @@ public actor MaterialsProjectClient {
     private let now: @Sendable () -> Date
     private let sleep: @Sendable (Duration) async throws -> Void
     private var cache: [String: Cached] = [:]
-    private var lastSent: Date?
+    /// The earliest time the next request may go.
+    private var nextSend: Date?
     private var generation = 0
 
     public init(transport: any PhaseTransport = URLSessionPhaseTransport(),
@@ -85,7 +88,13 @@ public actor MaterialsProjectClient {
         if let hit = cache[id], now().timeIntervalSince(hit.stored) < Self.cacheLifetime { return hit.data }
         let data = try await send(request, key: key, timeout: Self.searchTimeout)
         // A search that a newer one superseded while it was on the wire is not shown, but its answer is kept.
-        cache[id] = Cached(data: data, stored: now())
+        let stored = now()
+        // Answers past their day are dropped here, and the oldest past `cacheCapacity`, so a long session does not keep them all.
+        cache = cache.filter { stored.timeIntervalSince($0.value.stored) < Self.cacheLifetime }
+        if cache.count >= Self.cacheCapacity, let oldest = cache.min(by: { $0.value.stored < $1.value.stored })?.key {
+            cache[oldest] = nil
+        }
+        cache[id] = Cached(data: data, stored: stored)
         guard mine == generation else { throw CancellationError() }
         return data
     }
@@ -99,11 +108,12 @@ public actor MaterialsProjectClient {
     public func clearCache() { cache.removeAll() }
 
     private func send(_ request: URLRequest, key: String?, timeout: TimeInterval) async throws -> Data {
-        if let last = lastSent {
-            let wait = Self.minimumInterval - now().timeIntervalSince(last)
-            if wait > 0 { try await sleep(.milliseconds(Int((wait * 1000).rounded(.up)))) }
-        }
-        lastSent = now()
+        // The send's time is taken before the wait: two sends that arrive together get two slots, not the same one.
+        let arrived = now()
+        let slot = nextSend.map { max($0, arrived) } ?? arrived
+        nextSend = slot.addingTimeInterval(Self.minimumInterval)
+        let wait = slot.timeIntervalSince(arrived)
+        if wait > 0 { try await sleep(.milliseconds(Int((wait * 1000).rounded(.up)))) }
         let prepared = Self.prepared(request, key: key, timeout: timeout)
         let data: Data, response: HTTPURLResponse
         do {
