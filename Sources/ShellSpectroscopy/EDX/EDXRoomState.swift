@@ -15,10 +15,10 @@ import ShellExport
 /// What the Export section writes: text (the results, the method, the spectrum as CSV or `.msa`, the pins) or the maps as a PNG.
 public nonisolated enum EDXExportKind: String, Identifiable, CaseIterable {
     case results, method, spectrum, spectrumMSA, pins, mapsPNG
-    /// The spectrum and the maps as vector figures (Electron-Microscopy-Studio#902): live text, the spectrum one path.
-    case spectrumPDF, spectrumSVG, mapsPDF, mapsSVG
     /// Every phase pool fitted with the room's method (mac4DSTEM; made by the window, `EDXRoomActions.exportCompositionByClass`).
     case compositionByClass
+    /// The spectrum and the maps as vector figures (Electron-Microscopy-Studio#902): live text, the spectrum one path.
+    case spectrumPDF, spectrumSVG, mapsPDF, mapsSVG
 
     public var id: String { rawValue }
 
