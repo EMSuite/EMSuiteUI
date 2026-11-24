@@ -78,4 +78,41 @@ nonisolated final class EDXAgentToolsTests: XCTestCase {
         withExtendedLifetime(window) {}
         withExtendedLifetime(empty) {}
     }
+
+    /// The Workspace menu's Polygon Region Tool, Line Tool and Pin Region through set_eds (EMSuite/Electron-Microscopy-Studio#885).
+    /// Mutation: set_eds ignores vertices, keep or line, or get_eds leaves out the lines - red.
+    @MainActor func testAnAgentDrawsAPolygonKeepsARegionAndDrawsALine() async throws {
+        let session = EDXSession(host: .test)
+        await session.bind(EDXSessionTests.source()).value
+        await session.settled()
+        let window = Window(session)
+        let door = door(window)
+
+        XCTAssertTrue(try call(door, "set_eds", ["region": "polygon", "vertices": "0,0; 1,0"]).refused, "two vertices")
+        XCTAssertTrue(try call(door, "set_eds", ["region": "polygon", "vertices": "0,0; 1,x; 1,1"]).refused, "not a number")
+        XCTAssertTrue(try call(door, "set_eds", ["region": "polygon", "vertices": "5,5; 6,5; 6,6"]).refused, "outside the scan")
+        let drawn = try call(door, "set_eds", ["region": "polygon", "vertices": "0,0; 1.2,0; 1.2,1; 0,1"])
+        XCTAssertFalse(drawn.refused, drawn.text)
+        await session.settled()
+        XCTAssertEqual(session.region, .polygon([PixelPoint(x: 0, y: 0), PixelPoint(x: 1.2, y: 0), PixelPoint(x: 1.2, y: 1), PixelPoint(x: 0, y: 1)]))
+        XCTAssertEqual(session.regionPixels, 1, "the left pixel only")
+        XCTAssertEqual(drawn.json["kept_regions"] as? [String], ["Region 1"], "a drawn polygon is kept, as a drawing on the map is")
+
+        // Pin Region: the whole map is not kept by selecting it; keep keeps it under its name.
+        XCTAssertFalse(try call(door, "set_eds", ["region": "whole"]).refused)
+        let kept = try call(door, "set_eds", ["keep": true, "name": "All of it"])
+        XCTAssertFalse(kept.refused, kept.text)
+        XCTAssertEqual(kept.json["kept_regions"] as? [String], ["Region 1", "All of it"])
+        XCTAssertEqual(session.selectedPin?.name, "All of it")
+
+        XCTAssertTrue(try call(door, "set_eds", ["line": "0,0"]).refused, "one end")
+        XCTAssertTrue(try call(door, "set_eds", ["line": "0,0, 0.2,0"]).refused, "shorter than a pixel")
+        let line = try call(door, "set_eds", ["line": "0,0.5, 2,0.5"])
+        XCTAssertFalse(line.refused, line.text)
+        XCTAssertEqual(line.json["lines"] as? [String], ["Line 1"])
+        XCTAssertEqual(session.lines.first?.from, PixelPoint(x: 0, y: 0.5))
+        XCTAssertEqual(session.lines.first?.to, PixelPoint(x: 2, y: 0.5))
+        XCTAssertEqual(try call(door, "get_eds").json["lines"] as? [String], ["Line 1"])
+        withExtendedLifetime(window) {}
+    }
 }
