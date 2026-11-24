@@ -112,6 +112,11 @@ public enum EDXAgentTools {
                         guard let vertices = points(a["vertices"]), vertices.count >= 3 else {
                             return .refusal(status: 400, message: "A polygon needs three or more x,y vertices, separated by ;.")
                         }
+                        // The mask is worked out on the main actor, vertices × pixels: a drawn outline has tens of vertices.
+                        guard vertices.count <= maximumPolygonVertices else {
+                            return .refusal(status: 400, message: "A polygon takes at most \(maximumPolygonVertices) vertices; "
+                                + "this one has \(vertices.count).")
+                        }
                         s.drawPolygon(vertices)
                         guard s.region == .polygon(vertices) else {
                             return .refusal(status: 409, message: "That polygon holds no pixel of the scan.")
@@ -177,6 +182,8 @@ public enum EDXAgentTools {
     }
 
     /// "x,y; x,y; …" (or "x,y, x,y" when every number is a comma apart): the points, or nil when a number does not read or one is odd.
+    static let maximumPolygonVertices = 1000
+
     static func points(_ text: String?) -> [PixelPoint]? {
         guard let text else { return nil }
         let numbers = text.split(whereSeparator: { $0 == "," || $0 == ";" }).map { Double($0.trimmingCharacters(in: .whitespaces)) }

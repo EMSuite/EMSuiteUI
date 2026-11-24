@@ -52,6 +52,18 @@ nonisolated final class FeedbackTests: XCTestCase {
         XCTAssertNil(FeedbackComposer.githubIssue(message: "", summary: summary, to: FeedbackDestination(address: "a@b", repository: "nope")))
     }
 
+    /// A plus in the words reaches GitHub's form reader as a plus (EMSuiteUI#233). Red before: "+" went out bare, a space there.
+    func testAPlusInTheWordsIsWrittenSoAFormReaderKeepsIt() throws {
+        for url in [FeedbackComposer.githubIssue(message: "Si+Ge map is empty", summary: summary, to: destination),
+                    FeedbackComposer.mail(message: "Si+Ge map is empty", summary: summary, to: destination)] {
+            let text = try XCTUnwrap(url?.absoluteString)
+            XCTAssertTrue(text.contains("Si%2BGe"), text)
+            XCTAssertFalse(try XCTUnwrap(URLComponents(string: text)?.percentEncodedQuery).contains("+"), text)
+        }
+        let q = try query(FeedbackComposer.githubIssue(message: "Si+Ge map is empty", summary: summary, to: destination))
+        XCTAssertEqual(q["title"], "Si+Ge map is empty")
+    }
+
     func testALongFirstLineIsShortenedForTheSubject() {
         let subject = FeedbackComposer.subject(message: String(repeating: "x", count: 200), summary: summary)
         XCTAssertEqual(subject.count, 80)

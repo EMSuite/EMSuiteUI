@@ -91,6 +91,8 @@ nonisolated final class EDXAgentToolsTests: XCTestCase {
         XCTAssertTrue(try call(door, "set_eds", ["region": "polygon", "vertices": "0,0; 1,0"]).refused, "two vertices")
         XCTAssertTrue(try call(door, "set_eds", ["region": "polygon", "vertices": "0,0; 1,x; 1,1"]).refused, "not a number")
         XCTAssertTrue(try call(door, "set_eds", ["region": "polygon", "vertices": "5,5; 6,5; 6,6"]).refused, "outside the scan")
+        let many = try call(door, "set_eds", ["region": "polygon", "vertices": (0...1000).map { "\($0 % 2),\($0 % 3)" }.joined(separator: ";")])
+        XCTAssertTrue(many.refused && many.text.contains("at most 1000 vertices"), "1001 vertices: \(many.text)")
         let drawn = try call(door, "set_eds", ["region": "polygon", "vertices": "0,0; 1.2,0; 1.2,1; 0,1"])
         XCTAssertFalse(drawn.refused, drawn.text)
         await session.settled()
