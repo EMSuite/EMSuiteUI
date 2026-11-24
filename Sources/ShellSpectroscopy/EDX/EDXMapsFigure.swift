@@ -36,7 +36,7 @@ public struct EDXFigureCell: Identifiable {
 /// A cell's colour bar (Electron-Microscopy-Studio#861): the ramp the cell's picture is drawn with, `width` × 1 RGBA from the low end to the
 /// high end, and the values at those ends in words with their unit ("0.21", "0.85 t/λ"). The room makes both with the same colouring,
 /// window and gamma as the picture, so the bar reads the picture.
-public struct EDXFigureColourBar: Equatable {
+public nonisolated struct EDXFigureColourBar: Equatable, Sendable {
     public private(set) var rgba: [UInt8]
     public private(set) var width: Int
     public private(set) var low: String

@@ -12,12 +12,12 @@ import SwiftUI
 nonisolated final class EDXFigureColourBarTests: XCTestCase {
 
     /// A 4 × 4 grey picture, so the only green in the figure is the bar's.
-    private func cell(bar: EDXFigureColourBar?) -> EDXFigureCell {
+    @MainActor private func cell(bar: EDXFigureColourBar?) -> EDXFigureCell {
         EDXFigureCell(id: "tOverLambda", title: "t/λ", detail: "", rgba: [UInt8](repeating: 128, count: 4 * 4 * 4), width: 4, height: 4, footer: nil,
                       colourBar: bar)
     }
 
-    private func figure(_ cell: EDXFigureCell) -> EDXFigureContent {
+    @MainActor private func figure(_ cell: EDXFigureCell) -> EDXFigureContent {
         EDXFigureContent(title: "planted.dm4", subtitle: "Whole map", tiles: [], region: .wholeMap, nx: 4, ny: 4, bar: nil, cells: [cell])
     }
 
