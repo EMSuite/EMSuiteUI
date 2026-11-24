@@ -98,9 +98,10 @@ final class MaterialsProjectClientTests: XCTestCase {
             // Real but short: the typing pause is 100 ms here, the other waits nothing.
             if d == MaterialsProjectClient.typingPause { try await Task.sleep(for: .milliseconds(100)) }
         })
-        let first = Task { try await c.search(r1, key: nil) }
+        let (one, two) = (r1, r2)   // the tasks capture the requests, not the test case
+        let first = Task { try await c.search(one, key: nil) }
         try await Task.sleep(for: .milliseconds(20))
-        let second = Task { try await c.search(r2, key: nil) }
+        let second = Task { try await c.search(two, key: nil) }
         do { _ = try await first.value; XCTFail("the first search was not superseded") } catch { XCTAssertTrue(error is CancellationError) }
         _ = try await second.value
         XCTAssertEqual(transport.sent.map(\.url), [r2.url])
