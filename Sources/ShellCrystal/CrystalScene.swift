@@ -121,6 +121,13 @@ public nonisolated struct CrystalScene: Equatable, Sendable {
         return (lo + hi) / 2
     }
 
+    /// The box drawn as twelve edges: a slab's outline (from the origin to `outline`, drawn in place of the cell), else the unit cell;
+    /// nil when there is neither. Columns are the box's three edge vectors in Å.
+    public var box: simd_double3x3? {
+        if let o = outline { return simd_double3x3(diagonal: o) }
+        return cell
+    }
+
     /// The radius of the sphere around `centre` that holds every atom's ball and the cell: the view frames this, so the crystal
     /// never leaves the pane as it turns.
     public var boundingRadius: Double {

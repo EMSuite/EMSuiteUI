@@ -72,8 +72,8 @@ struct CrystalEntities {
                              transforms: transforms, name: "bonds-\(z)", to: content)
         }
 
-        // The unit cell.
-        if showsUnitCell, let cell = scene.cell {
+        // The unit cell, or a slab's outline in its place (#232).
+        if showsUnitCell, let cell = scene.box {
             let e = CrystalPalette.cellEdge
             var edgeMaterial = UnlitMaterial(color: NSColor(srgbRed: e.x, green: e.y, blue: e.z, alpha: 1))
             edgeMaterial.blending = .transparent(opacity: .init(floatLiteral: increasedContrast ? 1.0 : 0.75))
@@ -159,12 +159,21 @@ struct CrystalEntities {
         let camera = Entity()
         var ortho = OrthographicCameraComponent()
         ortho.scale = orthographicScale(radius: radius, aspect: aspect)
+        let depth = depth(radius: radius)
         ortho.near = 0.001
-        ortho.far = 10
+        ortho.far = depth.far
         camera.components.set(ortho)
-        camera.look(at: .zero, from: [0, 0, 2], relativeTo: nil)
+        camera.look(at: .zero, from: [0, 0, depth.distance], relativeTo: nil)
         camera.name = "camera"
         return camera
+    }
+
+    /// The camera's distance from the centre and its far plane for a sphere of `radius` (scene units): the whole sphere lies between
+    /// the near and far planes whatever the turn, so a long `repeats:` block or a 40 nm slab keeps its front and back (#232). A small
+    /// cell keeps the distance 2 and far plane 10 it always had; the picture is parallel, so the distance changes only the clipping.
+    nonisolated static func depth(radius: Float) -> (distance: Float, far: Float) {
+        let distance = max(2, 2 * radius + 0.1)
+        return (distance, max(10, distance + 2 * radius + 1))
     }
 
     /// The orthographic camera's `scale` for a sphere of `radius` with a margin, so it fits the shorter side of the pane.
