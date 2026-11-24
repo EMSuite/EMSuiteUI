@@ -52,48 +52,80 @@ public enum FigurePlot {
     static let frameLineWidth = 0.5, curveLineWidth = 0.6, tickLength = 2.5
 
     /// The spectrum as a figure `style.width` wide: the frame, the ticks with their numbers, the titles, the markers and the curve.
-    /// Points whose x or y is not finite are left out; a spectrum with fewer than two points draws the frame alone.
+    /// The x axis spans the data (the round ticks inside it), the y axis widens to round ticks and takes in zero, as a spectrum plot
+    /// is read. The margins make room for the widest numbers, so no text leaves the page. Points whose x or y is not finite are left
+    /// out; a spectrum with fewer than two points draws the frame alone.
     public static func spectrum(_ spectrum: Spectrum, style: FigureStyle = FigureStyle()) -> FigureScene {
         let t = style.typeSize
         let width = style.widthPoints, height = width * spectrumAspect
-        let plot = FigureRect(x: 5 * t, y: 2 * t, width: width - 6 * t, height: height - 5.5 * t)
         let points = zip(spectrum.x, spectrum.y).filter { $0.0.isFinite && $0.1.isFinite }
         let xs = points.map(\.0), ys = points.map(\.1)
         let xRange = range(xs), yRange = range(ys + [0])
-        let xTicks = ticks(low: xRange.low, high: xRange.high), yTicks = ticks(low: yRange.low, high: yRange.high)
-        let xLow = min(xRange.low, xTicks.first ?? xRange.low), xHigh = max(xRange.high, xTicks.last ?? xRange.high)
+        let slack = 1e-9 * (xRange.high - xRange.low)
+        let roundX = ticks(low: xRange.low, high: xRange.high), xStep = step(roundX)
+        let xTicks = roundX.filter { $0 >= xRange.low - slack && $0 <= xRange.high + slack }
+        let yTicks = ticks(low: yRange.low, high: yRange.high)
+        let xLow = xRange.low, xHigh = xRange.high
         let yLow = min(yRange.low, yTicks.first ?? yRange.low), yHigh = max(yRange.high, yTicks.last ?? yRange.high)
+        let xLabels = xTicks.map { number($0, step: xStep) }, yLabels = yTicks.map { number($0, step: step(yTicks)) }
+        // The left margin holds the widest y number, the right one half the last x number, which can sit on the frame's edge.
+        let left = max(5 * t, (yLabels.map { textWidth($0, size: t) }.max() ?? 0) + 0.4 * t + 1)
+        let right = max(t, 0.5 * textWidth(xLabels.last ?? "", size: t) + 1)
+        let plot = FigureRect(x: left, y: 2 * t, width: width - left - right, height: height - 5.5 * t)
         func px(_ x: Double) -> Double { plot.x + (x - xLow) / max(xHigh - xLow, .leastNonzeroMagnitude) * plot.width }
         func py(_ y: Double) -> Double { plot.y + plot.height - (y - yLow) / max(yHigh - yLow, .leastNonzeroMagnitude) * plot.height }
 
         var layers: [FigureLayer] = [.path(.rectangle(plot, stroke: .black, fill: nil, lineWidth: frameLineWidth))]
         let bottom = plot.y + plot.height
-        for tick in xTicks {
+        for (tick, label) in zip(xTicks, xLabels) {
             let x = px(tick)
             layers.append(.path(FigurePath(points: [FigurePoint(x: x, y: bottom), FigurePoint(x: x, y: bottom - tickLength)],
                                            lineWidth: frameLineWidth)))
-            layers.append(.text(FigureText(number(tick, step: step(xTicks)), at: FigurePoint(x: x, y: bottom + 1.2 * t), anchor: .middle)))
+            layers.append(.text(FigureText(label, at: FigurePoint(x: x, y: bottom + 1.2 * t), anchor: .middle)))
         }
-        for tick in yTicks {
+        for (tick, label) in zip(yTicks, yLabels) {
             let y = py(tick)
             layers.append(.path(FigurePath(points: [FigurePoint(x: plot.x, y: y), FigurePoint(x: plot.x + tickLength, y: y)],
                                            lineWidth: frameLineWidth)))
-            layers.append(.text(FigureText(number(tick, step: step(yTicks)), at: FigurePoint(x: plot.x - 0.4 * t, y: y + 0.35 * t),
-                                           anchor: .end)))
+            layers.append(.text(FigureText(label, at: FigurePoint(x: plot.x - 0.4 * t, y: y + 0.35 * t), anchor: .end)))
         }
         layers.append(.text(FigureText(spectrum.xTitle, at: FigurePoint(x: plot.x + plot.width / 2, y: bottom + 2.6 * t), anchor: .middle)))
         layers.append(.text(FigureText(spectrum.yTitle, at: FigurePoint(x: plot.x, y: plot.y - 0.6 * t))))
-        for marker in spectrum.markers where marker.x.isFinite && marker.x >= xLow && marker.x <= xHigh {
-            let x = px(marker.x)
-            layers.append(.path(FigurePath(points: [FigurePoint(x: x, y: plot.y), FigurePoint(x: x, y: bottom)], stroke: marker.color,
-                                           lineWidth: frameLineWidth)))
-            layers.append(.text(FigureText(marker.label, at: FigurePoint(x: x + 0.3 * t, y: plot.y + 1.1 * t), color: marker.color)))
-        }
+        layers += markerLayers(spectrum.markers, plot: plot, typeSize: t) { $0 >= xLow && $0 <= xHigh ? px($0) : nil }
         if points.count >= 2 {
             let curve = decimated(points, columns: Int(plot.width.rounded(.up)) * 2).map { FigurePoint(x: px($0.0), y: py($0.1)) }
             layers.append(.path(FigurePath(points: curve, stroke: spectrum.color, lineWidth: curveLineWidth)))
         }
         return FigureScene(style: style, heightMM: height / FigureScene.pointsPerMillimetre, layers: layers)
+    }
+
+    /// Each marker as a line down the plot and its label at the top: to the line's right, or to its left where the right would leave
+    /// the frame; a label that would overlap the one before it in its row drops a row (an Fe Kα beside an Fe Kβ).
+    static func markerLayers(_ markers: [Spectrum.Marker], plot: FigureRect, typeSize t: Double, x position: (Double) -> Double?)
+        -> [FigureLayer] {
+        var layers: [FigureLayer] = []
+        var rowEnds: [Double] = []
+        let rows = max(1, Int((plot.height / (1.2 * t)).rounded(.down)) - 1)
+        for marker in markers.filter({ $0.x.isFinite }).sorted(by: { $0.x < $1.x }) {
+            guard let x = position(marker.x) else { continue }
+            layers.append(.path(FigurePath(points: [FigurePoint(x: x, y: plot.y), FigurePoint(x: x, y: plot.y + plot.height)],
+                                           stroke: marker.color, lineWidth: frameLineWidth)))
+            let w = textWidth(marker.label, size: t)
+            let fitsRight = x + 0.3 * t + w <= plot.x + plot.width
+            let start = fitsRight ? x + 0.3 * t : x - 0.3 * t - w
+            let row = rowEnds.firstIndex { start > $0 + 0.3 * t } ?? min(rowEnds.count, rows - 1)
+            if row < rowEnds.count { rowEnds[row] = start + w } else { rowEnds.append(start + w) }
+            let origin = FigurePoint(x: fitsRight ? start : x - 0.3 * t, y: plot.y + (1.1 + 1.2 * Double(row)) * t)
+            layers.append(.text(FigureText(marker.label, at: origin, anchor: fitsRight ? .start : .end, color: marker.color)))
+        }
+        return layers
+    }
+
+    /// An estimate of a line of text's width in Helvetica at `size` points, for room in a layout (the text itself stays live): the
+    /// digits and their signs are 0.556 em, as Helvetica draws them, every other character is taken at 0.667 em, which covers its
+    /// capitals and most of its lowercase.
+    static func textWidth(_ text: String, size: Double) -> Double {
+        text.reduce(0) { $0 + ("0123456789.,-+−".contains($1) ? 0.556 : 0.667) } * size
     }
 
     /// The lowest and highest of `values`; 0 to 1 when there are none, and a unit wide around a single value.
@@ -117,7 +149,8 @@ public enum FigurePlot {
 
     /// A tick's number with as many decimals as its step needs, in the POSIX locale; "-0" is written "0".
     static func number(_ value: Double, step: Double) -> String {
-        let decimals = max(0, Int((-log10(step)).rounded(.up)))
+        // A step of 0.1 found as 100.2 − 100.1 is 0.09999…: a hair of tolerance keeps it one decimal.
+        let decimals = max(0, Int((-log10(step) - 1e-6).rounded(.up)))
         let text = String(format: "%.\(decimals)f", locale: Locale(identifier: "en_US_POSIX"), value)
         return Double(text) == 0 ? String(format: "%.\(decimals)f", locale: Locale(identifier: "en_US_POSIX"), 0.0) : text
     }
@@ -125,9 +158,11 @@ public enum FigurePlot {
     /// At most two points a column (the lowest and the highest, in their order), so a spectrum of a million channels is a path a
     /// vector editor opens and still shows every peak; a curve with no more points than that is kept as it is.
     static func decimated(_ points: [(Double, Double)], columns: Int) -> [(Double, Double)] {
-        guard columns >= 1, points.count > 2 * columns, let first = points.first?.0, let last = points.last?.0, last > first else {
+        guard columns >= 1, points.count > 2 * columns, let first = points.first?.0, let last = points.last?.0, last != first else {
             return points
         }
+        // A spectrum stored high to low (a wavelength axis) is thinned the same way and kept in its order.
+        if last < first { return Array(decimated(Array(points.reversed()), columns: columns).reversed()) }
         var out: [(Double, Double)] = []
         out.reserveCapacity(2 * columns)
         var start = 0
@@ -205,8 +240,8 @@ public enum FigurePlot {
 
     /// The bar `length` points long at the picture's bottom left, its label above it, on a translucent black plate.
     static func barLayers(length: Double, label: String, pictureHeight: Double, typeSize: Double) -> [FigureLayer] {
-        // An estimate of the label's width (Helvetica's digits are 0.556 em) for the plate; the label itself is live text.
-        let labelWidth = Double(label.count) * 0.556 * typeSize
+        // An estimate of the label's width for the plate; the label itself is live text.
+        let labelWidth = textWidth(label, size: typeSize)
         let plateWidth = max(length, labelWidth) + 2 * platePadding
         let plateHeight = typeSize + 2 + barThickness + 2 * platePadding
         let plate = FigureRect(x: plateMargin, y: pictureHeight - plateMargin - plateHeight, width: plateWidth, height: plateHeight)

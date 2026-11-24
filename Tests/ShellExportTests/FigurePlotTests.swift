@@ -29,6 +29,53 @@ final class FigurePlotTests: XCTestCase {
         XCTAssertEqual(FigurePlot.number(0.4, step: 0.2), "0.4")
         XCTAssertEqual(FigurePlot.number(1_000, step: 500), "1000")
         XCTAssertEqual(FigurePlot.number(-0.0001, step: 0.5), "0.0")
+        XCTAssertEqual(FigurePlot.number(100.2, step: 100.2 - 100.1), "100.2", "a step a hair under 0.1 keeps one decimal")
+    }
+
+    /// Every number, title and label of a spectrum lies on the page, by the layout's own width estimate: the last x number may sit
+    /// on the frame's right edge, a long y number on its left, a marker by the right edge puts its label to the line's left.
+    /// Red before: "10000" at the right edge was centred on a one-type-size margin and lost 3 pt to the page edge.
+    func testEveryTextLiesOnThePage() {
+        let cases: [(ClosedRange<Double>, Double)] = [(0...10_000, 1_000), (283...2_048, 5_000), (0...2_500, 1_234_567), (0.13...0.17, 3)]
+        for (span, peak) in cases {
+            let x = (0...400).map { span.lowerBound + Double($0) / 400 * (span.upperBound - span.lowerBound) }
+            let y = x.indices.map { $0 == 200 ? peak : 1 }
+            let markers = [FigurePlot.Spectrum.Marker(x: span.upperBound, label: "Cu Kβ"), .init(x: span.upperBound, label: "Zn Kα"),
+                           .init(x: span.lowerBound, label: "O Kα")]
+            let scene = FigurePlot.spectrum(.init(x: x, y: y, xTitle: "Energy (eV)", yTitle: "Counts", markers: markers))
+            for case .text(let text) in scene.layers {
+                let size = text.size ?? scene.style.typeSize, w = FigurePlot.textWidth(text.string, size: size)
+                let start = switch text.anchor {
+                case .start: text.origin.x
+                case .middle: text.origin.x - w / 2
+                case .end: text.origin.x - w
+                }
+                XCTAssertGreaterThanOrEqual(start, 0, "\(text.string) in \(span)")
+                XCTAssertLessThanOrEqual(start + w, scene.widthPoints, "\(text.string) in \(span)")
+                XCTAssertGreaterThanOrEqual(text.origin.y - size, 0, "\(text.string) in \(span)")
+                XCTAssertLessThanOrEqual(text.origin.y, scene.heightPoints, "\(text.string) in \(span)")
+            }
+        }
+    }
+
+    /// The x axis spans the data, not round ticks beyond it: a 283 to 2048 eV spectrum starts at the frame's left edge.
+    func testTheXAxisSpansTheData() {
+        let x = (283...2_048).map(Double.init)
+        let scene = FigurePlot.spectrum(.init(x: x, y: x.map { _ in 1 }, xTitle: "Energy (eV)", yTitle: "Counts"))
+        let frame = paths(scene).first?.points.map(\.x) ?? []
+        let curve = paths(scene).last?.points.map(\.x) ?? []
+        XCTAssertEqual(curve.first ?? -1, frame.min() ?? 0, accuracy: 1e-9)
+        XCTAssertEqual(curve.last ?? -1, frame.max() ?? 0, accuracy: 1e-9)
+        XCTAssertFalse(texts(scene).contains("0"), "no tick below the data")
+        XCTAssertTrue(texts(scene).contains("2000"))
+    }
+
+    /// A spectrum stored high to low is thinned too, in its own order.
+    func testADescendingSpectrumIsDecimated() {
+        let points = (0..<100_000).map { (Double(100_000 - $0), Double($0 % 7)) }
+        let thinned = FigurePlot.decimated(points, columns: 100)
+        XCTAssertLessThanOrEqual(thinned.count, 200)
+        XCTAssertGreaterThan(thinned.first?.0 ?? 0, thinned.last?.0 ?? 0)
     }
 
     /// A spectrum is drawn as a path, not a picture: the curve is one path of its points, the frame and ticks are paths, the numbers
