@@ -1,4 +1,4 @@
-# Status: EMSuiteUI 0.14.0 <!-- x-release-please-version -->
+# Status: EMSuiteUI 0.15.0 <!-- x-release-please-version -->
 
 What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version range and build on it.
 
