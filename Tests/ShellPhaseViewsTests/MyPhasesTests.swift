@@ -65,6 +65,6 @@ nonisolated final class MyPhasesTests: XCTestCase {
 
     @MainActor func testSnapshotMyPhases() throws {
         let library = try library(edited: true)
-        try check("my-phases", MyPhasesView(library: library, selection: "mp-134"), size: CGSize(width: 720, height: 460))
+        try check("my-phases", MyPhasesView(library: library, selection: "mp-134"), size: CGSize(width: 720, height: 640))
     }
 }
