@@ -21,7 +21,9 @@ What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by
   in, orientation changes out; its own element colours in one file; a still mode and an offscreen snapshot.
 - Figures (`ShellExport`, since 0.14.0): a figure as one value, `FigureScene` (a picture at its own pixels, paths,
   markers in six shapes, one-line labels, a ruled table, a legend; 90, 140 or 190 mm wide, 7 pt Helvetica), drawn by
-  `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Core
+  `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Two shared
+  layouts (`FigurePlot`): a spectrum as one path in a framed plot with round ticks, titles and labelled lines, and a map as its
+  picture with a vector scale bar and a key (colour boxes or a ramp). Core
   Graphics and Core Text only, off the main actor. The methods record (`MethodsRecord`, schema `emsuite.methods/1`,
   `docs/schema/emsuite.methods-1.schema.json`): app, kit and reference versions, sources by file name, size and SHA-256 with
   their calibrations as FormatoCore's `FormatoMetadataEntry` and `FormatoProvenance`, phases with source and licence, steps
