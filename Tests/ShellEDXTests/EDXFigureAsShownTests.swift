@@ -33,6 +33,28 @@ nonisolated final class EDXFigureAsShownTests: XCTestCase {
         XCTAssertNotNil(windowed[EDXFigureContent.mixKey], "the colour mix as the room draws it")
     }
 
+    /// The app's finishing step gets the bytes made, the kind and the session, and what it returns is what is written. Red before:
+    /// the bytes were written as made, so the app had no place to put its methods record (Electron-Microscopy-Studio#817).
+    @MainActor func testTheAppsFinishingStepShapesTheBytesWritten() async throws {
+        let session = EDXSession(host: .test)
+        await session.bind(EDXSessionTests.source()).value
+        await session.settled()
+        let state = EDXRoomState()
+        var seen: [EDXExportKind] = []
+        state.finishExport = { data, kind, _ in
+            seen.append(kind)
+            return Data("# finished\n".utf8) + data
+        }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("edx-finish-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var said = ""
+        await state.export(.spectrum, from: session, directory: dir) { said = $0 }
+        XCTAssertEqual(seen, [.spectrum])
+        let name = try XCTUnwrap(said.split(separator: " ", maxSplits: 1).last.map(String.init), said)
+        let written = try String(contentsOf: dir.appendingPathComponent(name), encoding: .utf8)
+        XCTAssertEqual(written, "# finished\n" + (session.spectrumCSV ?? ""))
+    }
+
     /// The bytes made for the save panel go when it closes. Red under: `exportData` kept after the save.
     @MainActor func testTheExportsBytesGoWhenThePanelCloses() async {
         let session = EDXSession(host: .test)
