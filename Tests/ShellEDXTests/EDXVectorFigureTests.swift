@@ -9,6 +9,7 @@ import XCTest
 @testable import ShellEDXModel
 @testable import ShellExport
 @testable import ShellSpectroscopy
+import UniformTypeIdentifiers
 
 nonisolated final class EDXVectorFigureTests: XCTestCase {
     private static let shown = SpectralRegion(name: "A", color: RegionColor(red: 1, green: 0, blue: 0),
