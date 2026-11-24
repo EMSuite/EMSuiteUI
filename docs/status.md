@@ -1,4 +1,4 @@
-# Status: EMSuiteUI 0.14.0 <!-- x-release-please-version -->
+# Status: EMSuiteUI 0.15.0 <!-- x-release-please-version -->
 
 What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by version range and build on it.
 

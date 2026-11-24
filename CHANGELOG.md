@@ -2,6 +2,21 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.15.0](https://github.com/EMSuite/EMSuiteUI/compare/0.14.0...0.15.0) (2026-11-24)
+
+
+### Features
+
+* Add Phase sheet (search, preview, Add, Open CIF) ([#221](https://github.com/EMSuite/EMSuiteUI/issues/221)) ([1f9f501](https://github.com/EMSuite/EMSuiteUI/commit/1f9f501238fd90c6c618f49d844cfdde58127722))
+* crash and hang reports are kept on the Mac ([#217](https://github.com/EMSuite/EMSuiteUI/issues/217)) ([ce7e6c5](https://github.com/EMSuite/EMSuiteUI/commit/ce7e6c5c5e13788b66b7b617f24fd25b2f2f4462))
+* Materials Project settings pane (key, Test, attribution) ([#222](https://github.com/EMSuite/EMSuiteUI/issues/222)) ([69f56f2](https://github.com/EMSuite/EMSuiteUI/commit/69f56f2cfe8b70928d8e5a325283a0089f6125be))
+* phase library (record, store, key store, Materials Project client) ([#220](https://github.com/EMSuite/EMSuiteUI/issues/220)) ([575a65c](https://github.com/EMSuite/EMSuiteUI/commit/575a65c050c4b413c2837f8147178534efa2a29e))
+
+
+### Fixtures and tests
+
+* snapshot tests that also supply the PR pictures ([#205](https://github.com/EMSuite/EMSuiteUI/issues/205)) ([5018f08](https://github.com/EMSuite/EMSuiteUI/commit/5018f085287f09b7a33ce6f001792f51e338c516))
+
 ## [0.14.0](https://github.com/EMSuite/EMSuiteUI/compare/0.13.0...0.14.0) (2026-11-24)
 
 
