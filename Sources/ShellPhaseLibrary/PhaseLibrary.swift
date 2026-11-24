@@ -18,12 +18,16 @@ public final class PhaseLibrary {
     public private(set) var unreadable: [String] = []
 
     @ObservationIgnored private let store: PhaseLibraryStore
+    /// Ids removed since the last `load()` began, so a read that started before the removal does not bring them back.
+    @ObservationIgnored private var removedWhileLoading: Set<String> = []
 
     public init(store: PhaseLibraryStore) { self.store = store }
 
-    /// Reads the library from disk.
+    /// Reads the library from disk. A phase added or removed while the read was under way keeps that change: the phases in
+    /// memory win over what the read found, and one removed meanwhile does not come back (EMSuiteUI#231).
     public func load() async {
         let store = self.store
+        removedWhileLoading = []
         let entries = await Task.detached(priority: .userInitiated) { store.entries() }.value
         var read: [Phase] = [], failed: [String] = []
         for entry in entries {
@@ -31,8 +35,16 @@ public final class PhaseLibrary {
                 failed.append("\(entry.id): \(error)")
             }
         }
-        phases = read.sorted { $0.added > $1.added }
+        phases = Self.merged(read: read, inMemory: phases, removed: removedWhileLoading)
         unreadable = failed
+    }
+
+    /// The read phases with the ones in memory laid over them by id, less those removed meanwhile, newest first.
+    nonisolated static func merged(read: [Phase], inMemory: [Phase], removed: Set<String>) -> [Phase] {
+        var byID = Dictionary(read.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for phase in inMemory { byID[phase.id] = phase }
+        for id in removed { byID[id] = nil }
+        return byID.values.sorted { ($0.added, $0.id) > ($1.added, $1.id) }
     }
 
     /// The phase already in the library for this Materials Project id, if any (Add shows "In Library" instead).
@@ -57,6 +69,7 @@ public final class PhaseLibrary {
     public func remove(id: String) throws {
         try store.remove(id: id)
         phases.removeAll { $0.id == id }
+        removedWhileLoading.insert(id)
     }
 
     /// The raw source of a phase as it was added, for Reset to Source and Show in Finder.
