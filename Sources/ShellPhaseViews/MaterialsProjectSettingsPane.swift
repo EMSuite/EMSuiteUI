@@ -9,12 +9,24 @@ import ShellPhaseLibrary
 import SwiftUI
 
 public struct MaterialsProjectSettingsPane: View {
+    let model: MaterialsProjectSettingsModel
+
+    public init(model: MaterialsProjectSettingsModel) { self.model = model }
+
+    public var body: some View {
+        Form { MaterialsProjectSettingsSections(model: model) }
+            .formStyle(.grouped)
+    }
+}
+
+/// The pane's sections without their Form, for a Settings window whose detail is already one grouped Form.
+public struct MaterialsProjectSettingsSections: View {
     @Bindable var model: MaterialsProjectSettingsModel
 
     public init(model: MaterialsProjectSettingsModel) { self.model = model }
 
     public var body: some View {
-        Form {
+        Group {
             Section {
                 LabeledContent("API key") {
                     Text(model.hasKey ? "Saved in your keychain" : "None. Search uses the open service.")
@@ -70,7 +82,6 @@ public struct MaterialsProjectSettingsPane: View {
                     .accessibilityIdentifier("materialsProject.doi")
             }
         }
-        .formStyle(.grouped)
     }
 
     @ViewBuilder private var testResult: some View {
