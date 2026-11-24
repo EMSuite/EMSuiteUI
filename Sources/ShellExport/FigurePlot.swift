@@ -155,7 +155,7 @@ public enum FigurePlot {
         return Double(text) == 0 ? String(format: "%.\(decimals)f", locale: Locale(identifier: "en_US_POSIX"), 0.0) : text
     }
 
-    /// At most two points a column (the lowest and the highest, in their order), so a spectrum of a million channels is a path a
+    /// At most two points a column (the lowest and the highest, in their order; the first and the last point besides), so a spectrum of a million channels is a path a
     /// vector editor opens and still shows every peak; a curve with no more points than that is kept as it is.
     static func decimated(_ points: [(Double, Double)], columns: Int) -> [(Double, Double)] {
         guard columns >= 1, points.count > 2 * columns, let first = points.first?.0, let last = points.last?.0, last != first else {
@@ -175,7 +175,9 @@ public enum FigurePlot {
                 if points[end].1 > points[highest].1 { highest = end }
                 end += 1
             }
-            for index in Set([lowest, highest]).sorted() { out.append(points[index]) }
+            // The curve's two ends stay, so it reaches the frame's edges however flat its first and last columns are.
+            let ends = (start == 0 ? [0] : []) + (end == points.count ? [points.count - 1] : [])
+            for index in Set([lowest, highest] + ends).sorted() { out.append(points[index]) }
             start = max(end, start + 1)
         }
         return out

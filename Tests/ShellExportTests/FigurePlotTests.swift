@@ -74,8 +74,10 @@ final class FigurePlotTests: XCTestCase {
     func testADescendingSpectrumIsDecimated() {
         let points = (0..<100_000).map { (Double(100_000 - $0), Double($0 % 7)) }
         let thinned = FigurePlot.decimated(points, columns: 100)
-        XCTAssertLessThanOrEqual(thinned.count, 200)
+        XCTAssertLessThanOrEqual(thinned.count, 202, "two a column and the two ends")
         XCTAssertGreaterThan(thinned.first?.0 ?? 0, thinned.last?.0 ?? 0)
+        XCTAssertEqual(thinned.first?.0, points.first?.0, "the first point stays")
+        XCTAssertEqual(thinned.last?.0, points.last?.0, "the last point stays")
     }
 
     /// A spectrum is drawn as a path, not a picture: the curve is one path of its points, the frame and ticks are paths, the numbers
