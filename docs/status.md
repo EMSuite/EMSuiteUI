@@ -38,6 +38,9 @@ What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by
   missing help book; `FeedbackWindow` shows the person's report with a diagnostics summary (version, channel, macOS, Mac model,
   memory) and opens it as an email or a GitHub issue draft in their own apps; `DiagnosticReportCollector` keeps the system's
   crash and hang reports in the app's own folder, which the window shows. The app sends nothing.
+- Quick Look (`ShellQuickLook`, unreleased): 4DSTEM Studio's thumbnail pixels and preview card moved here for both apps'
+  extensions, the card now with a scale bar from the file's pixel size (the detector step for a pattern) times the frame's
+  decimation, through ImagoKit's `ScaleBarMath`. 4DSTEM Studio still builds its own copy until it switches.
 - The phase library (`ShellPhaseLibrary`, since 0.15.0): a `Phase` (name, notes, source, the structure as DiffractoKit's
   snapshot and the fingerprint it came with, so an edit shows), kept one folder per phase in Application Support with the
   downloaded file beside it; `MaterialsProjectClient` searches and downloads politely (one search at a time, a pause while

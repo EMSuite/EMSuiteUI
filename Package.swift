@@ -41,6 +41,7 @@ let package = Package(
         .library(name: "ShellHelp", targets: ["ShellHelp"]),
         .library(name: "ShellPhaseLibrary", targets: ["ShellPhaseLibrary"]),
         .library(name: "ShellPhaseViews", targets: ["ShellPhaseViews"]),
+        .library(name: "ShellQuickLook", targets: ["ShellQuickLook"]),
     ],
     dependencies: [
         // ScaleBarMath (PaneFooter/ScaleBar). The apps pin exact tags.
@@ -104,6 +105,11 @@ let package = Package(
         .target(name: "ShellPhaseViews",
                 dependencies: ["ShellPhaseLibrary", .product(name: "DiffractoCore", package: "DiffractoKit")],
                 swiftSettings: shellSettings),
+        // Quick Look for both apps' extensions (EMSuiteUI#225): the thumbnail's pixels and the preview card with its scale bar, from
+        // FormatoKit's Peek. A sandboxed extension links it: FormatoPeek, ImagoCore (ScaleBarMath) and SwiftUI's ImageRenderer only.
+        .target(name: "ShellQuickLook",
+                dependencies: [.product(name: "FormatoPeek", package: "FormatoKit"), .product(name: "ImagoCore", package: "ImagoKit")],
+                swiftSettings: modelSettings),
         .testTarget(name: "ShellMetalTests", dependencies: ["ShellMetal"], swiftSettings: shellSettings),
         .testTarget(name: "ShellControlsTests", dependencies: ["ShellControls"], swiftSettings: shellSettings),
         .testTarget(name: "ShellInspectorTests", dependencies: ["ShellInspector", "ShellLayout"], swiftSettings: shellSettings),
@@ -126,6 +132,10 @@ let package = Package(
                     exclude: ["__Snapshots__"], resources: [.copy("Fixtures")], swiftSettings: shellSettings),
         .testTarget(name: "ShellAgentDoorTests", dependencies: ["ShellAgentDoor"], swiftSettings: shellSettings),
         .testTarget(name: "ShellHelpTests", dependencies: ["ShellHelp"], swiftSettings: shellSettings),
+        .testTarget(name: "ShellQuickLookTests",
+                    dependencies: ["ShellQuickLook", .product(name: "FormatoPeek", package: "FormatoKit"),
+                                   .product(name: "ImagoCore", package: "ImagoKit")],
+                    swiftSettings: modelSettings),
         .testTarget(name: "ShellEDXTests",
                     dependencies: ["ShellEDXModel", "ShellSpectroscopy", "ShellLayout", "ShellEDXAgent", "ShellAgentDoor",
                                    .product(name: "FormatoCore", package: "FormatoKit"),
