@@ -32,6 +32,8 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
   over HTTP at `/mcp`; Claude desktop connects through the extension in `DesktopExtension/` (`docs/agent-door.md`). Since
   0.7.0: typed inputs and tools that act (`AgentParameter`, `AgentTool(acts:)`), behind a second switch, "Let agents run
   analyses" (`runsAllowed`).
+- Snapshot tests (`ShellSnapshotTesting`, test support for this package and the apps): a view drawn in light and dark and
+  compared with its committed PNG on CI's macos-26 leg; new and changed pictures are attached to the pull request.
 - The Help menu (`ShellHelp`, not yet in a release): `HelpCommands` puts the support page, the documentation and Report a Problem… in place of the
   missing help book; `FeedbackWindow` shows the person's report with a diagnostics summary (version, channel, macOS, Mac model,
   memory) and opens it as an email or a GitHub issue draft in their own apps; `DiagnosticReportCollector` keeps the system's

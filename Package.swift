@@ -34,6 +34,8 @@ let package = Package(
         .library(name: "ShellEDXModel", targets: ["ShellEDXModel"]),
         .library(name: "ShellAgentDoor", targets: ["ShellAgentDoor"]),
         .library(name: "ShellEDXAgent", targets: ["ShellEDXAgent"]),
+        // Test support: snapshot tests of SwiftUI views (suite#137), for this package's tests and the apps'.
+        .library(name: "ShellSnapshotTesting", targets: ["ShellSnapshotTesting"]),
         .library(name: "ShellCrystal", targets: ["ShellCrystal"]),
         .library(name: "ShellExport", targets: ["ShellExport"]),
         .library(name: "ShellHelp", targets: ["ShellHelp"]),
@@ -76,6 +78,9 @@ let package = Package(
         .target(name: "ShellEDXAgent",
                 dependencies: ["ShellAgentDoor", "ShellEDXModel", .product(name: "SpectroEDX", package: "SpectroKit")],
                 swiftSettings: shellSettings),
+        // Snapshot tests: a view drawn in light and dark and compared with the PNG committed beside its test. AppKit hosts the view
+        // (NSHostingView) so AppKit-backed controls draw; no XCTest, so app targets may link it.
+        .target(name: "ShellSnapshotTesting", swiftSettings: shellSettings),
         // The crystal view (docs/crystal-view.md): plain atoms, a cell and an orientation in, drawn with RealityKit. Imports no
         // kit: the app maps its structure and DiffractoKit's bonds into plain data.
         .target(name: "ShellCrystal", swiftSettings: shellSettings),
@@ -93,6 +98,10 @@ let package = Package(
         .testTarget(name: "ShellInspectorTests", dependencies: ["ShellInspector", "ShellLayout"], swiftSettings: shellSettings),
         .testTarget(name: "ShellLayoutTests", dependencies: ["ShellLayout"], swiftSettings: shellSettings),
         .testTarget(name: "ShellSpectroscopyTests", dependencies: ["ShellSpectroscopy", "ShellMetal", "ShellControls"], swiftSettings: shellSettings),
+        .testTarget(name: "ShellSnapshotTests",
+                    dependencies: ["ShellSnapshotTesting", "ShellControls", "ShellInspector", "ShellLayout", "ShellMetal"],
+                    exclude: ["__Snapshots__"],
+                    swiftSettings: shellSettings),
         .testTarget(name: "ShellCrystalTests", dependencies: ["ShellCrystal"], swiftSettings: shellSettings),
         .testTarget(name: "ShellExportTests",
                     dependencies: ["ShellExport", .product(name: "FormatoCore", package: "FormatoKit")],

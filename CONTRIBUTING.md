@@ -14,6 +14,17 @@ swift test -c release --parallel
 Tests use XCTest and Swift Testing. The Metal tests need a GPU and are skipped on a machine without one. Do not run
 `swift build --build-tests -c release`.
 
+## Snapshot tests
+
+`ShellSnapshotTesting` draws a SwiftUI view into a window at a fixed size, in light and dark, at 2x, and compares it with the
+PNG committed under `__Snapshots__/<test file>/<name>.<light|dark>.png` beside the test (`Tests/ShellSnapshotTests`). The
+apps use the same library for their rooms. Pictures differ between macOS versions and Macs, so the references are the ones
+CI draws on GitHub's macos-26 runner, and a test compares only where `SNAPSHOTS=1` is set (that CI leg; it skips
+elsewhere). A picture that is new or differs from its reference fails the test; CI puts it on the `pr-pictures` branch under
+`<PR number>/snapshots/` and shows it in one comment on the pull request, which is the PR's picture. Review it there, then
+commit it beside the test (from that branch: `git fetch origin pr-pictures` and `git checkout FETCH_HEAD -- <PR>/snapshots`,
+moved into `__Snapshots__/`). A deliberate change replaces the reference in the same PR.
+
 ## Scope
 
 EMSuiteUI is the window shell, controls and Metal image view that two apps share. A helper only one app uses belongs in
