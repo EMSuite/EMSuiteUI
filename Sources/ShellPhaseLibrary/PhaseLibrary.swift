@@ -61,6 +61,6 @@ public final class PhaseLibrary {
 
     /// The raw source of a phase as it was added, for Reset to Source and Show in Finder.
     public func sourceFile(of id: String) -> URL? {
-        store.entries().first { $0.id == PhaseLibraryStore.folderName(for: id) }?.source
+        store.sourceFile(id: id)
     }
 }

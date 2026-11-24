@@ -17,6 +17,7 @@ public enum PhaseEditError: Error, Equatable, Sendable, CustomStringConvertible 
     case emptyName
     case sourceMissing(String)
     case sourceUnreadable(String)
+    case notWritten(String)
 
     public var description: String {
         switch self {
@@ -25,6 +26,7 @@ public enum PhaseEditError: Error, Equatable, Sendable, CustomStringConvertible 
         case .emptyName: "A phase needs a name."
         case .sourceMissing(let id): "The source \(id) was added from is missing from the library's folder, so it cannot be reset."
         case .sourceUnreadable(let why): "The source could not be read again: \(why)"
+        case .notWritten(let why): "The library could not be written: \(why)"
         }
     }
 }
@@ -37,7 +39,7 @@ extension PhaseLibrary {
     }
 
     private func write(_ phase: Phase) throws(PhaseEditError) {
-        do { try update(phase) } catch { throw .sourceUnreadable("the library could not be written: \(error.localizedDescription)") }
+        do { try update(phase) } catch { throw .notWritten(error.localizedDescription) }
     }
 
     /// Sets some of a phase's free lattice parameters; the rest follow the symmetry. Returns the phase as written.
@@ -45,11 +47,7 @@ extension PhaseLibrary {
     public func setLattice(_ values: [LatticeParameter: Double], of id: String) throws(PhaseEditError) -> Phase {
         var phase = try stored(id)
         let edited: CrystalStructure
-        do { edited = try phase.structure().editingLattice(values) } catch let error as LatticeEditError {
-            throw .lattice(error)
-        } catch {
-            throw .sourceUnreadable(error.localizedDescription)
-        }
+        do throws(LatticeEditError) { edited = try phase.structure().editingLattice(values) } catch { throw .lattice(error) }
         phase.replaceStructure(edited)
         try write(phase)
         return phase

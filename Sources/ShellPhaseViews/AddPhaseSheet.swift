@@ -55,6 +55,7 @@ public struct AddPhaseSheet: View {
         }
         .frame(minWidth: 600, idealWidth: 720, maxWidth: .infinity, minHeight: 400, idealHeight: 500, maxHeight: .infinity)
         .onAppear { searchFocused = page == .search }
+        .onChange(of: page) { searchFocused = page == .search }
         .task(id: model.searchKey) { await model.search() }
         .task(id: model.selection) { await model.loadPreview() }
     }
@@ -161,8 +162,9 @@ public struct AddPhaseSheet: View {
                     .accessibilityLabel(model.isInLibrary ? "Already in your library" : "Add to your library")
                     .accessibilityIdentifier("addPhase.add")
             } else {
+                // The cancel action, so Escape closes this page too and Return stays with the field being edited.
                 Button("Done") { dismiss() }
-                    .keyboardShortcut(.defaultAction)
+                    .keyboardShortcut(.cancelAction)
                     .accessibilityIdentifier("addPhase.done")
             }
         }

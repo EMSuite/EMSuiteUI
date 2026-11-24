@@ -61,6 +61,11 @@ public struct PhaseLibraryStore: Sendable {
         try FileManager.default.removeItem(at: dir)
     }
 
+    /// The stored source of one phase, looked up in its own folder only.
+    public func sourceFile(id: String) -> URL? {
+        sourceURL(in: folder.appending(path: Self.folderName(for: id), directoryHint: .isDirectory))
+    }
+
     private func sourceURL(in dir: URL) -> URL? {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
         return names.first { $0.hasPrefix(Self.sourceStem + ".") }.map { dir.appending(path: $0) }
