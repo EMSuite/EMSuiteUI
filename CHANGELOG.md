@@ -2,6 +2,15 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.16.0](https://github.com/EMSuite/EMSuiteUI/compare/0.15.0...0.16.0) (2026-11-24)
+
+
+### Features
+
+* set_eds draws a polygon region, keeps a region and draws a line ([#228](https://github.com/EMSuite/EMSuiteUI/issues/228)) ([c0ee0ef](https://github.com/EMSuite/EMSuiteUI/commit/c0ee0ef4753b98b3d43722909ebed0d40ec07f64))
+* ShellQuickLook, the Quick Look card with a scale bar ([#226](https://github.com/EMSuite/EMSuiteUI/issues/226)) ([8e66042](https://github.com/EMSuite/EMSuiteUI/commit/8e66042ce36cea5c706deafb042423e8d8d2c7b0)), closes [#225](https://github.com/EMSuite/EMSuiteUI/issues/225)
+* the EDS room's exports pass through a finishing step the app can fill ([#224](https://github.com/EMSuite/EMSuiteUI/issues/224)) ([d1b77f6](https://github.com/EMSuite/EMSuiteUI/commit/d1b77f62643ff56d9a3ab4a0d2840a58faae7223))
+
 ## [0.15.0](https://github.com/EMSuite/EMSuiteUI/compare/0.14.0...0.15.0) (2026-11-24)
 
 
