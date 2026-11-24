@@ -2,6 +2,20 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.17.0](https://github.com/EMSuite/EMSuiteUI/compare/0.16.0...0.17.0) (2026-11-24)
+
+
+### Features
+
+* ShellExport lays out a spectrum and a map as vector figures ([#238](https://github.com/EMSuite/EMSuiteUI/issues/238)) ([0d17c76](https://github.com/EMSuite/EMSuiteUI/commit/0d17c7667bb5731058d7f7ad8b394f5bdf4ddc89))
+* the EDS room writes its spectrum and maps as PDF or SVG figures ([#241](https://github.com/EMSuite/EMSuiteUI/issues/241)) ([c643113](https://github.com/EMSuite/EMSuiteUI/commit/c6431131716cd268786326e15e8a0991f1f1cf3c))
+
+
+### Bug Fixes
+
+* crystal view keeps long slabs whole and draws a slab's outline ([#235](https://github.com/EMSuite/EMSuiteUI/issues/235)) ([2a8a15c](https://github.com/EMSuite/EMSuiteUI/commit/2a8a15c564c6171b068de28ceecfe638bc3cd581))
+* set_eds keeps a named region in one call, feedback drafts keep a plus sign, and two diagnostic deliveries in a second keep every report ([#240](https://github.com/EMSuite/EMSuiteUI/issues/240)) ([b73360d](https://github.com/EMSuite/EMSuiteUI/commit/b73360d6a64137a17e81270c65d74898dbe72aac))
+
 ## [0.16.0](https://github.com/EMSuite/EMSuiteUI/compare/0.15.0...0.16.0) (2026-11-24)
 
 
