@@ -113,6 +113,15 @@ nonisolated final class EDXAgentToolsTests: XCTestCase {
         XCTAssertEqual(session.lines.first?.from, PixelPoint(x: 0, y: 0.5))
         XCTAssertEqual(session.lines.first?.to, PixelPoint(x: 2, y: 0.5))
         XCTAssertEqual(try call(door, "get_eds").json["lines"] as? [String], ["Line 1"])
+
+        // A region drawn and kept under a name in one call carries that name, not "Region n" (#230).
+        let named = try call(door, "set_eds", ["region": "rectangle", "x0": 0, "y0": 0, "x1": 1, "y1": 1, "keep": true, "name": "Grain A"])
+        XCTAssertFalse(named.refused, named.text)
+        XCTAssertEqual(named.json["kept_regions"] as? [String], ["Region 1", "All of it", "Grain A"])
+        XCTAssertEqual(session.selectedPin?.name, "Grain A")
+        XCTAssertFalse(try call(door, "set_eds", ["region": "whole"]).refused)
+        XCTAssertFalse(try call(door, "set_eds", ["region": "pin", "pin": "Grain A"]).refused)
+        XCTAssertEqual(session.selectedPin?.name, "Grain A")
         withExtendedLifetime(window) {}
     }
 }
