@@ -1,6 +1,6 @@
 # Status: EMSuiteUI 0.14.0 <!-- x-release-please-version -->
 
-What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version range and build on it.
+What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by version range and build on it.
 
 - The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, `LayoutPolicy`,
   `MenuActionRelay`, `ActivityLog` (each recorded event is also said to VoiceOver), `UITestingPlacement`; `InspectorSection` can start closed and draws a status glyph.
@@ -19,7 +19,7 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
 - The crystal view (`ShellCrystal`, `docs/crystal-view.md`): a phase's unit cell in 3D with RealityKit, seen down the beam in
   parallel projection, turned by drag, ⌥ drag, the arrow keys and VoiceOver actions; plain atoms, a cell and an orientation
   in, orientation changes out; its own element colours in one file; a still mode and an offscreen snapshot.
-- Figures (`ShellExport`, not yet in a release): a figure as one value, `FigureScene` (a picture at its own pixels, paths,
+- Figures (`ShellExport`, since 0.14.0): a figure as one value, `FigureScene` (a picture at its own pixels, paths,
   markers in six shapes, one-line labels, a ruled table, a legend; 90, 140 or 190 mm wide, 7 pt Helvetica), drawn by
   `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Core
   Graphics and Core Text only, off the main actor. The methods record (`MethodsRecord`, schema `emsuite.methods/1`,
@@ -34,11 +34,11 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
   analyses" (`runsAllowed`).
 - Snapshot tests (`ShellSnapshotTesting`, test support for this package and the apps): a view drawn in light and dark and
   compared with its committed PNG on CI's macos-26 leg; new and changed pictures are attached to the pull request.
-- The Help menu (`ShellHelp`, not yet in a release): `HelpCommands` puts the support page, the documentation and Report a Problem… in place of the
+- The Help menu (`ShellHelp`, since 0.14.0; the crash and hang reports since 0.15.0): `HelpCommands` puts the support page, the documentation and Report a Problem… in place of the
   missing help book; `FeedbackWindow` shows the person's report with a diagnostics summary (version, channel, macOS, Mac model,
   memory) and opens it as an email or a GitHub issue draft in their own apps; `DiagnosticReportCollector` keeps the system's
   crash and hang reports in the app's own folder, which the window shows. The app sends nothing.
-- The phase library (`ShellPhaseLibrary`, not yet in a release): a `Phase` (name, notes, source, the structure as DiffractoKit's
+- The phase library (`ShellPhaseLibrary`, since 0.15.0): a `Phase` (name, notes, source, the structure as DiffractoKit's
   snapshot and the fingerprint it came with, so an edit shows), kept one folder per phase in Application Support with the
   downloaded file beside it; `MaterialsProjectClient` searches and downloads politely (one search at a time, a pause while
   typing, a day's cache in memory, short timeouts, offline fails at once) with or without the person's own key, which

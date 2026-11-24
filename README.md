@@ -22,6 +22,11 @@ it too: the pieces take values and bindings, not an app's model.
 | `ShellSpectroscopy` | the spectroscopy room: map tiles and the fitted map grid, the colour mix, regions (draw, edit, list), spectrum and profile panes, the periodic table, the map display popover; the EDS room both apps show (`EDXRoom`, `EDXRoomSettings`, `EDXRoomInfo`, `EDXRoomState`) |
 | `ShellEDXModel` | the EDS room's model and session (`EDXSession`, regions, pins, maps, exports), no SwiftUI; the app passes its names and file opener in `EDXRoomHost`; numbers from SpectroKit |
 | `ShellExport` | the figure scene (`FigureScene`, `FigureLayer`, `FigureStyle`: 90, 140 or 190 mm wide, 7 pt Helvetica) and `FigureRenderer`, which draws it as PDF and SVG with live text and as PNG, the picture at its own pixels, with `FigureMetadata` embedded; the methods record (`MethodsRecord`, schema `emsuite.methods/1` in `docs/schema/emsuite.methods-1.schema.json`: versions, sources by name, size and fingerprint with FormatoCore's provenance, phases, steps, results, citations; never a path, user or host) and `MethodsParagraph`, its paragraph for a paper; Core Graphics and Core Text, no SwiftUI |
+| `ShellCrystal` | the crystal view: a phase's unit cell in 3D with RealityKit, down the beam in parallel projection, turned by drag, the arrow keys and VoiceOver actions |
+| `ShellHelp` | the Help menu both apps share (`HelpCommands`), Report a Problem… (`FeedbackWindow`: the report with a diagnostics summary, sent by the person's own mail app or browser) and the crash and hang reports kept on the Mac (`DiagnosticReportCollector`) |
+| `ShellPhaseLibrary` | the phase library: `Phase` (DiffractoKit's structure snapshot with its source and fingerprint), `PhaseLibrary` and its folder store, `KeychainAPIKeyStore`, `MaterialsProjectClient` (the polite client), and the models of the Add Phase sheet and the Materials Project settings pane; no SwiftUI |
+| `ShellPhaseViews` | the Add Phase sheet (`AddPhaseSheet`) and the Materials Project settings pane (`MaterialsProjectSettingsPane`, `MaterialsProjectSettingsSections`) |
+| `ShellAgentDoor` | the agent door: a local MCP server over HTTP, off until the person turns it on, with each app's tools |
 
 `CHANGELOG.md` lists every public piece as it was added.
 
@@ -32,7 +37,7 @@ Requirements: macOS 26, Swift 6.2 tools or newer. It builds with Xcode 27 and wi
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/EMSuite/EMSuiteUI", from: "0.5.1"),
+    .package(url: "https://github.com/EMSuite/EMSuiteUI", from: "0.15.0"),
 ],
 targets: [
     .target(name: "MyApp", dependencies: [
