@@ -32,6 +32,9 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
   over HTTP at `/mcp`; Claude desktop connects through the extension in `DesktopExtension/` (`docs/agent-door.md`). Since
   0.7.0: typed inputs and tools that act (`AgentParameter`, `AgentTool(acts:)`), behind a second switch, "Let agents run
   analyses" (`runsAllowed`).
+- The Help menu (`ShellHelp`, not yet in a release): `HelpCommands` puts the support page, the documentation and Report a Problem… in place of the
+  missing help book; `FeedbackWindow` shows the person's report with a diagnostics summary (version, channel, macOS, Mac model,
+  memory) and opens it as an email or a GitHub issue draft in their own apps. The app sends nothing.
 
 Since 0.3.2: 0.4.0 (2026-10-29) brought the shared EDS room; 0.5.0 (2026-11-01) `ImageViewport`, the keyboard and zoom routes,
 the narrowed EDS room API and the deletion of the superseded map tile API; 0.5.1 (2026-11-05) the EDS sheet and header fixes.

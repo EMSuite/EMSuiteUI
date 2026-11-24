@@ -36,6 +36,7 @@ let package = Package(
         .library(name: "ShellEDXAgent", targets: ["ShellEDXAgent"]),
         .library(name: "ShellCrystal", targets: ["ShellCrystal"]),
         .library(name: "ShellExport", targets: ["ShellExport"]),
+        .library(name: "ShellHelp", targets: ["ShellHelp"]),
     ],
     dependencies: [
         // ScaleBarMath (PaneFooter/ScaleBar). The apps pin exact tags.
@@ -84,6 +85,9 @@ let package = Package(
         .target(name: "ShellExport",
                 dependencies: [.product(name: "FormatoCore", package: "FormatoKit")],
                 swiftSettings: modelSettings),
+        // The Help menu both apps share: the support and documentation links, a diagnostics summary and a feedback composer that
+        // shows everything before the person's own mail app or browser sends it. The app itself sends nothing.
+        .target(name: "ShellHelp", swiftSettings: shellSettings),
         .testTarget(name: "ShellMetalTests", dependencies: ["ShellMetal"], swiftSettings: shellSettings),
         .testTarget(name: "ShellControlsTests", dependencies: ["ShellControls"], swiftSettings: shellSettings),
         .testTarget(name: "ShellInspectorTests", dependencies: ["ShellInspector", "ShellLayout"], swiftSettings: shellSettings),
@@ -95,6 +99,7 @@ let package = Package(
                     exclude: ["Goldens"],
                     swiftSettings: modelSettings),
         .testTarget(name: "ShellAgentDoorTests", dependencies: ["ShellAgentDoor"], swiftSettings: shellSettings),
+        .testTarget(name: "ShellHelpTests", dependencies: ["ShellHelp"], swiftSettings: shellSettings),
         .testTarget(name: "ShellEDXTests",
                     dependencies: ["ShellEDXModel", "ShellSpectroscopy", "ShellLayout", "ShellEDXAgent", "ShellAgentDoor",
                                    .product(name: "FormatoCore", package: "FormatoKit"),
