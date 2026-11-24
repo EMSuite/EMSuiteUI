@@ -26,6 +26,7 @@ it too: the pieces take values and bindings, not an app's model.
 | `ShellHelp` | the Help menu both apps share (`HelpCommands`), Report a Problem… (`FeedbackWindow`: the report with a diagnostics summary, sent by the person's own mail app or browser) and the crash and hang reports kept on the Mac (`DiagnosticReportCollector`) |
 | `ShellPhaseLibrary` | the phase library: `Phase` (DiffractoKit's structure snapshot with its source and fingerprint), `PhaseLibrary` and its folder store, `KeychainAPIKeyStore`, `MaterialsProjectClient` (the polite client), and the models of the Add Phase sheet and the Materials Project settings pane; no SwiftUI |
 | `ShellPhaseViews` | the Add Phase sheet (`AddPhaseSheet`) and the Materials Project settings pane (`MaterialsProjectSettingsPane`, `MaterialsProjectSettingsSections`) |
+| `ShellQuickLook` | Quick Look for both apps' extensions: `QuickLookRendering` (the thumbnail's grey pixels, log scale for patterns, a trace for spectra) and `QuickLookCard` (the spacebar card: the image with its scale bar, `QuickLookScaleBar`, and the header facts), from FormatoKit's `Peek`; links no app code |
 | `ShellAgentDoor` | the agent door: a local MCP server over HTTP, off until the person turns it on, with each app's tools |
 
 `CHANGELOG.md` lists every public piece as it was added.
