@@ -308,12 +308,17 @@ public struct FigureMetadata: Sendable, Equatable {
     public var title: String
     /// The software line ("macEM 2.4.0").
     public var creator: String
-    /// The methods record as JSON, embedded as it is: PDF Subject, SVG `<metadata>`, PNG `Description`.
+    /// The methods record as JSON (`MethodsRecord.json()`), embedded as it is: PDF Subject, SVG `<metadata>`, PNG `Description`.
     public var methodsRecord: String?
 
     public init(title: String, creator: String, methodsRecord: String? = nil) {
         self.title = title
         self.creator = creator
         self.methodsRecord = methodsRecord
+    }
+
+    /// The metadata with `methods` as its record's canonical JSON; throws what `MethodsRecord.json()` throws.
+    public init(title: String, creator: String, methods: MethodsRecord) throws {
+        try self.init(title: title, creator: creator, methodsRecord: methods.json())
     }
 }

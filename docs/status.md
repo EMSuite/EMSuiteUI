@@ -22,7 +22,11 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
 - Figures (`ShellExport`, not yet in a release): a figure as one value, `FigureScene` (a picture at its own pixels, paths,
   markers in six shapes, one-line labels, a ruled table, a legend; 90, 140 or 190 mm wide, 7 pt Helvetica), drawn by
   `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Core
-  Graphics and Core Text only, off the main actor.
+  Graphics and Core Text only, off the main actor. The methods record (`MethodsRecord`, schema `emsuite.methods/1`,
+  `docs/schema/emsuite.methods-1.schema.json`): app, kit and reference versions, sources by file name, size and SHA-256 with
+  their calibrations as FormatoCore's `FormatoMetadataEntry` and `FormatoProvenance`, phases with source and licence, steps
+  with every setting, results, what was drawn, what to cite; canonical JSON (sorted keys, shortest round-trip numbers) that
+  refuses a path, and `MethodsParagraph`, the paragraph for a paper. Pins M1 and M2: golden records and paragraphs.
 - The agent door (`ShellAgentDoor`, since 0.6.0): a local API, off until the person turns it on in Settings, through which
   an agent on this Mac looks at the app's open windows; each app registers its own tools. The app is the MCP server itself,
   over HTTP at `/mcp`; Claude desktop connects through the extension in `DesktopExtension/` (`docs/agent-door.md`). Since
