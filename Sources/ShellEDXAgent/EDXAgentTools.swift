@@ -126,7 +126,12 @@ public enum EDXAgentTools {
                     }
                 }
                 if a["keep"] == "true" {
-                    s.pinRegion(named: a["name"])
+                    // A region drawn above is kept already, as "Region n" (a drawing on the map is): keep's name names that pin (#230).
+                    if let pin = s.selectedPin, let name = a["name"] {
+                        s.renamePin(pin.id, to: name)
+                    } else {
+                        s.pinRegion(named: a["name"])
+                    }
                 }
                 if let text = a["line"] {
                     guard !s.isSingleSpectrum else {
