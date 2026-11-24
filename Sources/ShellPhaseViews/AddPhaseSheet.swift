@@ -2,7 +2,8 @@
 //  AddPhaseSheet.swift
 //  Role: the Add Phase sheet both apps show (EMSuiteUI#189, plan section 5.2), first slice: a search field that has the
 //        focus, the matches, a preview of the chosen entry with its id and licence, Add, and Open CIF…, which closes the
-//        sheet before the app shows its file dialog. Resizable. Everything it says comes from `AddPhaseModel`.
+//        sheet before the app shows its file dialog. Resizable. Everything it says comes from `AddPhaseModel`. Its second
+//        page is My Phases (EMSuiteUI#191): the library's phases, their names, notes, Reset to Source and Delete.
 //
 
 import DiffractoCore
@@ -16,47 +17,73 @@ public struct AddPhaseSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var searchFocused: Bool
     @State private var addError: String?
+    @State private var page: Page
+
+    /// The sheet's two pages.
+    public enum Page: String, CaseIterable, Sendable {
+        case search = "Materials Project"
+        case mine = "My Phases"
+    }
 
     /// `onOpenCIF` runs after the sheet has closed, so the app's Open panel never sits on top of it.
-    public init(model: AddPhaseModel, onOpenCIF: @escaping () -> Void, onAdded: @escaping (Phase) -> Void = { _ in }) {
+    public init(model: AddPhaseModel, page: Page = .search, onOpenCIF: @escaping () -> Void,
+                onAdded: @escaping (Phase) -> Void = { _ in }) {
         self.model = model
         self.onOpenCIF = onOpenCIF
         self.onAdded = onAdded
+        _page = State(initialValue: page)
     }
 
     public var body: some View {
         VStack(spacing: 0) {
             searchBar
             Divider()
-            HStack(spacing: 0) {
-                results
-                    .frame(minWidth: 260, idealWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
-                Divider()
-                AddPhasePreview(state: model.preview, inLibrary: model.isInLibrary)
-                    .frame(minWidth: 260, idealWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
+            switch page {
+            case .search:
+                HStack(spacing: 0) {
+                    results
+                        .frame(minWidth: 260, idealWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
+                    Divider()
+                    AddPhasePreview(state: model.preview, inLibrary: model.isInLibrary)
+                        .frame(minWidth: 260, idealWidth: 320, maxWidth: .infinity, maxHeight: .infinity)
+                }
+            case .mine:
+                MyPhasesView(library: model.library)
             }
             Divider()
             footer
         }
         .frame(minWidth: 600, idealWidth: 720, maxWidth: .infinity, minHeight: 400, idealHeight: 500, maxHeight: .infinity)
-        .onAppear { searchFocused = true }
+        .onAppear { searchFocused = page == .search }
         .task(id: model.searchKey) { await model.search() }
         .task(id: model.selection) { await model.loadPreview() }
     }
 
     private var searchBar: some View {
         HStack(spacing: 12) {
-            TextField("Elements or formula, such as Al Cu or Al2Cu", text: $model.text)
-                .textFieldStyle(.roundedBorder)
-                .focused($searchFocused)
-                .accessibilityLabel("Search the Materials Project")
-                .accessibilityIdentifier("addPhase.search")
-            Toggle("Only These Elements", isOn: $model.onlyTheseElements)
-                .toggleStyle(.checkbox)
-                .help("Find entries with these elements and no other")
-                .accessibilityIdentifier("addPhase.onlyTheseElements")
+            Picker("Page", selection: $page) {
+                ForEach(Page.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .accessibilityLabel("Show")
+            .accessibilityIdentifier("addPhase.page")
+            if page == .search { searchFields } else { Spacer() }
         }
         .padding(12)
+    }
+
+    @ViewBuilder private var searchFields: some View {
+        TextField("Elements or formula, such as Al Cu or Al2Cu", text: $model.text)
+            .textFieldStyle(.roundedBorder)
+            .focused($searchFocused)
+            .accessibilityLabel("Search the Materials Project")
+            .accessibilityIdentifier("addPhase.search")
+        Toggle("Only These Elements", isOn: $model.onlyTheseElements)
+            .toggleStyle(.checkbox)
+            .help("Find entries with these elements and no other")
+            .accessibilityIdentifier("addPhase.onlyTheseElements")
     }
 
     @ViewBuilder private var results: some View {
@@ -124,14 +151,20 @@ public struct AddPhaseSheet: View {
                 Text(addError).font(.caption).foregroundStyle(.red).lineLimit(2)
             }
             Spacer()
-            Button("Cancel", role: .cancel) { dismiss() }
-                .keyboardShortcut(.cancelAction)
-                .accessibilityIdentifier("addPhase.cancel")
-            Button(model.isInLibrary ? "In Library" : "Add") { add() }
-                .keyboardShortcut(.defaultAction)
-                .disabled(!model.canAdd)
-                .accessibilityLabel(model.isInLibrary ? "Already in your library" : "Add to your library")
-                .accessibilityIdentifier("addPhase.add")
+            if page == .search {
+                Button("Cancel", role: .cancel) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                    .accessibilityIdentifier("addPhase.cancel")
+                Button(model.isInLibrary ? "In Library" : "Add") { add() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!model.canAdd)
+                    .accessibilityLabel(model.isInLibrary ? "Already in your library" : "Add to your library")
+                    .accessibilityIdentifier("addPhase.add")
+            } else {
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+                    .accessibilityIdentifier("addPhase.done")
+            }
         }
         .padding(12)
     }

@@ -69,7 +69,8 @@ public final class AddPhaseModel {
         let attempt: Int
     }
 
-    @ObservationIgnored private let library: PhaseLibrary
+    /// The library Add writes to (My Phases shows it).
+    @ObservationIgnored public let library: PhaseLibrary
     @ObservationIgnored private let client: MaterialsProjectClient
     @ObservationIgnored private let keyStore: any APIKeyStore
     @ObservationIgnored private let now: () -> Date
