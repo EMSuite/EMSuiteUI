@@ -344,6 +344,19 @@ private struct EDXExportSection: View {
                 exportButton(.pins, "Regions CSV…", "square.dashed", enabled: !session.pins.isEmpty, help: "Each kept region's pixels, counts, net counts and composition")
                 exportButton(.mapsPNG, "Maps…", "photo", enabled: !session.shownTiles.isEmpty, help: "The maps as one PNG")
             }
+            // The figures for a paper (Electron-Microscopy-Studio#902): live text, the spectrum one path, the maps at their own pixels.
+            InspectorActionRow {
+                exportButton(.spectrumPDF, "Spectrum PDF…", "doc.richtext", enabled: !session.spectrumCounts.isEmpty,
+                             help: "The spectrum as shown (its energy window, the strobe left out) as a 90 mm vector figure with its lines marked")
+                exportButton(.spectrumSVG, "Spectrum SVG…", "doc.richtext", enabled: !session.spectrumCounts.isEmpty,
+                             help: "The same spectrum figure as SVG, for Illustrator or Inkscape")
+            }
+            InspectorActionRow {
+                exportButton(.mapsPDF, "Maps PDF…", "doc.richtext", enabled: !session.shownTiles.isEmpty,
+                             help: "The maps as a 190 mm vector figure: each map at its own pixels, the regions as lines, a vector scale bar")
+                exportButton(.mapsSVG, "Maps SVG…", "doc.richtext", enabled: !session.shownTiles.isEmpty,
+                             help: "The same maps figure as SVG, for Illustrator or Inkscape")
+            }
             if let exportCompositionByClass = actions.exportCompositionByClass, session.pools.contains(where: { $0.kind == "phase" }) {
                 // The app's phase pools (mac4DSTEM's 4D scan), each fitted with this method, in one CSV.
                 InspectorActionRow {

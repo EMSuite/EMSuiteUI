@@ -10,12 +10,15 @@ import Observation
 import SpectroCore
 import UniformTypeIdentifiers
 import ShellEDXModel
+import ShellExport
 
 /// What the Export section writes: text (the results, the method, the spectrum as CSV or `.msa`, the pins) or the maps as a PNG.
 public nonisolated enum EDXExportKind: String, Identifiable, CaseIterable {
     case results, method, spectrum, spectrumMSA, pins, mapsPNG
     /// Every phase pool fitted with the room's method (mac4DSTEM; made by the window, `EDXRoomActions.exportCompositionByClass`).
     case compositionByClass
+    /// The spectrum and the maps as vector figures (Electron-Microscopy-Studio#902): live text, the spectrum one path.
+    case spectrumPDF, spectrumSVG, mapsPDF, mapsSVG
 
     public var id: String { rawValue }
 
@@ -27,6 +30,10 @@ public nonisolated enum EDXExportKind: String, Identifiable, CaseIterable {
         case .spectrumMSA: "Spectrum as MSA…"
         case .pins: "Pinned regions as CSV…"
         case .mapsPNG: "Maps as PNG…"
+        case .spectrumPDF: "Spectrum as PDF…"
+        case .spectrumSVG: "Spectrum as SVG…"
+        case .mapsPDF: "Maps as PDF…"
+        case .mapsSVG: "Maps as SVG…"
         case .compositionByClass: "Composition by class as CSV…"
         }
     }
@@ -38,6 +45,8 @@ public nonisolated enum EDXExportKind: String, Identifiable, CaseIterable {
         switch self {
         case .method: .json
         case .mapsPNG: .png
+        case .spectrumPDF, .mapsPDF: .pdf
+        case .spectrumSVG, .mapsSVG: .svg
         case .spectrumMSA: Self.msa
         default: .commaSeparatedText
         }
@@ -48,10 +57,19 @@ public nonisolated enum EDXExportKind: String, Identifiable, CaseIterable {
         switch self {
         case .results: " quantification"
         case .method: " method"
-        case .spectrum, .spectrumMSA: " spectrum"
+        case .spectrum, .spectrumMSA, .spectrumPDF, .spectrumSVG: " spectrum"
         case .pins: " pins"
-        case .mapsPNG: " maps"
+        case .mapsPNG, .mapsPDF, .mapsSVG: " maps"
         case .compositionByClass: " composition by class"
+        }
+    }
+
+    /// The vector format of a figure's kind; nil for the files that are no figure and for the PNG.
+    public var figureFormat: EDXFigureFormat? {
+        switch self {
+        case .spectrumPDF, .mapsPDF: .pdf
+        case .spectrumSVG, .mapsSVG: .svg
+        case .results, .method, .spectrum, .spectrumMSA, .pins, .mapsPNG, .compositionByClass: nil
         }
     }
 }
@@ -97,6 +115,9 @@ public final class EDXRoomState {
     /// What the app does to an export's bytes before they are written or handed to the save panel (Electron Microscopy Studio puts its
     /// methods record inside, Electron-Microscopy-Studio#817); nil writes the bytes as made. It gets the bytes, the kind and the session.
     @ObservationIgnored public var finishExport: (@MainActor (Data, EDXExportKind, EDXSession) async -> Data)?
+    /// What a vector figure carries in its metadata (Electron-Microscopy-Studio#902): the app's software line and methods record, made
+    /// before the figure is drawn; nil names the file and the app's bundle name and version, with no record.
+    @ObservationIgnored public var figureMetadata: (@MainActor (EDXExportKind, EDXSession) async -> FigureMetadata)?
 
     public func requestImport() { importRequest &+= 1 }
 
@@ -120,19 +141,45 @@ public final class EDXRoomState {
             do { data = try session.spectrumMSA() } catch { report("MSA export failed: \(error.localizedDescription)"); return }
         case .pins: data = await session.pinsCSV().map { Data($0.utf8) }
         case .mapsPNG:
-            let mixIDs = Set(EDXMapsComposition.selection(appearance.mix, scan: session.source?.scanImage, tiles: session.shownTiles))
-            let mix = session.shownTiles.filter { mixIDs.contains($0.symbol) }
-            guard var content = session.figureContent(scaleBar: exportScaleBar, regions: exportRegions, mix: mix, linesFocused: linesFocused) else {
-                data = nil
-                break
+            data = await mapsContent(of: session).flatMap(EDXMapsFigure.png)
+        case .spectrumPDF, .spectrumSVG, .mapsPDF, .mapsSVG:
+            let scene: FigureScene?
+            if kind == .spectrumPDF || kind == .spectrumSVG {
+                scene = session.spectrumFigure(window: window).map { FigurePlot.spectrum($0, style: FigureStyle(width: .mm90)) }
+            } else {
+                scene = await mapsContent(of: session)?.vectorScene()
             }
-            content.rasters = await Self.figureRasters(of: session, appearance: appearance, filter: mapFilter)
-            data = EDXMapsFigure.png(content)
+            guard let scene, let format = kind.figureFormat else { data = nil; break }
+            var metadata = FigureMetadata(title: session.fileName, creator: Self.creator())
+            if let figureMetadata { metadata = await figureMetadata(kind, session) }
+            do { data = try await EDXFigureFormat.data(scene, format: format, metadata: metadata) } catch {
+                report("Export failed: \(error.localizedDescription)"); return
+            }
         case .compositionByClass: data = nil   // made by the window, which holds the pools (`save`)
         }
         var finished = data
-        if let made = data, let finishExport { finished = await finishExport(made, kind, session) }
+        // A figure carries its record in its metadata already; the hook embeds one in the other files.
+        if let made = data, kind.figureFormat == nil, let finishExport { finished = await finishExport(made, kind, session) }
         save(finished, kind: kind, stem: session.exportStem, directory: directory, report: report)
+    }
+
+    /// What the maps figure draws: the shown tiles, the colour mix, the regions and the scale bar by the export's toggles, each map's
+    /// pixels as its tile draws them.
+    @MainActor func mapsContent(of session: EDXSession) async -> EDXFigureContent? {
+        let mixIDs = Set(EDXMapsComposition.selection(appearance.mix, scan: session.source?.scanImage, tiles: session.shownTiles))
+        let mix = session.shownTiles.filter { mixIDs.contains($0.symbol) }
+        guard var content = session.figureContent(scaleBar: exportScaleBar, regions: exportRegions, mix: mix, linesFocused: linesFocused) else {
+            return nil
+        }
+        content.rasters = await Self.figureRasters(of: session, appearance: appearance, filter: mapFilter)
+        return content
+    }
+
+    /// The software line of a figure the app names none for: "Electron Microscopy Studio 2.5.0".
+    nonisolated static func creator(info: [String: Any]? = Bundle.main.infoDictionary) -> String {
+        let name = info?["CFBundleName"] as? String ?? "EMSuite"
+        guard let version = info?["CFBundleShortVersionString"] as? String else { return name }
+        return name + " " + version
     }
 
     /// The maps as the room's tiles draw them (`EDXMapTileHost.spec`: the person's colours, contrast, gamma and display filter), made off the main

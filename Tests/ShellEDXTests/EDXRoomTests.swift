@@ -366,7 +366,8 @@ nonisolated final class EDXRoomTests: XCTestCase {
     // MARK: Export kinds
 
     func testTheExportKindsNameTheirFiles() {
-        XCTAssertEqual(EDXExportKind.allCases.map(\.suffix), [" quantification", " method", " spectrum", " spectrum", " pins", " maps", " composition by class"])
+        XCTAssertEqual(EDXExportKind.allCases.map(\.suffix), [" quantification", " method", " spectrum", " spectrum", " pins", " maps", " composition by class",
+                                                             " spectrum", " spectrum", " maps", " maps"])
         XCTAssertEqual(EDXExportKind.method.contentType, .json)
         XCTAssertEqual(EDXExportKind.results.contentType, .commaSeparatedText)
         XCTAssertEqual(EDXExportKind.spectrum.contentType, .commaSeparatedText)

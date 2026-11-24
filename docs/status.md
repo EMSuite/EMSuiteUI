@@ -23,7 +23,8 @@ What is live. 0.16.0 is the latest tag; both apps take EMSuiteUI by version rang
   markers in six shapes, one-line labels, a ruled table, a legend; 90, 140 or 190 mm wide, 7 pt Helvetica), drawn by
   `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Two shared
   layouts (`FigurePlot`): a spectrum as one path in a framed plot with round ticks, titles and labelled lines, and a map as its
-  picture with a vector scale bar and a key (colour boxes or a ramp). Core
+  picture with a vector scale bar and a key (colour boxes or a ramp), and maps side by side as panels (`FigurePlot.panels`),
+  which the EDS room writes as Maps PDF… and Maps SVG… beside Spectrum PDF… and Spectrum SVG…. Core
   Graphics and Core Text only, off the main actor. The methods record (`MethodsRecord`, schema `emsuite.methods/1`,
   `docs/schema/emsuite.methods-1.schema.json`): app, kit and reference versions, sources by file name, size and SHA-256 with
   their calibrations as FormatoCore's `FormatoMetadataEntry` and `FormatoProvenance`, phases with source and licence, steps
