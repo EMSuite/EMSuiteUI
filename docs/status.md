@@ -43,6 +43,9 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
   downloaded file beside it; `MaterialsProjectClient` searches and downloads politely (one search at a time, a pause while
   typing, a day's cache in memory, short timeouts, offline fails at once) with or without the person's own key, which
   `APIKeyStore` keeps in the login keychain.
+  The Add Phase sheet (`ShellPhaseViews`, first slice): search as you type (element symbols or a formula, always on
+  the open service), the matches most stable first, a preview of the chosen entry with its id and CC BY 4.0, Add, and
+  Open CIF… (the sheet closes before the app's file dialog); each empty, offline or failed state says what to do next.
 
 Since 0.3.2: 0.4.0 (2026-10-29) brought the shared EDS room; 0.5.0 (2026-11-01) `ImageViewport`, the keyboard and zoom routes,
 the narrowed EDS room API and the deletion of the superseded map tile API; 0.5.1 (2026-11-05) the EDS sheet and header fixes.
