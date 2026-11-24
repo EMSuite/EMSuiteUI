@@ -25,7 +25,8 @@ nonisolated final class DiagnosticReportsTests: XCTestCase {
         let written = try store.save([json], receivedAt: Date(timeIntervalSince1970: 1_795_445_702))
         XCTAssertEqual(written.map(\.lastPathComponent), ["diagnostic-20261123-145502-1.json"])
         XCTAssertEqual(try Data(contentsOf: written[0]), json)
-        XCTAssertEqual(store.reports(), written)
+        XCTAssertEqual(store.reports().map(\.lastPathComponent), written.map(\.lastPathComponent))
+        XCTAssertEqual(try store.reports().map { try Data(contentsOf: $0) }, [json])
     }
 
     func testOnlyTheNewestAreKeptAndOtherFilesAreLeftAlone() throws {
