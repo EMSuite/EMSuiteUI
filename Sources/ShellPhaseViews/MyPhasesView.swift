@@ -33,8 +33,8 @@ public struct MyPhasesView: View {
                     .accessibilityIdentifier("myPhases.list")
                 }
                 if !library.unreadable.isEmpty {
-                    Text("Could not be read: " + library.unreadable.joined(separator: "; "))
-                        .font(.caption).foregroundStyle(.orange).lineLimit(3)
+                    SheetWarning("Could not be read: " + library.unreadable.joined(separator: "; "))
+                        .lineLimit(3)
                         .padding(8).frame(maxWidth: .infinity, alignment: .leading)
                         .accessibilityIdentifier("myPhases.unreadable")
                 }
@@ -130,7 +130,7 @@ struct PhaseDetails: View {
                 Section {
                     Button("Delete Phase…", role: .destructive) { confirmDelete = true }
                         .accessibilityIdentifier("myPhases.delete")
-                    if let problem { Text(problem).font(.caption).foregroundStyle(.red) }
+                    if let problem { SheetWarning(problem) }
                 }
             }
             .formStyle(.grouped)

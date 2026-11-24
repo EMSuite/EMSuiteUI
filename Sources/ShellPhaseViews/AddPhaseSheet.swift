@@ -149,23 +149,24 @@ public struct AddPhaseSheet: View {
                 .help("Close this sheet and choose a CIF file on your Mac")
                 .accessibilityIdentifier("addPhase.openCIF")
             if let addError {
-                Text(addError).font(.caption).foregroundStyle(.red).lineLimit(2)
+                SheetWarning(addError).lineLimit(2)
             }
             Spacer()
             if page == .search {
                 Button("Cancel", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                     .accessibilityIdentifier("addPhase.cancel")
-                Button(model.isInLibrary ? "In Library" : "Add") { add() }
+                Button(model.isInLibrary ? "In Library" : "Add Phase") { add() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(!model.canAdd)
                     .accessibilityLabel(model.isInLibrary ? "Already in your library" : "Add to your library")
                     .accessibilityIdentifier("addPhase.add")
             } else {
-                // The cancel action, so Escape closes this page too and Return stays with the field being edited.
-                Button("Done") { dismiss() }
+                // Edits here save as they are made, so the way out confirms nothing: Close, on the cancel key, so Escape closes
+                // this page too and Return stays with the field being edited.
+                Button("Close") { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                    .accessibilityIdentifier("addPhase.done")
+                    .accessibilityIdentifier("addPhase.close")
             }
         }
         .padding(12)
