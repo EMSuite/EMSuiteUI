@@ -47,13 +47,12 @@ public final class MaterialsProjectSettingsModel {
     public init(keyStore: any APIKeyStore, client: MaterialsProjectClient) {
         self.keyStore = keyStore
         self.client = client
-        refresh()
     }
 
-    /// Reads whether a key is stored (the key itself is never shown).
-    public func refresh() {
+    /// Reads whether a key is stored (the key itself is never shown), off the main actor; the pane calls it as it appears.
+    public func refresh() async {
         do {
-            hasKey = !((try keyStore.load()) ?? "").isEmpty
+            hasKey = !((try await keyStore.loadInBackground()) ?? "").isEmpty
             keychainProblem = nil
         } catch {
             keychainProblem = "The keychain could not be read: \(error)"
@@ -67,7 +66,7 @@ public final class MaterialsProjectSettingsModel {
         let key = Self.cleaned(draft)
         guard !key.isEmpty else { return }
         do {
-            try keyStore.save(key)
+            try await keyStore.saveInBackground(key)
             draft = ""
             hasKey = true
             test = .idle
@@ -81,7 +80,7 @@ public final class MaterialsProjectSettingsModel {
     /// Removes the key; the open service is used from then on.
     public func remove() async {
         do {
-            try keyStore.delete()
+            try await keyStore.deleteInBackground()
             hasKey = false
             test = .idle
             keychainProblem = nil
@@ -94,8 +93,9 @@ public final class MaterialsProjectSettingsModel {
     /// Tests the pasted key if there is one, else the stored key, with one request for one entry.
     public func testKey() async {
         let pasted = Self.cleaned(draft)
-        let key = pasted.isEmpty ? ((try? keyStore.load()) ?? nil) : pasted
-        guard let key, !key.isEmpty else { test = .failed("Paste a key first."); return }
+        var key = pasted
+        if key.isEmpty { key = ((try? await keyStore.loadInBackground()) ?? nil) ?? "" }
+        guard !key.isEmpty else { test = .failed("Paste a key first."); return }
         test = .testing
         do {
             let request = try MaterialsProjectImport.request(materialID: Self.testMaterialID, apiKey: key)

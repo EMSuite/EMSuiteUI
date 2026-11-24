@@ -212,7 +212,7 @@ public final class AddPhaseModel {
         default: break
         }
         preview = .loading(id)
-        let stored: String? = (try? keyStore.load()) ?? nil
+        let stored: String? = (try? await keyStore.loadInBackground()) ?? nil
         let key = (stored?.isEmpty ?? true) ? nil : stored
         do {
             let request: URLRequest

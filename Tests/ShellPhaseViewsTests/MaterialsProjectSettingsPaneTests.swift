@@ -44,12 +44,15 @@ nonisolated final class MaterialsProjectSettingsPaneTests: XCTestCase {
                                       client: MaterialsProjectClient(transport: AcceptingTransport(), sleep: { _ in }))
     }
 
-    @MainActor func testSnapshotWithoutAKey() throws {
-        try check("materials-project-no-key", model(key: nil))
+    @MainActor func testSnapshotWithoutAKey() async throws {
+        let m = model(key: nil)
+        await m.refresh()
+        try check("materials-project-no-key", m)
     }
 
     @MainActor func testSnapshotWithATestedKey() async throws {
         let m = model(key: "abc123")
+        await m.refresh()
         await m.testKey()
         XCTAssertEqual(m.test, .accepted)
         try check("materials-project-key-accepted", m)
