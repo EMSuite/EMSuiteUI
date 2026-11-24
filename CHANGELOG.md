@@ -2,6 +2,26 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.14.0](https://github.com/EMSuite/EMSuiteUI/compare/0.13.0...0.14.0) (2026-11-24)
+
+
+### Features
+
+* a figure cell can carry a colour bar under its picture ([#216](https://github.com/EMSuite/EMSuiteUI/issues/216)) ([8bf342e](https://github.com/EMSuite/EMSuiteUI/commit/8bf342e6b116e17f8f215b7966b01d1fd38d6dcd))
+* crystal view (ball and stick, unit cell, axes, seen down the beam, drag to tilt) ([#206](https://github.com/EMSuite/EMSuiteUI/issues/206)) ([60e3ffb](https://github.com/EMSuite/EMSuiteUI/commit/60e3ffb957fe2d4ae3b81b4a181b93e3d4765f8b))
+* crystal view hover, legend and keys ([#209](https://github.com/EMSuite/EMSuiteUI/issues/209)) ([af723fd](https://github.com/EMSuite/EMSuiteUI/commit/af723fd84c0c7f8f28c8f65658771ed419002004))
+* help links, a diagnostics summary and a feedback composer ([#214](https://github.com/EMSuite/EMSuiteUI/issues/214)) ([86e2ede](https://github.com/EMSuite/EMSuiteUI/commit/86e2ede9987cff7e06f17cdb708aaebb609fc165))
+* ShellExport draws a figure scene as PDF, SVG and PNG ([#210](https://github.com/EMSuite/EMSuiteUI/issues/210)) ([d49fbc4](https://github.com/EMSuite/EMSuiteUI/commit/d49fbc466a46679beb66da58da97757c890e9290))
+* ShellExport holds the methods record and writes its paragraph ([#213](https://github.com/EMSuite/EMSuiteUI/issues/213)) ([c81d990](https://github.com/EMSuite/EMSuiteUI/commit/c81d9900b083df7aa7a1eda5c5d824a9bfccbbdd))
+* the keyboard pans a zoomed picture and VoiceOver hears the status line's events ([#184](https://github.com/EMSuite/EMSuiteUI/issues/184)) ([a678811](https://github.com/EMSuite/EMSuiteUI/commit/a6788113e286dc833df6e3115012fcc80b09ab70))
+
+
+### Bug Fixes
+
+* a sidebar the window stepped aside comes back when the window widens again ([#204](https://github.com/EMSuite/EMSuiteUI/issues/204)) ([02c09c8](https://github.com/EMSuite/EMSuiteUI/commit/02c09c8f5c4c03b5d66b8d1667438bec6901c18d))
+* map tiles, the periodic table, regions and the spectrum carry a second signal beside colour ([bdffb8d](https://github.com/EMSuite/EMSuiteUI/commit/bdffb8d5cea1139410d26b086a12eebbd29d0c81))
+* status words and map tiles carry a second signal beside colour ([#207](https://github.com/EMSuite/EMSuiteUI/issues/207)) ([bdffb8d](https://github.com/EMSuite/EMSuiteUI/commit/bdffb8d5cea1139410d26b086a12eebbd29d0c81))
+
 ## [0.13.0](https://github.com/EMSuite/EMSuiteUI/compare/0.12.4...0.13.0) (2026-11-18)
 
 
