@@ -94,6 +94,9 @@ public final class EDXRoomState {
     /// What the maps export draws besides the pictures.
     public var exportScaleBar = true
     public var exportRegions = true
+    /// What the app does to an export's bytes before they are written or handed to the save panel (Electron Microscopy Studio puts its
+    /// methods record inside, Electron-Microscopy-Studio#817); nil writes the bytes as made. It gets the bytes, the kind and the session.
+    @ObservationIgnored public var finishExport: (@MainActor (Data, EDXExportKind, EDXSession) async -> Data)?
 
     public func requestImport() { importRequest &+= 1 }
 
@@ -127,7 +130,9 @@ public final class EDXRoomState {
             data = EDXMapsFigure.png(content)
         case .compositionByClass: data = nil   // made by the window, which holds the pools (`save`)
         }
-        save(data, kind: kind, stem: session.exportStem, directory: directory, report: report)
+        var finished = data
+        if let made = data, let finishExport { finished = await finishExport(made, kind, session) }
+        save(finished, kind: kind, stem: session.exportStem, directory: directory, report: report)
     }
 
     /// The maps as the room's tiles draw them (`EDXMapTileHost.spec`: the person's colours, contrast, gamma and display filter), made off the main
