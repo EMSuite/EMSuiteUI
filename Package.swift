@@ -40,6 +40,7 @@ let package = Package(
         .library(name: "ShellExport", targets: ["ShellExport"]),
         .library(name: "ShellHelp", targets: ["ShellHelp"]),
         .library(name: "ShellPhaseLibrary", targets: ["ShellPhaseLibrary"]),
+        .library(name: "ShellPhaseViews", targets: ["ShellPhaseViews"]),
     ],
     dependencies: [
         // ScaleBarMath (PaneFooter/ScaleBar). The apps pin exact tags.
@@ -99,6 +100,10 @@ let package = Package(
         // The phase library's model (docs: plan section 5.2): the record, the store, the key store and the Materials Project
         // client. No SwiftUI; the requests and the decoding are DiffractoKit's, this target sends and stores.
         .target(name: "ShellPhaseLibrary", dependencies: [.product(name: "DiffractoCore", package: "DiffractoKit")], swiftSettings: modelSettings),
+        // The phase library's views: the Add Phase sheet (EMSuiteUI#189).
+        .target(name: "ShellPhaseViews",
+                dependencies: ["ShellPhaseLibrary", .product(name: "DiffractoCore", package: "DiffractoKit")],
+                swiftSettings: shellSettings),
         .testTarget(name: "ShellMetalTests", dependencies: ["ShellMetal"], swiftSettings: shellSettings),
         .testTarget(name: "ShellControlsTests", dependencies: ["ShellControls"], swiftSettings: shellSettings),
         .testTarget(name: "ShellInspectorTests", dependencies: ["ShellInspector", "ShellLayout"], swiftSettings: shellSettings),
@@ -113,7 +118,12 @@ let package = Package(
                     dependencies: ["ShellExport", .product(name: "FormatoCore", package: "FormatoKit")],
                     exclude: ["Goldens"],
                     swiftSettings: modelSettings),
-        .testTarget(name: "ShellPhaseLibraryTests", dependencies: ["ShellPhaseLibrary", .product(name: "DiffractoCore", package: "DiffractoKit")], swiftSettings: modelSettings),
+        .testTarget(name: "ShellPhaseLibraryTests", dependencies: ["ShellPhaseLibrary", .product(name: "DiffractoCore", package: "DiffractoKit")],
+                    resources: [.copy("Fixtures")], swiftSettings: modelSettings),
+        .testTarget(name: "ShellPhaseViewsTests",
+                    dependencies: ["ShellPhaseViews", "ShellPhaseLibrary", "ShellSnapshotTesting",
+                                   .product(name: "DiffractoCore", package: "DiffractoKit")],
+                    resources: [.copy("Fixtures")], swiftSettings: shellSettings),
         .testTarget(name: "ShellAgentDoorTests", dependencies: ["ShellAgentDoor"], swiftSettings: shellSettings),
         .testTarget(name: "ShellHelpTests", dependencies: ["ShellHelp"], swiftSettings: shellSettings),
         .testTarget(name: "ShellEDXTests",
