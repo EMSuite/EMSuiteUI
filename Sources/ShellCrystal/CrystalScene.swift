@@ -123,7 +123,7 @@ public nonisolated struct CrystalScene: Equatable, Sendable {
 
     /// The box drawn as twelve edges: a slab's outline (from the origin to `outline`, drawn in place of the cell), else the unit cell;
     /// nil when there is neither. Columns are the box's three edge vectors in Å.
-    public var box: simd_double3x3? {
+    var box: simd_double3x3? {
         if let o = outline { return simd_double3x3(diagonal: o) }
         return cell
     }

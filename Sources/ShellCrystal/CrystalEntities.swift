@@ -19,7 +19,7 @@ struct CrystalEntities {
     let radius: Float
 
     /// Metres per Å in the scene.
-    static let unit: Float = 0.01
+    nonisolated static let unit: Float = 0.01
     /// Bond radius in Å.
     static let bondRadius: Float = 0.16
     /// Cell edge radius in Å; heavier under Increase Contrast.
