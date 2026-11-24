@@ -38,6 +38,11 @@ What is live. 0.13.0 (2026-11-18) is tagged; both apps take MacEMUI by version r
   missing help book; `FeedbackWindow` shows the person's report with a diagnostics summary (version, channel, macOS, Mac model,
   memory) and opens it as an email or a GitHub issue draft in their own apps; `DiagnosticReportCollector` keeps the system's
   crash and hang reports in the app's own folder, which the window shows. The app sends nothing.
+- The phase library (`ShellPhaseLibrary`, not yet in a release): a `Phase` (name, notes, source, the structure as DiffractoKit's
+  snapshot and the fingerprint it came with, so an edit shows), kept one folder per phase in Application Support with the
+  downloaded file beside it; `MaterialsProjectClient` searches and downloads politely (one search at a time, a pause while
+  typing, a day's cache in memory, short timeouts, offline fails at once) with or without the person's own key, which
+  `APIKeyStore` keeps in the login keychain.
 
 Since 0.3.2: 0.4.0 (2026-10-29) brought the shared EDS room; 0.5.0 (2026-11-01) `ImageViewport`, the keyboard and zoom routes,
 the narrowed EDS room API and the deletion of the superseded map tile API; 0.5.1 (2026-11-05) the EDS sheet and header fixes.

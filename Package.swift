@@ -39,6 +39,7 @@ let package = Package(
         .library(name: "ShellCrystal", targets: ["ShellCrystal"]),
         .library(name: "ShellExport", targets: ["ShellExport"]),
         .library(name: "ShellHelp", targets: ["ShellHelp"]),
+        .library(name: "ShellPhaseLibrary", targets: ["ShellPhaseLibrary"]),
     ],
     dependencies: [
         // ScaleBarMath (PaneFooter/ScaleBar). The apps pin exact tags.
@@ -47,6 +48,8 @@ let package = Package(
         // provenance. The two move together (one HDF5 lock); the apps pin exact tags.
         .package(url: "https://github.com/mac4DSTEM/SpectroKit", from: "0.12.0"),
         .package(url: "https://github.com/mac4DSTEM/FormatoKit", from: "0.11.0"),
+        // The phase library's structures (CrystalStructure.Snapshot). The apps pin exact tags.
+        .package(url: "https://github.com/mac4DSTEM/DiffractoKit", from: "0.20.0"),
     ],
     targets: [
         .target(name: "ShellMetal",
@@ -93,6 +96,9 @@ let package = Package(
         // The Help menu both apps share: the support and documentation links, a diagnostics summary and a feedback composer that
         // shows everything before the person's own mail app or browser sends it. The app itself sends nothing.
         .target(name: "ShellHelp", swiftSettings: shellSettings),
+        // The phase library's model (docs: plan section 5.2): the record, the store, the key store and the Materials Project
+        // client. No SwiftUI; the requests and the decoding are DiffractoKit's, this target sends and stores.
+        .target(name: "ShellPhaseLibrary", dependencies: [.product(name: "DiffractoCore", package: "DiffractoKit")], swiftSettings: modelSettings),
         .testTarget(name: "ShellMetalTests", dependencies: ["ShellMetal"], swiftSettings: shellSettings),
         .testTarget(name: "ShellControlsTests", dependencies: ["ShellControls"], swiftSettings: shellSettings),
         .testTarget(name: "ShellInspectorTests", dependencies: ["ShellInspector", "ShellLayout"], swiftSettings: shellSettings),
@@ -107,6 +113,7 @@ let package = Package(
                     dependencies: ["ShellExport", .product(name: "FormatoCore", package: "FormatoKit")],
                     exclude: ["Goldens"],
                     swiftSettings: modelSettings),
+        .testTarget(name: "ShellPhaseLibraryTests", dependencies: ["ShellPhaseLibrary", .product(name: "DiffractoCore", package: "DiffractoKit")], swiftSettings: modelSettings),
         .testTarget(name: "ShellAgentDoorTests", dependencies: ["ShellAgentDoor"], swiftSettings: shellSettings),
         .testTarget(name: "ShellHelpTests", dependencies: ["ShellHelp"], swiftSettings: shellSettings),
         .testTarget(name: "ShellEDXTests",
