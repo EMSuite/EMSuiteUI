@@ -37,6 +37,41 @@ final class FakeClock: @unchecked Sendable {
     func sleep(_ d: Duration) { lock.withLock { _slept.append(d); t += Double(d.components.seconds) + Double(d.components.attoseconds) / 1e18 } }
 }
 
+/// Holds the first typing pause until the test opens it; every later pause passes at once.
+final class PauseGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var calls = 0
+    private var paused = false
+    private var opened = false
+    private var pausedWaiter: CheckedContinuation<Void, Never>?
+    private var openWaiter: CheckedContinuation<Void, Never>?
+
+    func pause() async {
+        let first = lock.withLock { () -> Bool in calls += 1; return calls == 1 }
+        guard first else { return }
+        lock.withLock { () -> CheckedContinuation<Void, Never>? in
+            paused = true; defer { pausedWaiter = nil }; return pausedWaiter
+        }?.resume()
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            let go = lock.withLock { () -> Bool in if opened { return true }; openWaiter = c; return false }
+            if go { c.resume() }
+        }
+    }
+
+    func waitUntilTheFirstPauses() async {
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            let go = lock.withLock { () -> Bool in if paused { return true }; pausedWaiter = c; return false }
+            if go { c.resume() }
+        }
+    }
+
+    func open() {
+        lock.withLock { () -> CheckedContinuation<Void, Never>? in
+            opened = true; defer { openWaiter = nil }; return openWaiter
+        }?.resume()
+    }
+}
+
 final class MaterialsProjectClientTests: XCTestCase {
     private let r1 = URLRequest(url: URL(string: "https://optimade.materialsproject.org/v1/structures?filter=elements%20HAS%20%22Si%22")!)
     private let r2 = URLRequest(url: URL(string: "https://optimade.materialsproject.org/v1/structures?filter=elements%20HAS%20%22Al%22")!)
@@ -92,18 +127,19 @@ final class MaterialsProjectClientTests: XCTestCase {
     }
 
     /// One search in flight: a search typed while an earlier one is still pausing supersedes it, and only the newer is sent.
+    /// No timing: the first pause holds until the second search has been sent.
     func testANewerSearchSupersedesOneStillPausing() async throws {
         let transport = StubTransport()
+        let gate = PauseGate()
         let c = MaterialsProjectClient(transport: transport, sleep: { d in
-            // Real but short: the typing pause is 100 ms here, the other waits nothing.
-            if d == MaterialsProjectClient.typingPause { try await Task.sleep(for: .milliseconds(100)) }
+            if d == MaterialsProjectClient.typingPause { await gate.pause() }
         })
         let (one, two) = (r1, r2)   // the tasks capture the requests, not the test case
         let first = Task { try await c.search(one, key: nil) }
-        try await Task.sleep(for: .milliseconds(20))
-        let second = Task { try await c.search(two, key: nil) }
+        await gate.waitUntilTheFirstPauses()
+        _ = try await c.search(two, key: nil)
+        gate.open()
         do { _ = try await first.value; XCTFail("the first search was not superseded") } catch { XCTAssertTrue(error is CancellationError) }
-        _ = try await second.value
         XCTAssertEqual(transport.sent.map(\.url), [r2.url])
     }
 
