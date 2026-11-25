@@ -10,7 +10,9 @@ and the App Store build has the whole door. Tools look; a tool that acts runs on
   open windows, the routes, and the Settings section. It knows no app: an app registers its tools (`AgentTool`) and enrols each
   window with a one-line summary.
 - `ShellEDXAgent` (this package): the shared EDS room's tools (`get_eds`, `set_eds`, `run_eds`), written once; an app registers
-  `EDXAgentTools.tools { window in ... }` with how a window reaches its `EDXSession`.
+  `EDXAgentTools.tools { window in ... }` with how a window reaches its `EDXSession`. The map display tools (`get_eds_display`,
+  `set_eds_display`, `get_eds_figure`) are `EDXDisplayAgentTools.tools { window in (session, roomState) }`: they read and set the
+  room's own `MapAppearance`, so the person sees the agent's colours at once and changes them back in the same popover.
 - The app: its tools (what a window holds, its pictures from the app's own export code), the preference that keeps the switch,
   and `com.apple.security.network.server` in its entitlements.
 - The agent: any MCP client that speaks Streamable HTTP with a header (Claude Code, Cursor, VS Code). For Claude Code,

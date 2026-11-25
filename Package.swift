@@ -79,9 +79,11 @@ let package = Package(
         // The agent door both apps share (docs/agent-door.md): a local, read-only API an agent on this Mac reaches through the
         // MCP server over HTTP. Network.framework only; each app registers its own tools.
         .target(name: "ShellAgentDoor", swiftSettings: shellSettings),
-        // The EDS room's agent tools, written once for both apps (each says how a window reaches its EDS session).
+        // The EDS room's agent tools, written once for both apps (each says how a window reaches its EDS session and, for the map
+        // display tools, the room's view state).
         .target(name: "ShellEDXAgent",
-                dependencies: ["ShellAgentDoor", "ShellEDXModel", .product(name: "SpectroEDX", package: "SpectroKit")],
+                dependencies: ["ShellAgentDoor", "ShellEDXModel", "ShellSpectroscopy", "ShellMetal",
+                               .product(name: "SpectroCore", package: "SpectroKit"), .product(name: "SpectroEDX", package: "SpectroKit")],
                 swiftSettings: shellSettings),
         // Snapshot tests: a view drawn in light and dark and compared with the PNG committed beside its test. AppKit hosts the view
         // (NSHostingView) so AppKit-backed controls draw; no XCTest, so app targets may link it.
