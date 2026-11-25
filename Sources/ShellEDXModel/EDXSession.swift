@@ -537,6 +537,25 @@ public final class EDXSession {
         if pins.count != before { refreshPinData() }
     }
 
+    /// Whether a shape drawn on a map would select pixels of the scan, as `selectRectangle`, `selectEllipse` and `selectPolygon` judge it: the agent
+    /// door checks a whole call before it changes anything (EMSuiteUI#230).
+    package func holdsPixels(_ shape: EDXRegion) -> Bool {
+        guard let source else { return false }
+        switch shape {
+        case .rectangle(let r), .ellipse(let r): return clipped(r) != nil
+        case .polygon(let v): return v.count >= 3 && shape.pixelCount(nx: source.nx, ny: source.ny) > 0
+        default: return true
+        }
+    }
+
+    /// Whether `drawLine` would keep a line between these ends: at least a pixel long once clamped to the scan.
+    package func lineIsLongEnough(from a: PixelPoint, to b: PixelPoint) -> Bool {
+        guard let source else { return false }
+        func clamp(_ p: PixelPoint) -> PixelPoint { PixelPoint(x: min(max(p.x, 0), Double(source.nx)), y: min(max(p.y, 0), Double(source.ny))) }
+        let (p, q) = (clamp(a), clamp(b))
+        return ((q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y)).squareRoot() >= 1
+    }
+
     private func clipped(_ rect: PixelRect) -> PixelRect? {
         guard let source, rect.width > 0, rect.height > 0 else { return nil }
         let c = PixelRect(x0: max(rect.x0, 0), y0: max(rect.y0, 0), x1: min(rect.x1, source.nx), y1: min(rect.y1, source.ny))
