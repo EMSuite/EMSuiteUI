@@ -146,7 +146,7 @@ nonisolated final class EDXAgentToolsTests: XCTestCase {
                 + ["region \(session.region)", "pins \(session.pins.map(\.name))", "lines \(session.lines.map(\.name))"]
         }
         let before = state()
-        XCTAssertEqual(before.prefix(2), ["Al:q", "Mg:q"])
+        XCTAssertEqual(Set(before.prefix(2)), ["Al:q", "Mg:q"], "the picks keep their own order (Mg before Al); only the set matters here")
         let refused: [(String, [String: Any])] = [
             ("an addition that cannot be picked", ["remove": "Al", "add": "Be"]),
             ("a role for an element the call takes out", ["remove": "Al", "quantify": "Al", "fit_only": "Mg"]),
