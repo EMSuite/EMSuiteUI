@@ -45,13 +45,13 @@ let package = Package(
     ],
     dependencies: [
         // ScaleBarMath (PaneFooter/ScaleBar). The apps pin exact tags.
-        .package(url: "https://github.com/mac4DSTEM/ImagoKit", from: "0.7.0"),
+        .package(url: "https://github.com/EMSuite/ImagoKit", from: "0.7.0"),
         // The shared EDS room (ShellEDXModel, ShellSpectroscopy/EDX): SpectroKit holds its numerics, FormatoKit the MSA writer and the
         // provenance. The two move together (one HDF5 lock); the apps pin exact tags.
-        .package(url: "https://github.com/mac4DSTEM/SpectroKit", from: "0.12.0"),
-        .package(url: "https://github.com/mac4DSTEM/FormatoKit", from: "0.11.0"),
+        .package(url: "https://github.com/EMSuite/SpectroKit", from: "0.12.0"),
+        .package(url: "https://github.com/EMSuite/FormatoKit", from: "0.11.0"),
         // The phase library's structures (CrystalStructure.Snapshot). The apps pin exact tags.
-        .package(url: "https://github.com/mac4DSTEM/DiffractoKit", from: "0.21.0"),
+        .package(url: "https://github.com/EMSuite/DiffractoKit", from: "0.21.0"),
     ],
     targets: [
         .target(name: "ShellMetal",
