@@ -331,7 +331,7 @@ public final class EDXSession {
         method.beamEnergyKeV = nil
         method.elements = []
         let meta = source.metadata
-        onEvent?("Opened — \(meta.scanWidth) × \(meta.scanHeight) px, \(meta.channelCount) channels")
+        onEvent?(Self.openedLine(fileName: meta.fileName, width: meta.scanWidth, height: meta.scanHeight, channels: meta.channelCount))
         let first = refresh()
         let chain = Task { [weak self] in
             await first?.value
@@ -340,6 +340,15 @@ public final class EDXSession {
         }
         bindTask = chain
         return chain
+    }
+
+    /// The status line of an open, naming the file as the other rooms' lines do ("Opened <name> — …", Electron-Microscopy-Studio#1026):
+    /// "Opened map.emd — 215 × 926 px, 4096 channels", and for a one-pixel file "Opened EDS_SEM_TM002.hspy — 1024 channels" (its grid
+    /// says nothing).
+    package nonisolated static func openedLine(fileName: String, width: Int, height: Int, channels: Int) -> String {
+        let opened = fileName.isEmpty ? "Opened" : "Opened \(fileName)"
+        let grid = width * height == 1 ? "" : "\(width) × \(height) px, "
+        return "\(opened) — \(grid)\(channels) channels"
     }
 
     public func close() {
