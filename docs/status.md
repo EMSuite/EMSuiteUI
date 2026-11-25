@@ -50,7 +50,8 @@ What is live. 0.16.0 is the latest tag; both apps take EMSuiteUI by version rang
   typing, a day's cache in memory, short timeouts, offline fails at once) with or without the person's own key, which
   `APIKeyStore` keeps in the login keychain.
   The Add Phase sheet (`ShellPhaseViews`, first slice): search as you type (element symbols or a formula, always on
-  the open service), the matches most stable first, a preview of the chosen entry with its id and CC BY 4.0, Add, and
+  the open service), the matches most stable first, a preview of the chosen entry with a still picture of its unit cell
+  (the crystal view's still mode, with the kit's bonds and a spoken description), its id and CC BY 4.0, Add, and
   Open CIF… (the sheet closes before the app's file dialog); each empty, offline or failed state says what to do next.
   The Materials Project settings pane (`MaterialsProjectSettingsPane`): an optional key pasted, tested with one request
   and removed, one sentence on what is sent, and the citation the Materials Project asks for.
