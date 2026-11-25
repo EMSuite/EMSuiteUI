@@ -84,6 +84,13 @@ nonisolated final class ShellChromeTests: XCTestCase {
         XCTAssertEqual(line, "Demo.h5 · Prepare · \(SystemMonitor.count(4050)) positions")
         XCTAssertTrue(line.hasPrefix("Demo.h5"), "the file leads")
         XCTAssertTrue(line.hasSuffix("positions"))
+
+        // #1090: a narrow toolbar drops the detail's last facts whole, never cutting a word.
+        XCTAssertEqual(ToolbarDisplayFormat.idleLevels(file: "Demo EDX", room: "EDS", detail: "16 × 16 px · 863 123 counts · Identified"),
+                       ["Demo EDX · EDS · 16 × 16 px · 863 123 counts · Identified", "Demo EDX · EDS · 16 × 16 px · 863 123 counts",
+                        "Demo EDX · EDS · 16 × 16 px", "Demo EDX · EDS"])
+        XCTAssertEqual(ToolbarDisplayFormat.idleLevels(file: "a.dm4", room: "Image", detail: "256 × 256 px").first,
+                       ToolbarDisplayFormat.idle(file: "a.dm4", room: "Image", detail: "256 × 256 px"))
     }
 
     func testTheBusyDisplayIsTheOperationThenElapsedThenAnEtaOnlyOnceKnown() {
