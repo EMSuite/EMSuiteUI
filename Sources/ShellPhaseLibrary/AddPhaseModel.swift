@@ -250,9 +250,46 @@ public final class AddPhaseModel {
         return try MaterialsProjectOptimade.structure(from: MaterialsProjectOptimade.decodeEntry(data))
     }
 
+    /// The phase's name before it is added: the formula the search row gave, else the reduced formula of the structure read
+    /// ("Si", never the bare id "mp-149", which is what an add by id with no search used to get), else the id.
     private func name(for id: String, _ structure: CrystalStructure) -> String {
         if case .results(let rows, _) = status, let formula = rows.first(where: { $0.materialID == id })?.formula { return formula }
-        return structure.name ?? id
+        return Self.reducedFormula(of: structure) ?? structure.name ?? id
+    }
+
+    /// The reduced formula of the structure's content, elements in alphabetical order and a count of 1 left out ("Al2Cu", the
+    /// OPTIMADE `chemical_formula_reduced` the search rows carry); nil when the counts are not whole numbers (partial occupancy).
+    nonisolated static func reducedFormula(of structure: CrystalStructure) -> String? {
+        var counts: [String: Double] = [:]
+        for site in structure.sites {
+            guard let symbol = Element.symbol(forAtomicNumber: site.z) else { return nil }
+            counts[symbol, default: 0] += site.occupancy
+        }
+        guard !counts.isEmpty else { return nil }
+        var whole: [String: Int] = [:]
+        for (symbol, n) in counts {
+            guard n.isFinite, n > 0, n < 1e9, abs(n - n.rounded()) < 1e-6 else { return nil }
+            whole[symbol] = Int(n.rounded())
+        }
+        func gcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : gcd(b, a % b) }
+        let divisor = whole.values.reduce(0, gcd)
+        guard divisor > 0 else { return nil }
+        return whole.keys.sorted().map { symbol in
+            let n = whole[symbol]! / divisor
+            return n == 1 ? symbol : "\(symbol)\(n)"
+        }.joined()
+    }
+
+    /// The name the library stores: the formula, and the space-group symbol after it only where another phase of the library
+    /// already has that formula ("Si", then "Si (P6_3/mmc)"); the id when the symbol is not known either. The names already in the
+    /// library are never changed. A name that is the id (no formula could be made) is kept as it is.
+    nonisolated static func libraryName(formula: String, symbol: String?, id: String, existing: [String]) -> String {
+        guard formula != id else { return formula }
+        func shares(_ name: String) -> Bool { name == formula || name.hasPrefix(formula + " (") }
+        guard existing.contains(where: shares) else { return formula }
+        let withSymbol = symbol.map { "\(formula) (\($0))" }
+        if let withSymbol, !existing.contains(withSymbol) { return withSymbol }
+        return "\(formula) (\(id))"
     }
 
     /// The previewed entry is already in the library (Add reads "In Library").
@@ -270,7 +307,10 @@ public final class AddPhaseModel {
     @discardableResult
     public func add() throws -> Phase? {
         guard case .ready(let p) = preview, !isInLibrary else { return nil }
-        let phase = Phase(id: p.materialID, name: p.name, source: .materialsProject(id: p.materialID, fetched: now()),
+        let symbol = SpaceGroupType.of(p.structure.operations)?.internationalSymbol
+            ?? p.structure.spaceGroupNumber.map { "No. \($0)" }
+        let name = Self.libraryName(formula: p.name, symbol: symbol, id: p.materialID, existing: library.phases.map(\.name))
+        let phase = Phase(id: p.materialID, name: name, source: .materialsProject(id: p.materialID, fetched: now()),
                           added: now(), structure: p.structure)
         try library.add(phase, source: p.source, sourceExtension: "json")
         return phase
