@@ -87,6 +87,12 @@ public nonisolated enum LayoutPolicy {
     public static let imagePaneMinimum: CGFloat = 180
     /// Both science panes' header row, so their images start at one height.
     public static let paneHeaderHeight: CGFloat = 26
+    /// A centre panel's inset on every side and the gap between its header and its content (`CentrePanel`: mac4DSTEM's
+    /// image panes' 8 and 6).
+    public static let centrePanelPadding: CGFloat = 8
+    public static let centrePanelHeaderSpacing: CGFloat = 6
+    /// The least gap a centre panel's header keeps between its title and its controls; the pointer readout lives in it.
+    public static let centrePanelReadoutGap: CGFloat = 8
     public static let sciencePaneDividerWidth: CGFloat = 1
     public static let splitColumnDividerAllowance: CGFloat = 2
 
