@@ -20,7 +20,7 @@ public final class AddPhaseModel {
         /// Nothing typed yet.
         case empty
         case searching
-        /// Matches, the most stable first; `more`: the service holds more than it returned.
+        /// Matches in `ranked` order (the exact match, fewer elements, the most stable); `more`: the service holds more than it returned.
         case results([MaterialsProjectOptimade.Row], more: Bool)
         /// The service holds structures and none matches.
         case noResults
@@ -126,13 +126,28 @@ public final class AddPhaseModel {
         }
         status = .searching
         do {
-            let data = try await client.search(request, key: nil)
-            switch try MaterialsProjectOptimade.decodeSearch(data) {
-            case .rows(let rows, let more): status = .results(rows, more: more)
-            case .noResults: status = .noResults
-            case .serviceEmpty: status = .serviceEmpty
+            // Elements without Only These Elements: the exact system is asked for first, as its own search, so elemental Si is
+            // listed for "Si" although the service's page of every entry holding Si may not reach it (#1029).
+            var exact: MaterialsProjectOptimade.SearchAnswer?
+            if case .elements(let symbols, only: false) = query {
+                let exactRequest = try MaterialsProjectOptimade.searchRequest(.elements(symbols, only: true))
+                exact = try MaterialsProjectOptimade.decodeSearch(try await client.search(exactRequest, key: nil))
+                if exact == .serviceEmpty { status = .serviceEmpty; answered = key; return }
+            }
+            let answer = try MaterialsProjectOptimade.decodeSearch(try await client.search(request, key: nil))
+            switch (answer, exact) {
+            case (.rows(let rows, let more), .rows(let exactRows, let exactMore)?):
+                status = .results(Self.ranked(exactRows + rows, for: query), more: more || exactMore)
+            case (.rows(let rows, let more), _):
+                status = .results(Self.ranked(rows, for: query), more: more)
+            case (_, .rows(let exactRows, let exactMore)?):
+                status = .results(Self.ranked(exactRows, for: query), more: exactMore)
+            case (.serviceEmpty, _): status = .serviceEmpty
+            case (.noResults, _): status = .noResults
             }
             answered = key
+        } catch let error as MaterialsProjectOptimade.RequestError {
+            status = .problem(title: error.description, next: Self.typingHelp); answered = key
         } catch is CancellationError {
             return
         } catch {
@@ -140,6 +155,44 @@ public final class AddPhaseModel {
             status = Self.status(for: error)
             answered = key
         }
+    }
+
+    /// The rows in the order the sheet lists them (#1029): an exact match first (an entry of exactly the typed elements, such as
+    /// elemental Si for "Si", or of the typed formula), then fewer elements before more, then the most stable (the lowest energy
+    /// above the hull the entry gives; none given last), then the id. A row listed twice (the exact search and the broad one) is
+    /// kept once.
+    public nonisolated static func ranked(_ rows: [MaterialsProjectOptimade.Row],
+                                          for query: MaterialsProjectOptimade.Query) -> [MaterialsProjectOptimade.Row] {
+        var seen = Set<String>()
+        let unique = rows.filter { seen.insert($0.materialID).inserted }
+        let wanted: Set<String>
+        switch query {
+        case .elements(let symbols, _): wanted = Set(symbols)
+        case .formula(let formula): wanted = Set(elements(ofFormula: formula))
+        }
+        func key(_ row: MaterialsProjectOptimade.Row) -> (exact: Int, count: Int, hull: Double) {
+            let held = row.formula.map { Set(elements(ofFormula: $0)) }
+            return (held == wanted ? 0 : 1, held?.count ?? Int.max, row.lowestEnergyAboveHull ?? .infinity)
+        }
+        return unique.sorted { a, b in
+            let ka = key(a), kb = key(b)
+            if ka.exact != kb.exact { return ka.exact < kb.exact }
+            if ka.count != kb.count { return ka.count < kb.count }
+            if ka.hull != kb.hull { return ka.hull < kb.hull }
+            return a.materialID < b.materialID
+        }
+    }
+
+    /// The element symbols of a formula, in its order: "Co2ErSi2" gives Co, Er, Si.
+    nonisolated static func elements(ofFormula formula: String) -> [String] {
+        var symbols: [String] = []
+        var current = ""
+        for ch in formula where ch.isLetter {
+            if ch.isUppercase, !current.isEmpty { symbols.append(current); current = "" }
+            current.append(ch)
+        }
+        if !current.isEmpty { symbols.append(current) }
+        return symbols
     }
 
     /// Searches again (offline, timed out, busy).

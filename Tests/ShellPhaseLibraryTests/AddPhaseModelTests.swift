@@ -88,6 +88,62 @@ final class AddPhaseModelTests: XCTestCase {
         XCTAssertNil(sent.value(forHTTPHeaderField: MaterialsProjectClient.keyHeader))
     }
 
+    /// Electron-Microscopy-Studio#1029: "Si" listed ternaries first and elemental Si not at all (the service's page of every entry
+    /// holding Si did not reach it). The exact system is searched first and the rows are ranked: the exact match, then fewer
+    /// elements, then the most stable. Red before: one search, and the rows in the kit's stability order only.
+    @MainActor func testASingleElementListsItsElementFirstThenFewerElementsThenTheMostStable() async throws {
+        let broad = Data("""
+        {"data":[
+          {"id":"mp-1","type":"structures","attributes":{"nsites":4,"chemical_formula_reduced":"SiU3","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}},
+          {"id":"mp-2","type":"structures","attributes":{"nsites":5,"chemical_formula_reduced":"Co2ErSi2","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}},
+          {"id":"mp-3","type":"structures","attributes":{"nsites":3,"chemical_formula_reduced":"NiSi2","_mp_stability":{"r2scan":{"energy_above_hull":0.2}}}}
+        ],"meta":{"data_available":154387,"more_data_available":true}}
+        """.utf8)
+        let exact = Data("""
+        {"data":[
+          {"id":"mp-165","type":"structures","attributes":{"nsites":2,"chemical_formula_reduced":"Si","_mp_stability":{"r2scan":{"energy_above_hull":0.3}}}},
+          {"id":"mp-149","type":"structures","attributes":{"nsites":2,"chemical_formula_reduced":"Si","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}}
+        ],"meta":{"data_available":154387,"more_data_available":false}}
+        """.utf8)
+        // The exact search's filter holds the element count (OPTIMADE's nelements); the broad one does not.
+        let stub = StubTransport { request in
+            (request.url!.absoluteString.contains("nelements") ? exact : broad, 200, [:])
+        }
+        let (model, _) = make(stub)
+        model.text = "Si"
+        await model.search()
+        guard case .results(let rows, let more) = model.status else { return XCTFail("\(model.status)") }
+        XCTAssertEqual(rows.map(\.materialID), ["mp-149", "mp-165", "mp-1", "mp-3", "mp-2"])
+        XCTAssertTrue(more)
+        XCTAssertEqual(stub.sent.count, 2)
+
+        // Only These Elements is one search, as before.
+        let only = StubTransport { _ in (exact, 200, [:]) }
+        let (narrow, _) = make(only)
+        narrow.text = "Si"
+        narrow.onlyTheseElements = true
+        await narrow.search()
+        XCTAssertEqual(only.sent.count, 1)
+    }
+
+    func testTheRankingIsExactThenFewerElementsThenStability() throws {
+        let data = Data("""
+        {"data":[
+          {"id":"mp-11","type":"structures","attributes":{"nsites":6,"chemical_formula_reduced":"Al2Cu3Mg","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}},
+          {"id":"mp-12","type":"structures","attributes":{"nsites":2}},
+          {"id":"mp-13","type":"structures","attributes":{"nsites":3,"chemical_formula_reduced":"CuAl2","_mp_stability":{"r2scan":{"energy_above_hull":0.1}}}},
+          {"id":"mp-14","type":"structures","attributes":{"nsites":1,"chemical_formula_reduced":"Al","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}},
+          {"id":"mp-15","type":"structures","attributes":{"nsites":3,"chemical_formula_reduced":"Al2Cu","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}}
+        ],"meta":{"data_available":154387,"more_data_available":false}}
+        """.utf8)
+        guard case .rows(let rows, _) = try MaterialsProjectOptimade.decodeSearch(data) else { return XCTFail("no rows") }
+        XCTAssertEqual(rows.count, 5)
+        XCTAssertEqual(AddPhaseModel.ranked(rows, for: .elements(["Al", "Cu"], only: false)).map(\.materialID), ["mp-15", "mp-13", "mp-14", "mp-11", "mp-12"])
+        XCTAssertEqual(AddPhaseModel.ranked(rows + [rows[0]], for: .formula("Al2Cu")).map(\.materialID), ["mp-15", "mp-13", "mp-14", "mp-11", "mp-12"],
+                       "a row listed twice is kept once")
+        XCTAssertEqual(AddPhaseModel.elements(ofFormula: "Co2ErSi2"), ["Co", "Er", "Si"])
+    }
+
     @MainActor func testTheSameTextIsAnsweredOnceAndRetrySearchesAgain() async {
         let stub = StubTransport { _ in throw URLError(.notConnectedToInternet) }
         let (model, _) = make(stub)
