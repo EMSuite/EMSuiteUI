@@ -2,7 +2,8 @@
 
 What is live. 0.16.0 is the latest tag; both apps take EMSuiteUI by version range and build on it.
 
-- The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, `LayoutPolicy`,
+- The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, the centre's one or two
+  panels (`WorkspaceCentre`: a remembered divider that a double click resets; `CentrePanel`: title, controls, readout), `LayoutPolicy`,
   `MenuActionRelay`, `ActivityLog` (each recorded event is also said to VoiceOver), `UITestingPlacement`; `InspectorSection` can start closed and draws a status glyph.
 - The controls (`ShellControls`, `ShellInspector`): zoom and pan (the wheel zooms or pans by Settings, `ScrollWheelMode`; View > Pan Left, Right, Up, Down with ⌃⌘ and an arrow), `NumericField` (typing the shown text over a finer stored
   value sets it), `PaneFooter`, `ScaleBar`, colorbar, `HistogramChart`, `SegmentedControl` and `SegmentedPicker` (a segment can be
