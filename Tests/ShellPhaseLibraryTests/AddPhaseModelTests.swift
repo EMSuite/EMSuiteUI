@@ -221,6 +221,20 @@ final class AddPhaseModelTests: XCTestCase {
         XCTAssertEqual(AddPhaseModel.reducedFormula(of: CrystalPresets.silicon), "Si")
     }
 
+    /// The elements come in pymatgen's `reduced_formula` order, by increasing electronegativity, counts reduced. Mutation: alphabetical
+    /// order ("O2Si") - red.
+    func testTheFormulaIsOrderedByElectronegativityAsPymatgenWritesIt() {
+        func structure(_ counts: [(Int, Int)]) -> CrystalStructure {
+            let sites = counts.flatMap { z, n in (0 ..< n).map { i in AtomSite(z: z, fractional: SIMD3(Double(i) / 10, 0, 0)) } }
+            return CrystalStructure(cell: UnitCell(a: 5, b: 5, c: 5, alphaDeg: 90, betaDeg: 90, gammaDeg: 90), sites: sites, operations: [.identity])
+        }
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(14, 4), (8, 8)])), "SiO2")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(26, 4), (8, 6)])), "Fe2O3")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(30, 2), (8, 2)])), "ZnO")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(13, 2), (8, 3)])), "Al2O3")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(31, 2), (7, 2)])), "GaN")
+    }
+
     @MainActor func testWithAKeyTheEntryComesFromTheKeyedServiceAndAFailureIsSaid() async throws {
         let stub = StubTransport { _ in (Data(#"{"data":[],"errors":[]}"#.utf8), 200, [:]) }
         let (model, _) = make(stub, key: "my-key")

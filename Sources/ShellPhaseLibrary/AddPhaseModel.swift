@@ -257,8 +257,8 @@ public final class AddPhaseModel {
         return Self.reducedFormula(of: structure) ?? structure.name ?? id
     }
 
-    /// The reduced formula of the structure's content, elements in alphabetical order and a count of 1 left out ("Al2Cu", the
-    /// OPTIMADE `chemical_formula_reduced` the search rows carry); nil when the counts are not whole numbers (partial occupancy).
+    /// The reduced formula of the structure's content, elements by increasing electronegativity as pymatgen's `reduced_formula` writes it (SiO2,
+    /// Fe2O3, GaN; `PaulingElectronegativity`) and a count of 1 left out. The search rows keep the OPTIMADE form the service sends; nil when the counts are not whole numbers (partial occupancy).
     nonisolated static func reducedFormula(of structure: CrystalStructure) -> String? {
         var counts: [String: Double] = [:]
         for site in structure.sites {
@@ -274,7 +274,7 @@ public final class AddPhaseModel {
         func gcd(_ a: Int, _ b: Int) -> Int { b == 0 ? a : gcd(b, a % b) }
         let divisor = whole.values.reduce(0, gcd)
         guard divisor > 0 else { return nil }
-        return whole.keys.sorted().map { symbol in
+        return PaulingElectronegativity.ordered(Array(whole.keys)).map { symbol in
             let n = whole[symbol]! / divisor
             return n == 1 ? symbol : "\(symbol)\(n)"
         }.joined()
