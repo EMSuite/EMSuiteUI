@@ -250,11 +250,13 @@ public final class AddPhaseModel {
         return try MaterialsProjectOptimade.structure(from: MaterialsProjectOptimade.decodeEntry(data))
     }
 
-    /// The phase's name before it is added: the formula the search row gave, else the reduced formula of the structure read
-    /// ("Si", never the bare id "mp-149", which is what an add by id with no search used to get), else the id.
+    /// The phase's name before it is added: the reduced formula of the structure read ("Si", never the bare id "mp-149"), the same
+    /// whether the entry was found by a search or added by its id; the search row's formula and then the id only when the
+    /// structure gives none (partial occupancy). The rows of the results keep the formula the service sends.
     private func name(for id: String, _ structure: CrystalStructure) -> String {
+        if let formula = Self.reducedFormula(of: structure) { return formula }
         if case .results(let rows, _) = status, let formula = rows.first(where: { $0.materialID == id })?.formula { return formula }
-        return Self.reducedFormula(of: structure) ?? structure.name ?? id
+        return structure.name ?? id
     }
 
     /// The reduced formula of the structure's content, elements by increasing electronegativity as pymatgen's `reduced_formula` writes it (SiO2,

@@ -194,6 +194,21 @@ final class AddPhaseModelTests: XCTestCase {
         XCTAssertEqual(library.phases.map(\.name), ["Al"])
     }
 
+    /// One name for both paths: after a search whose row spells the formula another way, the name is still the structure's.
+    /// Mutation: the row's formula preferred - red.
+    @MainActor func testTheNameComesFromTheStructureEvenAfterASearch() async throws {
+        let entry = try Self.entry()
+        let rows = Data(#"{"data":[{"id":"mp-134","type":"structures","attributes":{"nsites":1,"chemical_formula_reduced":"O2Si"}}],"meta":{"data_available":1,"more_data_available":false}}"#.utf8)
+        let stub = StubTransport { request in request.url!.path.hasSuffix("/structures/mp-134") ? (entry, 200, [:]) : (rows, 200, [:]) }
+        let (model, _) = make(stub)
+        model.text = "Al"
+        await model.search()
+        model.selection = "mp-134"
+        await model.loadPreview()
+        guard case .ready(let preview) = model.preview else { return XCTFail("\(model.preview)") }
+        XCTAssertEqual(preview.name, "Al")
+    }
+
     /// Where another phase of the library has the formula, the new one carries its space-group symbol; the one already there keeps
     /// its name. Mutation: the symbol added to every phase, or never - red.
     @MainActor func testASecondPhaseOfTheSameFormulaCarriesItsSpaceGroup() async throws {
