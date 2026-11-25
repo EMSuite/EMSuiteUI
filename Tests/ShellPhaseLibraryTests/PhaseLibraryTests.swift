@@ -71,4 +71,24 @@ final class PhaseLibraryTests: XCTestCase {
         try again.remove(id: "mp-149")
         XCTAssertNil(again.phase(materialsProjectID: "mp-149"))
     }
+
+    @MainActor func testAPhaseNamedByItsBareIDIsNamedByItsFormulaOnLoad() async throws {
+        let store = PhaseLibraryStore(folder: folder)
+        let library = PhaseLibrary(store: store)
+        var bare = silicon
+        bare.name = "mp-149"
+        try library.add(bare, source: Data("{}".utf8), sourceExtension: "json")
+        let gold = Phase(id: "mp-81", name: "My gold", source: .materialsProject(id: "mp-81", fetched: fetched),
+                         added: fetched.addingTimeInterval(60), structure: CrystalPresets.gold)
+        try library.add(gold, source: Data("{}".utf8), sourceExtension: "json")
+
+        let again = PhaseLibrary(store: store)
+        await again.load()
+        XCTAssertEqual(again.phase(materialsProjectID: "mp-149")?.name, "Si", "the bare id takes the formula")
+        XCTAssertEqual(again.phase(materialsProjectID: "mp-81")?.name, "My gold", "a typed name stays")
+
+        let third = PhaseLibrary(store: store)
+        await third.load()
+        XCTAssertEqual(third.phase(materialsProjectID: "mp-149")?.name, "Si", "the new name was written back")
+    }
 }
