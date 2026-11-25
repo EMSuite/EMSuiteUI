@@ -43,13 +43,16 @@ public nonisolated enum EDXRoomFormat {
         let list = names.count == 1 ? last : names.dropLast().joined(separator: ", ") + " or " + last
         return "Open a spectrum image (\(list))."
     }
+    package static let atPercentRefusedStatus = "Fitted · at% not computed"
     package static let emptyTitle = "No spectrum image open"
     package static let noElementsDetail = "Pick elements in the periodic table, or let Auto ID propose them."
 
-    /// The header's status text, secondary and never a control (design §2.3): "Quantified · live ✓" once the fit follows every change,
-    /// "Identified" once an element is picked to quantify, nothing before.
-    public static func statusText(quantified: Bool, hasPicks: Bool) -> String? {
-        if quantified { return "Quantified · live ✓" }
+    /// The header's status text, secondary and never a control (design §2.3): "Quantified · live ✓" once the fit follows every change
+    /// and gave a composition, "Fitted · at% not computed" when the fit ran but the composition was refused (no success check for
+    /// a column of dashes; the results header and the notes say why, Electron-Microscopy-Studio#1027), "Identified" once an element
+    /// is picked to quantify, nothing before.
+    public static func statusText(quantified: Bool, hasPicks: Bool, atPercentRefused: Bool = false) -> String? {
+        if quantified { return atPercentRefused ? atPercentRefusedStatus : "Quantified · live ✓" }
         return hasPicks ? "Identified" : nil
     }
 
@@ -106,7 +109,10 @@ public nonisolated enum EDXRoomFormat {
             let name = session.selectedPin?.name ?? "Whole map"
             parts.append("\(name) · \(session.regionPixels) px")
         }
-        if let status = statusText(quantified: session.quantifyActive, hasPicks: session.canQuantify) { parts.append(status) }
+        let refused = session.fit.map { !$0.hasAbundance } ?? false
+        if let status = statusText(quantified: session.quantifyActive, hasPicks: session.canQuantify, atPercentRefused: refused) {
+            parts.append(status)
+        }
         return parts.joined(separator: " · ")
     }
 

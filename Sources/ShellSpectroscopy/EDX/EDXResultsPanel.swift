@@ -45,6 +45,15 @@ struct EDXResultsPanel: View {
                         .help(fit.method.kSource.isEmpty ? "The method at% and wt% come from" : "k-factors: \(EDXQuantMaps.sourceWithoutValidationClause(fit.method.kSource))")
                         .accessibilityIdentifier("edx.method")
                 }
+                // No composition: the header says so and why, where the at% column's dashes are (Electron-Microscopy-Studio#1027);
+                // the reason was only in the notes' popover.
+                if let fit, !fit.hasAbundance {
+                    Text("at% not computed")
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        .help(fit.abundanceRefusal.map { "at% not computed: \($0)" } ?? "at% not computed")
+                        .accessibilityLabel(fit.abundanceRefusal.map { "at% not computed: \($0)" } ?? "at% not computed")
+                        .accessibilityIdentifier("edx.atPercentRefused")
+                }
                 if isFitting { ProgressView().controlSize(.small).accessibilityLabel("Fitting the spectrum") }
             }
             .padding(.horizontal, LayoutPolicy.infobarHorizontalPadding)
