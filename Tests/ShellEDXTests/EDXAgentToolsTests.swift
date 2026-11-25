@@ -126,4 +126,49 @@ nonisolated final class EDXAgentToolsTests: XCTestCase {
         XCTAssertEqual(session.selectedPin?.name, "Grain A")
         withExtendedLifetime(window) {}
     }
+
+    /// A refused set_eds changes nothing: every check (symbols, availability, roles against the picks as they will be, the region, the line)
+    /// runs before the first change (EMSuiteUI#230 part 2).
+    /// Mutation: set_eds removes before it checks the additions or the roles, picks before it checks the region, or draws the region before it
+    /// checks the line - red.
+    @MainActor func testARefusedCallLeavesTheRoomAsItWas() async throws {
+        let session = EDXSession(host: .test)
+        await session.bind(EDXSessionTests.source()).value
+        await session.settled()
+        let window = Window(session)
+        let door = door(window)
+        let start = try call(door, "set_eds", ["remove": session.picks.map(\.symbol).joined(separator: ","), "add": "Al, Mg"])
+        XCTAssertFalse(start.refused, start.text)
+        await session.settled()
+
+        func state() -> [String] {
+            session.picks.map { "\($0.symbol):\($0.role == .quantify ? "q" : "f")" }
+                + ["region \(session.region)", "pins \(session.pins.map(\.name))", "lines \(session.lines.map(\.name))"]
+        }
+        let before = state()
+        XCTAssertEqual(before.prefix(2), ["Al:q", "Mg:q"])
+        let refused: [(String, [String: Any])] = [
+            ("an addition that cannot be picked", ["remove": "Al", "add": "Be"]),
+            ("a role for an element the call takes out", ["remove": "Al", "quantify": "Al", "fit_only": "Mg"]),
+            ("a kept region that does not exist", ["fit_only": "Mg", "region": "pin", "pin": "nothing"]),
+            ("a rectangle outside the scan", ["add": "Si", "region": "rectangle", "x0": 5, "y0": 5, "x1": 6, "y1": 6]),
+            ("a polygon outside the scan", ["remove": "Mg", "region": "polygon", "vertices": "5,5; 6,5; 6,6"]),
+            ("a line shorter than a pixel", ["region": "rectangle", "x0": 0, "y0": 0, "x1": 1, "y1": 1, "keep": true, "name": "Grain A",
+                                            "line": "0,0, 0.2,0"]),
+            ("a line on bad numbers", ["add": "Si", "line": "0,0, x,1"]),
+        ]
+        for (why, arguments) in refused {
+            let answer = try call(door, "set_eds", arguments)
+            XCTAssertTrue(answer.refused, "\(why): \(answer.text)")
+            await session.settled()
+            XCTAssertEqual(state(), before, why)
+        }
+
+        // Roles are checked against the picks as the call leaves them: an element added in the same call takes its role.
+        let both = try call(door, "set_eds", ["remove": "Mg", "add": "Si", "fit_only": "Si"])
+        XCTAssertFalse(both.refused, both.text)
+        await session.settled()
+        XCTAssertEqual(state().prefix(2), ["Al:q", "Si:f"])
+        withExtendedLifetime(window) {}
+    }
 }
