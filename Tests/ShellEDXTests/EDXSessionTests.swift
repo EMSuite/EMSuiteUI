@@ -332,6 +332,16 @@ nonisolated final class EDXSessionTests: XCTestCase {
         XCTAssertFalse(session.isOpening)
     }
 
+    /// The open's status line names the file, as the other rooms' lines do, and a one-pixel file leaves out its 1 × 1 grid
+    /// (Electron-Microscopy-Studio#1026). Red before: "Opened — 1 × 1 px, 1024 channels".
+    func testTheOpenedLineNamesTheFile() {
+        XCTAssertEqual(EDXSession.openedLine(fileName: "EDS_SEM_TM002.hspy", width: 1, height: 1, channels: 1024),
+                       "Opened EDS_SEM_TM002.hspy — 1024 channels")
+        XCTAssertEqual(EDXSession.openedLine(fileName: "map.emd", width: 215, height: 926, channels: 4096),
+                       "Opened map.emd — 215 × 926 px, 4096 channels")
+        XCTAssertEqual(EDXSession.openedLine(fileName: "", width: 4, height: 3, channels: 8), "Opened — 4 × 3 px, 8 channels")
+    }
+
     /// A real Velox spectrum stream (SpectroKit's planted file: 4 x 3 pixels, 4096 channels of 20 eV from -1932.21348 eV) opens
     /// through the room: the grid, the axis and the sum are the file's. Red under: the reader not reached; the grid transposed.
     @MainActor func testAVeloxSpectrumStreamOpens() async throws {
@@ -351,7 +361,7 @@ nonisolated final class EDXSessionTests: XCTestCase {
         XCTAssertEqual(session.totalCounts, source.sum(mask: nil).reduce(0, +))
         XCTAssertGreaterThan(session.totalCounts, 0)
         XCTAssertEqual(events.first, "Opening velox-stream-spectrum.emd…")
-        XCTAssertTrue(events.contains { $0.hasPrefix("Opened — 4 × 3 px") }, "\(events)")
+        XCTAssertTrue(events.contains { $0.hasPrefix("Opened velox-stream-spectrum.emd — 4 × 3 px") }, "\(events)")
         XCTAssertNotEqual(SpectrumImageOpener.kind(ofFileAt: url.path), .other)
         session.close()
         XCTAssertFalse(session.hasImage)
