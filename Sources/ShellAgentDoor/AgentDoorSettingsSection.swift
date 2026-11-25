@@ -33,10 +33,12 @@ public struct AgentDoorSettingsSection: View {
     public var body: some View {
         Section("Agent access") {
             Toggle("Let agents on this Mac look at open windows", isOn: $isOn)
+                .accessibilityLabel("Let agents on this Mac look at open windows")   // a grouped Form's switch was announced bare (Electron-Microscopy-Studio#1023)
                 .accessibilityIdentifier("settings.agents.enabled")
             if let runs {
                 Toggle("Let agents run analyses", isOn: runs)
                     .disabled(!isOn)
+                    .accessibilityLabel("Let agents run analyses")   // a grouped Form's switch was announced bare (Electron-Microscopy-Studio#1023)
                     .accessibilityIdentifier("settings.agents.runs")
             }
             LabeledContent("Status", value: Self.statusText(door.status, requests: door.requestCount))

@@ -73,3 +73,27 @@ nonisolated final class HistogramDefaultTextTests: XCTestCase {
         XCTAssertEqual(HistogramChart.defaultValueText(.nan, locale: en), "\u{2014}")
     }
 }
+
+/// VoiceOver names each contrast-limit readout and reads its value after the name; the switches of the agent door's Settings section
+/// carry their row's words (Electron-Microscopy-Studio#1023). Red before: the readouts were announced as a bare "0" or "20109", the
+/// switches as a bare switch.
+nonisolated final class HistogramAccessibilityTests: XCTestCase {
+    private func source(_ path: String) throws -> String {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        return try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
+    }
+
+    func testTheLimitReadoutsHaveANameAndAValue() throws {
+        XCTAssertEqual(HistogramChart.edgeAccessibilityLabel(isLow: true), "Low limit")
+        XCTAssertEqual(HistogramChart.edgeAccessibilityLabel(isLow: false), "High limit")
+        let chart = try source("Sources/ShellControls/HistogramChart.swift")
+        XCTAssertTrue(chart.contains(".accessibilityLabel(Self.edgeAccessibilityLabel(isLow: isLow))\n                    .accessibilityValue(valueText(edge))"))
+    }
+
+    func testTheAgentSwitchesAreLabelled() throws {
+        let section = try source("Sources/ShellAgentDoor/AgentDoorSettingsSection.swift")
+        XCTAssertTrue(section.contains(".accessibilityLabel(\"Let agents on this Mac look at open windows\")"))
+        XCTAssertTrue(section.contains(".accessibilityLabel(\"Let agents run analyses\")"))
+    }
+}
