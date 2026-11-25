@@ -31,8 +31,25 @@ public final class PhaseLibrary {
                 failed.append("\(entry.id): \(error)")
             }
         }
-        phases = read.sorted { $0.added > $1.added }
+        phases = Self.namedByFormula(read.sorted { $0.added > $1.added }, save: { try? store.save(id: $0.id, record: Phase.encoded($0)) })
         unreadable = failed
+    }
+
+    /// A Materials Project phase still named by its bare id ("mp-149", as Add named it before EMSuiteUI#250) takes the name Add
+    /// gives now: its reduced formula, with the space group only where another phase already has that formula. A name the
+    /// person typed is never the bare id, so it is never changed; each renamed record is written back once.
+    nonisolated static func namedByFormula(_ phases: [Phase], save: (Phase) -> Void) -> [Phase] {
+        var out = phases
+        for i in out.indices {
+            guard case .materialsProject(let id, _) = out[i].source, out[i].name == id else { continue }
+            let structure = out[i].structure()
+            guard let formula = AddPhaseModel.reducedFormula(of: structure) else { continue }
+            let symbol = SpaceGroupType.of(structure.operations)?.internationalSymbol ?? structure.spaceGroupNumber.map { "No. \($0)" }
+            let others = out.indices.filter { $0 != i }.map { out[$0].name }
+            out[i].name = AddPhaseModel.libraryName(formula: formula, symbol: symbol, id: id, existing: others)
+            save(out[i])
+        }
+        return out
     }
 
     /// The phase already in the library for this Materials Project id, if any (Add shows "In Library" instead).
