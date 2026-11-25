@@ -626,8 +626,12 @@ nonisolated final class EDXSessionTests: XCTestCase {
         let o = EDXCompute.outcome(of: r, settings: settings, axis: axis, computedK: true, regionName: "Whole map")
         XCTAssertEqual(o.suggestions.map(\.symbol), ["Al"], "Auto ID adds only what passed")
         XCTAssertEqual(o.possible.map(\.symbol), ["Au", "Mg"], "Au (5.9 L_D, unconfirmable) is offered ahead of Mg (3.2 L_D)")
-        XCTAssertTrue(o.possible[0].reason.hasPrefix("unconfirmed, by Au L"), o.possible[0].reason)
+        XCTAssertTrue(o.possible[0].reason.hasPrefix("unconfirmed, fit only (no computed k for L/M lines), by Au L"), o.possible[0].reason)
         XCTAssertTrue(o.possible[1].reason.contains("Adding it improves the fit by 81"), o.possible[1].reason)
+        // Au Lα has no Kα in a 20 keV range for the computed k: offered fit only, so its lines leave the continuum and at% stays the others'
+        // (the YAlO₃ grid's Au L lift the continuum under Y Kα and cut its net by a fifth). Mg is quantified on its Kα. A typed k takes L lines.
+        XCTAssertEqual(o.possible.map(\.role), [.fitOnly, .quantify])
+        XCTAssertEqual(EDXCompute.outcome(of: r, settings: settings, axis: axis, computedK: false, regionName: "R").possible.first?.role, .quantify)
         XCTAssertEqual(o.uncorroborated.count, 1, "the note stays")
 
         let listed = FitSettings.standard(elements: ["Mg"], axis: axis, resolutionMnKaEV: 130, beamEnergy: 200)
@@ -660,7 +664,7 @@ nonisolated final class EDXSessionTests: XCTestCase {
         let o = EDXCompute.outcome(of: r, settings: settings, axis: axis, computedK: true, regionName: "Whole map")
         XCTAssertEqual(o.suggestions.map(\.symbol), ["Al"], "Auto ID never adds an unconfirmable find")
         XCTAssertEqual(o.possible.map(\.symbol), ["Au", "Mg"], "Pt sits under Au's peak and is weaker: not offered twice")
-        XCTAssertTrue(o.possible[0].reason.hasPrefix("unconfirmed, by Au L"), o.possible[0].reason)
+        XCTAssertTrue(o.possible[0].reason.hasPrefix("unconfirmed, fit only (no computed k for L/M lines), by Au L"), o.possible[0].reason)
         XCTAssertTrue(o.uncorroborated.first?.hasPrefix("Au by") == true, "\(o.uncorroborated)")
     }
 

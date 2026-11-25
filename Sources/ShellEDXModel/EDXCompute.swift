@@ -418,8 +418,13 @@ public nonisolated enum EDXCompute {
             guard besideLine(c.energyKeV, c.element) == nil, EDXElements.unavailableReason(symbol: c.element) == nil else { continue }
             guard UnlistedLineChecker.neighbour(energyKeV: c.energyKeV, listedGroups: offeredGroups, resolutionMnKaEV: settings.resolutionMnKaEV,
                                                 edges: [], element: c.element) == nil else { continue }
-            possible.append(Suggestion(symbol: c.element, role: .quantify,
-                                       reason: (c.unconfirmable ? "unconfirmed, " : "") + "by \(UnlistedLineChecker.displayName(c.group)): "
+            // As a proposal's: with a computed k, an element found by an L or M line whose Kα the spectrum cannot hold well excited is added
+            // fit only, so its lines leave the continuum and the lines beside them while at% stays the listed elements' (Au Lα, YAlO₃).
+            let foundByK = XRayLines.line(c.group).map { $0.family == .K } ?? true
+            let noK = computedK && !foundByK && quantifiableKAlpha(of: c.element, axis: axis, beamEnergy: settings.beamEnergy) == nil
+            possible.append(Suggestion(symbol: c.element, role: noK ? .fitOnly : .quantify,
+                                       reason: (c.unconfirmable ? "unconfirmed, " : "") + (noK ? "fit only (no computed k for L/M lines), " : "")
+                                           + "by \(UnlistedLineChecker.displayName(c.group)): "
                                            + (c.possibleReason.map { $0 + " " } ?? "") + stats(c)))
             offeredGroups += EDSLineModel.build(elements: [c.element], axis: axis, beamEnergy: settings.beamEnergy,
                                                 resolutionMnKaEV: settings.resolutionMnKaEV, escapePeaks: false).groups
