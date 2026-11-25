@@ -406,10 +406,11 @@ public final class EDXSession {
         (autoID.outcome?.possible ?? []).filter { s in !picks.contains { $0.symbol == s.symbol } }
     }
 
-    /// Adds one of `alsoPossible` as a pick by hand (Quantify), as a click on the periodic table does.
+    /// Adds one of `alsoPossible` as a pick by hand, in the role Auto ID gives it: Quantify, or Fit only for an element found by an L or M line
+    /// with no Kα for the computed k (Au Lα: its lines are fitted and at% stays the others').
     public func addPossible(_ symbol: String) {
-        guard hasImage, alsoPossible.contains(where: { $0.symbol == symbol }) else { return }
-        add(symbol, role: .quantify, manual: true)
+        guard hasImage, let suggestion = alsoPossible.first(where: { $0.symbol == symbol }) else { return }
+        add(symbol, role: suggestion.role, manual: true)
     }
 
     public func setRole(_ role: EDXRole, of symbol: String) {
