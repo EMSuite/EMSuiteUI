@@ -353,7 +353,7 @@ public nonisolated enum EDXCompute {
     }
 
     /// The room's reading of a proposal: the shipped rules, the picks (an excess beside a listed line is not an element; a find the kit could not
-    /// confirm is uncorroborated, never added), the sum-peak suspects and the notes. `settings` and `axis` are the ones the proposal ran with.
+    /// confirm is uncorroborated, offered under "Also possible" and never added), the sum-peak suspects and the notes. `settings` and `axis` are the ones the proposal ran with.
     public static func outcome(of result: ProposalResult, settings: FitSettings, axis: EnergyAxis, computedK: Bool, regionName: String,
                                 refinementNote: String? = nil) -> AutoIDOutcome {
         let ruled = ProposalRules.shipped.apply(result, resolutionMnKaEV: settings.resolutionMnKaEV)
@@ -404,13 +404,25 @@ public nonisolated enum EDXCompute {
         for c in strongestFirst(result.candidates.filter { $0.unconfirmable }) {
             uncorroborated.append("\(c.element) by \(UnlistedLineChecker.displayName(c.group)): \(c.possibleReason ?? "") \(stats(c))")
         }
-        // The near misses: the kit's possible tier, less what is picked, beside a listed line, unconfirmable or not offered by the room (#143).
+        // The near misses: the kit's possible tier and the finds it could not confirm, strongest first, less what is picked, beside a listed line or
+        // not offered by the room (#143). An unconfirmable find is offered too (one click, never added by Auto ID): a heavy element found by its L
+        // family has no K line in a 20 keV range, and leaving it out offered only its weaker neighbour under the same peaks (Pt for Au Lα, #255).
+        // One peak is offered once: a near miss beside an alpha line of a stronger near miss's groups (`UnlistedLineChecker.neighbour`, the rule
+        // that makes an excess beside a listed line: within 2 FWHM(E)) is dropped. 1 FWHM is not enough: Pt Lα 9.442 sits 271 eV below Au Lα
+        // 9.713, and FWHM(9.44 keV) is 161 eV at 130 eV Mn Kα, so 2 FWHM (321 eV) covers it.
         let taken = Set(suggestions.map(\.symbol)).union(settings.elements)
+        let nearMisses = strongestFirst(result.possible.filter { !$0.unconfirmable } + result.candidates.filter(\.unconfirmable))
         var possible: [Suggestion] = []
-        for c in strongestFirst(result.possible) where !c.unconfirmable && !taken.contains(c.element) && !possible.contains(where: { $0.symbol == c.element }) {
+        var offeredGroups: [FitLineGroup] = []
+        for c in nearMisses where !taken.contains(c.element) && !possible.contains(where: { $0.symbol == c.element }) {
             guard besideLine(c.energyKeV, c.element) == nil, EDXElements.unavailableReason(symbol: c.element) == nil else { continue }
+            guard UnlistedLineChecker.neighbour(energyKeV: c.energyKeV, listedGroups: offeredGroups, resolutionMnKaEV: settings.resolutionMnKaEV,
+                                                edges: [], element: c.element) == nil else { continue }
             possible.append(Suggestion(symbol: c.element, role: .quantify,
-                                       reason: "by \(UnlistedLineChecker.displayName(c.group)): " + (c.possibleReason.map { $0 + " " } ?? "") + stats(c)))
+                                       reason: (c.unconfirmable ? "unconfirmed, " : "") + "by \(UnlistedLineChecker.displayName(c.group)): "
+                                           + (c.possibleReason.map { $0 + " " } ?? "") + stats(c)))
+            offeredGroups += EDSLineModel.build(elements: [c.element], axis: axis, beamEnergy: settings.beamEnergy,
+                                                resolutionMnKaEV: settings.resolutionMnKaEV, escapePeaks: false).groups
         }
         let suspects = strongestFirst(ruled.heldQuestions).map { c -> String in
             let sums = c.conflicts.filter { $0.kind == .sumPeak }
