@@ -3,6 +3,7 @@
 //  Role: the Add Phase sheet both apps show (EMSuiteUI#189, plan section 5.2), first slice: a search field that has the
 //        focus, the matches, a preview of the chosen entry with its id and licence, Add, and Open CIF…, which closes the
 //        sheet before the app shows its file dialog. Resizable. Everything it says comes from `AddPhaseModel`.
+//        The preview opens with a still picture of the entry's unit cell (EMSuiteUI#195, `AddPhaseCellPicture`).
 //
 
 import DiffractoCore
@@ -185,7 +186,7 @@ struct AddPhaseRow: View {
     }
 }
 
-/// The chosen entry: name, id and licence, cell and symmetry, as the kit read them.
+/// The chosen entry: a still picture of its unit cell, name, id and licence, cell and symmetry, as the kit read them.
 struct AddPhasePreview: View {
     let state: AddPhaseModel.PreviewState
     let inLibrary: Bool
@@ -215,6 +216,9 @@ struct AddPhasePreview: View {
     private func details(_ p: AddPhaseModel.Preview) -> some View {
         let cell = p.structure.cell
         return Form {
+            Section {
+                AddPhaseCellPicture(preview: p)
+            }
             Section {
                 LabeledContent("Name", value: p.name)
                 LabeledContent("Formula", value: p.structure.formula)
