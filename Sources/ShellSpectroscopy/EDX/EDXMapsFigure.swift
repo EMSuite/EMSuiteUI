@@ -71,6 +71,11 @@ public struct EDXFigureContent {
     package var rasters: [String: [UInt8]] = [:]
     package static let mixKey = "colourMix"
 
+    /// Keeps only these maps, in this order (an agent's "Fe and Ni side by side", Electron-Microscopy-Studio#672).
+    package mutating func keepTiles(_ symbols: [String]) {
+        tiles = symbols.compactMap { symbol in tiles.first { $0.symbol == symbol } }
+    }
+
     public init(title: String, subtitle: String, tiles: [EDXMapTile], region: EDXRegion, nx: Int, ny: Int, bar: (fraction: Double, label: String)?,
                 mix: [EDXMapTile] = [], showsScaleBar: Bool = true, showsRegion: Bool = true, cells: [EDXFigureCell] = [], regions: SpectralRegionSet? = nil) {
         self.title = title; self.subtitle = subtitle; self.tiles = tiles; self.region = region; self.nx = nx; self.ny = ny; self.bar = bar

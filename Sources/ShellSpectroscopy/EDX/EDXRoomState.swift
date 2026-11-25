@@ -185,6 +185,16 @@ public final class EDXRoomState {
     /// The maps as the room's tiles draw them (`EDXMapTileHost.spec`: the person's colours, contrast, gamma and display filter), made off the main
     /// actor: each element map by its symbol, the colour mix under `EDXFigureContent.mixKey` (EMSuiteUI#125).
     @MainActor static func figureRasters(of session: EDXSession, appearance: MapAppearance, filter: EDXMapFilter) async -> [String: [UInt8]] {
+        let jobs = figureRasterJobs(of: session, appearance: appearance, filter: filter)
+        let keys = jobs.map(\.key), rasters = jobs.map(\.raster)
+        let made = await Task.detached(priority: .userInitiated) { rasters.map { $0() } }.value
+        return Dictionary(zip(keys, made), uniquingKeysWith: { first, _ in first })
+    }
+
+    /// The work `figureRasters` does, one job per picture: the colour mix under `EDXFigureContent.mixKey` when it has members, then each
+    /// element map by its symbol (`mapsPNGNow` runs them at once for the agent door).
+    @MainActor static func figureRasterJobs(of session: EDXSession, appearance: MapAppearance, filter: EDXMapFilter)
+        -> [(key: String, raster: @Sendable () -> [UInt8])] {
         let items = EDXMapsComposition.items(scan: session.source?.scanImage, tiles: session.shownTiles, appearance: appearance)
         let width = session.source?.nx ?? 0, memo = session.filteredMaps
         var jobs: [(key: String, raster: @Sendable () -> [UInt8])] = []
@@ -195,9 +205,7 @@ public final class EDXRoomState {
             guard case .map(let tile) = item.kind else { continue }
             jobs.append((tile.symbol, EDXMapTileHost.spec(for: item, appearance: appearance, filter: filter, width: width, memo: memo).raster))
         }
-        let keys = jobs.map(\.key), rasters = jobs.map(\.raster)
-        let made = await Task.detached(priority: .userInitiated) { rasters.map { $0() } }.value
-        return Dictionary(zip(keys, made), uniquingKeysWith: { first, _ in first })
+        return jobs
     }
 
     /// The save panel closed: its bytes go (EMSuiteUI#125: the maps PNG stayed in the state after saving).
