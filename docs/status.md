@@ -6,6 +6,9 @@ at `github.com/EMSuite/...` (the old org address only redirected).
 - The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, the centre's one or two
   panels (`WorkspaceCentre`: a remembered divider that a double click resets; `CentrePanel`: title, controls, readout), `LayoutPolicy`,
   `MenuActionRelay`, `ActivityLog` (each recorded event is also said to VoiceOver), `UITestingPlacement`; `InspectorSection` can start closed and draws a status glyph.
+  The centre column's bottom area (`WorkspaceColumn`) shows its panes side by side with a toggle each (`ProcessAreaStyle.panes`, the
+  default, 4DSTEM Studio) or as tabs, one at full width under a segmented header with one toggle for the area (`.tabs`, Electron
+  Microscopy Studio; the selection is `PanelNavigation.selectedProcessPane`, `selectProcessPane` opens a shut area).
 - The controls (`ShellControls`, `ShellInspector`): zoom and pan (the wheel zooms or pans by Settings, `ScrollWheelMode`; View > Pan Left, Right, Up, Down with ⌃⌘ and an arrow), `NumericField` (typing the shown text over a finer stored
   value sets it), `PaneFooter`, `ScaleBar`, colorbar, `HistogramChart`, `SegmentedControl` and `SegmentedPicker` (a segment can be
   disabled, with its reason), the inspector row kit.

@@ -317,6 +317,14 @@ public nonisolated enum ProcessAreaLayout {
         if proposed < LayoutPolicy.processAreaSnapShutHeight { return 0 }
         return Double(min(max(proposed, LayoutPolicy.processAreaMinimumHeight), available) / available)
     }
+
+    /// The `.tabs` style's drawn tab: the selection when it is registered, else Output when that is, else the first
+    /// registered; nil when none is. A selection left from another room never shows an empty area.
+    public static func shownTab(selected: ProcessPaneID, in registered: [ProcessPaneID]) -> ProcessPaneID? {
+        if registered.contains(selected) { return selected }
+        if registered.contains(.output) { return .output }
+        return registered.first
+    }
 }
 
 /// How a running operation's numbers are worded, in one place.

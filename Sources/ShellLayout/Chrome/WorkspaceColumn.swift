@@ -2,12 +2,14 @@ import Foundation
 import SwiftUI
 import ShellControls
 
-/// One pane of the process area, registered by the app: Output in both apps, Lineage in mac4DSTEM. Each gets its own
-/// toggle at the infobar's right end (Xcode's debug-bar buttons).
+/// One pane of the process area, registered by the app: Output in both apps, Lineage in mac4DSTEM, a room's tables in
+/// Electron Microscopy Studio. In `.panes` style each gets its own toggle at the infobar's right end (Xcode's debug-bar
+/// buttons); in `.tabs` style it is a tab of the area's header.
 public struct ProcessTab {
     public let id: ProcessPaneID
     public let title: String
     /// The toggle's SF Symbol ("rectangle.leadinghalf.inset.filled" for the left pane, "rectangle.trailinghalf.inset.filled" for the right).
+    /// Unused in `.tabs` style, which draws no per-pane toggle.
     public let systemImage: String
     let content: () -> AnyView
 
@@ -25,6 +27,15 @@ public struct ProcessTab {
     public static func output<Content: View>(@ViewBuilder content: @escaping () -> Content) -> ProcessTab {
         ProcessTab(id: .output, title: "Output", systemImage: "rectangle.leadinghalf.inset.filled", content: content)
     }
+}
+
+/// How the process area shows its registered panes.
+public nonisolated enum ProcessAreaStyle: Sendable {
+    /// Side by side, each shown or hidden by its own infobar toggle (4DSTEM Studio: Output and Lineage). The default.
+    case panes
+    /// One at a time at full width, chosen in the area's header, with one infobar toggle for the whole area (Electron
+    /// Microscopy Studio: Output and the room's tables; three panes side by side clipped at about 180 pt each).
+    case tabs
 }
 
 /// The detail column: the science, and the infobar + process area along its bottom edge
@@ -48,6 +59,8 @@ public struct ProcessTab {
 public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
     private let navigation: PanelNavigation
     private let tabs: [ProcessTab]
+    /// Internal, not private, so the tests read the default.
+    let processAreaStyle: ProcessAreaStyle
     private let hasDocument: Bool
     private let statusText: String
     private let isRunning: Bool
@@ -61,6 +74,8 @@ public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
     /// - Parameters:
     ///   - navigation: Owns the process area's fraction and which panes are shown.
     ///   - tabs: The registered process panes, left to right.
+    ///   - processAreaStyle: `.panes` (side by side, a toggle each) or `.tabs` (one at full width, one toggle for the
+    ///     area; the selection is `navigation.selectedProcessPane`).
     ///   - hasDocument: The gate. The process area, its toggles and the divider's drag work in every room that has a
     ///     document, and only then: pass `false` while nothing is open, and while the document is still loading (the
     ///     dragged fraction is NOT reset for it — reopening restores the same split).
@@ -78,6 +93,7 @@ public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
     public init(
         navigation: PanelNavigation,
         tabs: [ProcessTab],
+        processAreaStyle: ProcessAreaStyle = .panes,
         hasDocument: Bool,
         statusText: String,
         isRunning: Bool,
@@ -87,6 +103,7 @@ public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
     ) {
         self.navigation = navigation
         self.tabs = tabs
+        self.processAreaStyle = processAreaStyle
         self.hasDocument = hasDocument
         self.statusText = statusText
         self.isRunning = isRunning
@@ -113,8 +130,8 @@ public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
                     .frame(height: heights.canvas)
                     .clipped()
 
-                Infobar(navigation: navigation, tabs: tabs, hasDocument: hasDocument, availableHeight: usable,
-                        statusText: statusText, isRunning: isRunning, run: run, glance: glance)
+                Infobar(navigation: navigation, tabs: tabs, processAreaStyle: processAreaStyle, hasDocument: hasDocument,
+                        availableHeight: usable, statusText: statusText, isRunning: isRunning, run: run, glance: glance)
 
                 if heights.process > 0 {
                     processArea
@@ -142,13 +159,76 @@ public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
 
     // MARK: - The process area
 
-    /// The process area beneath the science panes — Xcode's debug area:
-    /// the registered panes side by side, each shown or hidden by its own button at the infobar's right end.
+    /// The process area beneath the science panes — Xcode's debug area: in `.panes` style the registered panes side by
+    /// side, each shown or hidden by its own button at the infobar's right end; in `.tabs` style one of them at a time.
     /// `body` gives this view its exact height; which panes are visible only changes what fills it — nothing here can
     /// move the bar: a pane whose content doesn't fill it lets the stack recenter it and the bar moves.
-    private var processArea: some View {
-        panes(tabs.filter { navigation.shownProcessPanes.contains($0.id) }[...], level: 0)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    @ViewBuilder private var processArea: some View {
+        switch processAreaStyle {
+        case .panes:
+            panes(tabs.filter { navigation.shownProcessPanes.contains($0.id) }[...], level: 0)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        case .tabs:
+            tabbedArea
+        }
+    }
+
+    /// The tab `ProcessAreaLayout.shownTab` picks: the selection, else Output, else the first registered.
+    private var shownTabID: ProcessPaneID? {
+        ProcessAreaLayout.shownTab(selected: navigation.selectedProcessPane, in: tabs.map(\.id))
+    }
+
+    /// `.tabs` style: a header of `LayoutPolicy.paneHeaderHeight` with the tab titles at the left, a divider, then the
+    /// shown tab at full width in the rest. Only the shown tab is drawn, as `.panes` draws only the shown panes.
+    private var tabbedArea: some View {
+        VStack(spacing: 0) {
+            tabHeader
+            Divider()
+            if let shown = shownTabID, let tab = tabs.first(where: { $0.id == shown }) {
+                tab.content()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .clipped()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    /// One tab: its title, as a pane header. Two or more: a segmented picker. One line at a fixed height either way,
+    /// so the header never changes what the content below it is given.
+    private var tabHeader: some View {
+        HStack {
+            if tabs.count == 1, let only = tabs.first {
+                Text(only.title)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(only.title)
+                    .accessibilityAddTraits(.isHeader)
+            } else if tabs.count > 1 {
+                Picker("Bottom area", selection: tabSelection) {
+                    ForEach(tabs, id: \.id) { tab in
+                        Text(tab.title).tag(tab.id)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                .controlSize(.small)
+                .accessibilityLabel("Bottom area")
+                .accessibilityIdentifier("process.tabs")
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, LayoutPolicy.centrePanelPadding)
+        .frame(height: LayoutPolicy.paneHeaderHeight)
+    }
+
+    /// Reads the tab actually drawn (a stale selection shows as Output), writes through `selectProcessPane`.
+    private var tabSelection: Binding<ProcessPaneID> {
+        Binding(
+            get: { shownTabID ?? .output },
+            set: { navigation.selectProcessPane($0) }
+        )
     }
 
     /// One pane fills the area; two or more are split by draggable dividers, each with its own stored fraction (the
@@ -192,7 +272,7 @@ public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
 /// bar, done / total, elapsed · ETA and Stop — or the last run
 /// while idle (owner decision: the Run tab's numbers belong in the bar).
 /// Then the standing glance, always on. Right: buttons
-/// styled after Xcode's debug bar — one per process pane and the area's own toggle
+/// styled after Xcode's debug bar — one per process pane (`.panes` style only) and the area's own toggle
 /// — `ProcessAreaLayout.toggled(from:last:)`, the
 /// same pure function `PanelNavigation.showProcessArea`'s setter
 /// reimplements for the ⌃⌘L menu item.
@@ -201,6 +281,8 @@ public struct WorkspaceColumn<Canvas: View, Run: View, Glance: View>: View {
 struct Infobar<Run: View, Glance: View>: View {
     let navigation: PanelNavigation
     let tabs: [ProcessTab]
+    /// `.tabs` draws only the area's toggle; the tabs are chosen in the area's header.
+    let processAreaStyle: ProcessAreaStyle
     let hasDocument: Bool
     /// The column's height without the infobar: what a drag's fraction is measured against.
     let availableHeight: CGFloat
@@ -235,6 +317,19 @@ struct Infobar<Run: View, Glance: View>: View {
             get: { navigation.shownProcessPanes.contains(id) && navigation.showProcessArea },
             set: { _ in navigation.toggleProcessPane(id) }
         )
+    }
+
+    /// The `.panes` style's per-pane toggles, left to right.
+    private var paneToggles: some View {
+        ForEach(tabs, id: \.id) { tab in
+            Toggle(isOn: paneBinding(tab.id)) {
+                Image(systemName: tab.systemImage)
+            }
+            .toggleStyle(.button)
+            .help("\(tab.title) pane")
+            .accessibilityLabel("Toggle the \(tab.title) pane")
+            .accessibilityIdentifier("status.footer.toggle\(tab.title)")
+        }
     }
 
     private var dragGesture: some Gesture {
@@ -283,15 +378,7 @@ struct Infobar<Run: View, Glance: View>: View {
                 // The pane toggles stay put (mac4DSTEM#361): pinned to the trailing edge at their own size, highest priority, so only
                 // the status part to their left gives way when the window narrows.
                 HStack(spacing: LayoutPolicy.infobarItemSpacing) {
-                    ForEach(tabs, id: \.id) { tab in
-                        Toggle(isOn: paneBinding(tab.id)) {
-                            Image(systemName: tab.systemImage)
-                        }
-                        .toggleStyle(.button)
-                        .help("\(tab.title) pane")
-                        .accessibilityLabel("Toggle the \(tab.title) pane")
-                        .accessibilityIdentifier("status.footer.toggle\(tab.title)")
-                    }
+                    if processAreaStyle == .panes { paneToggles }
                     Toggle(isOn: processAreaToggleBinding) {
                         Image(systemName: "rectangle.bottomthird.inset.filled")
                     }
