@@ -163,7 +163,8 @@ public final class EDXSession {
     /// Set by the app for a spectrum whose composition the room must not give, with the reason: an SEM spectrum of a bulk sample, which
     /// exSpy quantifies not at all (its Cliff-Lorimer, zeta and cross-section methods are `EDSTEMSpectrum`'s; `EDSSEMSpectrum` gives line
     /// intensities only). The pooled fit then lands with its intensities (net ± σ) and no at%, wt% or k-free ratio, and the reason stands
-    /// where the at% would ("at% not computed: …"), in the results CSV too. nil (the default, and after every open) quantifies as before.
+    /// where the at% would ("at% not computed: …"), in the results CSV too; the wt%, at% and mass-thickness maps are refused with it
+    /// (`mapsRefusal`). nil (the default, and after every open) quantifies as before.
     public private(set) var intensitiesOnly: String?
     public private(set) var fitFailure: String?
     public private(set) var isFitting = false
@@ -1017,8 +1018,11 @@ public final class EDXSession {
     public func setIntensitiesOnly(_ reason: String?) {
         guard reason != intensitiesOnly else { return }
         intensitiesOnly = reason
-        if quantifyActive { refresh() }
+        if quantifyActive { refresh() } else if mapMode != .net { startMaps() }
     }
+
+    /// The composition maps' refusal for an intensities-only spectrum image: no wt%, at% or mass thickness map, as no at% in the table.
+    package nonisolated static func mapsRefusal(_ reason: String) -> String { "Composition maps not computed: " + reason }
 
     /// The fit as the table shows it: with `reason`, the intensities alone (every composition number dropped, the reason as the refusal).
     package nonisolated static func shown(_ q: PooledQuantification, intensitiesOnly reason: String?) -> PooledQuantification {
@@ -1077,6 +1081,11 @@ public final class EDXSession {
     private func startMaps() -> Task<Void, Never>? {
         mapsTask?.cancel(); mapsRun += 1
         guard mapMode != .net, let source, let windows = lastWindows else { return nil }
+        if let why = intensitiesOnly {
+            quantTiles = [:]; quantMaps = nil
+            mapsState = .blocked(Self.mapsRefusal(why))
+            return nil
+        }
         let inputs = EDXQuantMaps.inputs(quantified: picks.filter { $0.role == .quantify }.map(\.symbol), windows: windows)
         let prepared: EDXQuantMaps.Prepared
         do {
