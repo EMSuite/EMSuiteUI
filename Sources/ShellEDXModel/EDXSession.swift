@@ -160,6 +160,11 @@ public final class EDXSession {
     /// The Quantify verb has run: the pooled fit is live from here on.
     package private(set) var quantifyActive = false
     public private(set) var fit: PooledQuantification?
+    /// Set by the app for a spectrum whose composition the room must not give, with the reason: an SEM spectrum of a bulk sample, which
+    /// exSpy quantifies not at all (its Cliff-Lorimer, zeta and cross-section methods are `EDSTEMSpectrum`'s; `EDSSEMSpectrum` gives line
+    /// intensities only). The pooled fit then lands with its intensities (net ± σ) and no at%, wt% or k-free ratio, and the reason stands
+    /// where the at% would ("at% not computed: …"), in the results CSV too. nil (the default, and after every open) quantifies as before.
+    public private(set) var intensitiesOnly: String?
     public private(set) var fitFailure: String?
     public private(set) var isFitting = false
     /// The unlisted-line check is still running for the fit shown.
@@ -325,7 +330,7 @@ public final class EDXSession {
         }
         cache = EDXComputeCache()
         picks = []; dismissed = []; region = .wholeMap; pins = []; lines = []; selectedLineID = nil; pinSpectra = [:]; pinRows = []; colorsIssued = 0; linesIssued = 0; pinDataTask?.cancel()
-        quantifyActive = false; fit = nil; fitFailure = nil; isFitting = false; isChecking = false
+        quantifyActive = false; fit = nil; fitFailure = nil; isFitting = false; isChecking = false; intensitiesOnly = nil
         tiles = []; windowRows = []; markers = []; autoID = .idle
         clearQuantMaps(); lastWindows = nil
         method.beamEnergyKeV = nil
@@ -356,7 +361,7 @@ public final class EDXSession {
         source = nil
         scanRange = nil
         picks = []; dismissed = []; region = .wholeMap; pins = []; lines = []; selectedLineID = nil; pinSpectra = [:]; pinRows = []; colorsIssued = 0; linesIssued = 0; pinDataTask?.cancel()
-        quantifyActive = false; fit = nil; fitFailure = nil; isFitting = false; isChecking = false
+        quantifyActive = false; fit = nil; fitFailure = nil; isFitting = false; isChecking = false; intensitiesOnly = nil
         tiles = []; windowRows = []; markers = []; autoID = .idle
         clearQuantMaps(); lastWindows = nil
         plot = EDXPlot(energyStart: 0, energyStep: 0.01, data: [])
@@ -965,7 +970,7 @@ public final class EDXSession {
             isFitting = false
             fitFailure = failure
             if let q = quantified {
-                fit = UnlistedLineChecker.holding(q.fit)
+                fit = Self.shown(UnlistedLineChecker.holding(q.fit), intensitiesOnly: intensitiesOnly)
                 method = q.fit.method   // the run's own: a computed k's source string and date filled in
                 method.elements = []    // the picks are the elements; the method carries them only while a fit runs
                 plot = Self.plot(spectrum: spectrum, fit: fit!)
@@ -1004,8 +1009,30 @@ public final class EDXSession {
         guard gen == generation else { return }
         isChecking = false
         guard let shown else { return }
-        fit = shown
+        fit = Self.shown(shown, intensitiesOnly: intensitiesOnly)
         plot = Self.plot(spectrum: spectrumCounts, fit: shown)
+    }
+
+    /// Gives the room's at% only where the spectrum allows it (`intensitiesOnly`), or quantifies as before. Re-lands the fit shown at once.
+    public func setIntensitiesOnly(_ reason: String?) {
+        guard reason != intensitiesOnly else { return }
+        intensitiesOnly = reason
+        if quantifyActive { refresh() }
+    }
+
+    /// The fit as the table shows it: with `reason`, the intensities alone (every composition number dropped, the reason as the refusal).
+    package nonisolated static func shown(_ q: PooledQuantification, intensitiesOnly reason: String?) -> PooledQuantification {
+        guard let reason else { return q }
+        var out = q
+        out.abundanceRefusal = reason
+        out.abundanceCaveat = nil
+        for i in out.rows.indices {
+            out.rows[i].atomicPercent = nil; out.rows[i].atomicSigma = nil
+            out.rows[i].weightPercent = nil; out.rows[i].weightSigma = nil
+            out.rows[i].kFreeRatio = nil; out.rows[i].kFreeSigma = nil
+            out.rows[i].atomicTermsText = ""; out.rows[i].weightTermsText = ""
+        }
+        return out
     }
 
     private static func plot(spectrum: [UInt64], fit: PooledQuantification) -> EDXPlot {
@@ -1152,7 +1179,13 @@ public final class EDXSession {
 
     // MARK: Export
 
-    public var resultsCSV: String? { fit.map { EDXCompute.resultsCSV($0, regionName: keptName, host: host) } }
+    public var resultsCSV: String? {
+        guard let fit else { return nil }
+        let csv = EDXCompute.resultsCSV(fit, regionName: keptName, host: host)
+        guard let why = intensitiesOnly, let end = csv.firstIndex(of: "\n") else { return csv }
+        // The reason, under the title line: the file says why it holds no at%.
+        return String(csv[...end]) + "# line intensities only: " + why.replacingOccurrences(of: "\n", with: " ") + "\n" + String(csv[csv.index(after: end)...])
+    }
     public var methodJSON: String? { fit.map { SpectroscopyExport.methodJSON($0.method) } }
     /// The region's spectrum as an `.msa` file (FormatoKit's writer); nil before there is a spectrum.
     public func spectrumMSA() throws -> Data? {

@@ -275,6 +275,39 @@ nonisolated final class EDXSessionTests: XCTestCase {
         XCTAssertEqual(session.fit?.method.estimator, .leastSquares, "live from the verb on")
     }
 
+    /// A spectrum the app marks intensities-only (an SEM spectrum of a bulk sample: exSpy's `EDSSEMSpectrum` has no quantification) shows the
+    /// fitted intensities, the same nets as the quantified fit, and no at%, wt% or k-free ratio; the reason stands as the refusal, in the CSV too.
+    /// Clearing the mark brings the at% back. Red before: no such mark, the at% shown with ± on every SEM spectrum (walk 2026-11-26).
+    @MainActor func testAnIntensitiesOnlySpectrumShowsTheNetsAndNoComposition() async throws {
+        let session = await openRoom()
+        session.selectRectangle(PixelRect(x0: 0, y0: 0, x1: 1, y1: 1))
+        await session.settled()
+        await session.quantify()?.value
+        await session.settled()
+        let quantified = try XCTUnwrap(session.fit)
+        let reason = "SEM spectrum: line intensities only, as exSpy gives them"
+        session.setIntensitiesOnly(reason)
+        await session.settled()
+        let fit = try XCTUnwrap(session.fit, session.fitFailure ?? "no fit")
+        XCTAssertEqual(session.intensitiesOnly, reason)
+        XCTAssertEqual(fit.abundanceRefusal, reason)
+        XCTAssertFalse(fit.hasAbundance)
+        XCTAssertEqual(fit.rows.map(\.element), quantified.rows.map(\.element))
+        for (a, b) in zip(fit.rows, quantified.rows) {
+            XCTAssertEqual(a.net, b.net, "\(a.element) net")
+            XCTAssertNil(a.atomicPercent); XCTAssertNil(a.weightPercent); XCTAssertNil(a.kFreeRatio)
+        }
+        XCTAssertTrue(try XCTUnwrap(session.resultsCSV).contains(reason))
+        session.setIntensitiesOnly(nil)
+        await session.settled()
+        XCTAssertEqual(session.fit?.rows.compactMap(\.atomicPercent).reduce(0, +) ?? 0, 100, accuracy: 1e-6, "at% back")
+        // A new file starts quantifying again.
+        session.setIntensitiesOnly(reason)
+        await session.bind(Self.source(beam: 200)).value
+        await session.settled()
+        XCTAssertNil(session.intensitiesOnly)
+    }
+
     /// Quantify refuses with no quantified element; a fit-only room has no verb. Red under: the verb running on an empty set.
     @MainActor func testTheVerbNeedsAQuantifiedElement() async {
         let session = await openRoom()
