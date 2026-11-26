@@ -2,6 +2,14 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.20.0](https://github.com/EMSuite/EMSuiteUI/compare/0.19.0...0.20.0) (2026-11-26)
+
+
+### Features
+
+* My Phases and phase details (name, notes, reset to source), and the lattice fields for the inspector ([#270](https://github.com/EMSuite/EMSuiteUI/issues/270)) ([24e9132](https://github.com/EMSuite/EMSuiteUI/commit/24e9132ee8856d0b15df78fdf214ee9b8828217c))
+* the EDS room can show a spectrum's line intensities only, as exSpy does for SEM ([#273](https://github.com/EMSuite/EMSuiteUI/issues/273)) ([51f5e44](https://github.com/EMSuite/EMSuiteUI/commit/51f5e44623afb4d95f90819e8cd6e9b8323ad736))
+
 ## [0.19.0](https://github.com/EMSuite/EMSuiteUI/compare/0.18.1...0.19.0) (2026-11-26)
 
 

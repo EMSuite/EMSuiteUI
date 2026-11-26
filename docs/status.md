@@ -1,4 +1,4 @@
-# Status: EMSuiteUI 0.19.0 <!-- x-release-please-version -->
+# Status: EMSuiteUI 0.20.0 <!-- x-release-please-version -->
 
 What is live. Both apps take EMSuiteUI by version range and build on it. Since 0.18.1 the manifest names the kits
 at `github.com/EMSuite/...` (the old org address only redirected).
