@@ -2,6 +2,19 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.19.0](https://github.com/EMSuite/EMSuiteUI/compare/0.18.1...0.19.0) (2026-11-26)
+
+
+### Features
+
+* the bottom area can show its panes as tabs, one at full width with one toggle ([#266](https://github.com/EMSuite/EMSuiteUI/issues/266)) ([0b0ad86](https://github.com/EMSuite/EMSuiteUI/commit/0b0ad86e496f6f45cd3c998d4d10ce6a5628bc0a))
+* the image view can draw an image smooth, for coarse simulated scans ([#269](https://github.com/EMSuite/EMSuiteUI/issues/269)) ([e6a249f](https://github.com/EMSuite/EMSuiteUI/commit/e6a249ff8cae48ad1c3f519d2e3be95f547d6d38))
+
+
+### Bug Fixes
+
+* Add Phase lists formulas as the preview names them, and says the cell is a computed one ([#268](https://github.com/EMSuite/EMSuiteUI/issues/268)) ([536d320](https://github.com/EMSuite/EMSuiteUI/commit/536d3203ed39738fac7807d9018b32e65ebd8625))
+
 ## [0.18.1](https://github.com/EMSuite/EMSuiteUI/compare/0.18.0...0.18.1) (2026-11-26)
 
 
