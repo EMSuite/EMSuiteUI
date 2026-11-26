@@ -65,7 +65,9 @@ nonisolated final class AddPhaseSheetTests: XCTestCase {
         ],"meta":{"data_available":154387,"more_data_available":false}}
         """.utf8)
         guard case .rows(let rows, _) = try MaterialsProjectOptimade.decodeSearch(data) else { return XCTFail("no rows") }
-        XCTAssertEqual(rows.map { AddPhaseRow.title($0) }, ["GaAs", "Ga3As", "mp-12"])
+        // By id: the decoder orders the rows itself, and that order is not this test's subject.
+        let titles = Dictionary(uniqueKeysWithValues: rows.map { ($0.materialID, AddPhaseRow.title($0)) })
+        XCTAssertEqual(titles, ["mp-2534": "GaAs", "mp-1184232": "Ga3As", "mp-12": "mp-12"])
     }
 
     /// #1115: the preview says its cell is the Materials Project's computed one.
