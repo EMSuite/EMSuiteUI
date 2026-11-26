@@ -104,3 +104,11 @@ public nonisolated final class KeychainAPIKeyStore: APIKeyStore, @unchecked Send
         }
     }
 }
+
+extension APIKeyStore {
+    // A keychain call can block, or show a prompt, so the models make it off the main actor (EMSuiteUI#233).
+
+    @concurrent public func loadInBackground() async throws -> String? { try load() }
+    @concurrent public func saveInBackground(_ key: String) async throws { try save(key) }
+    @concurrent public func deleteInBackground() async throws { try delete() }
+}

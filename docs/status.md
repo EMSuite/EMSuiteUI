@@ -67,6 +67,10 @@ at `github.com/EMSuite/...` (the old org address only redirected).
   Open CIF… (the sheet closes before the app's file dialog); each empty, offline or failed state says what to do next.
   The Materials Project settings pane (`MaterialsProjectSettingsPane`): an optional key pasted, tested with one request
   and removed, one sentence on what is sent, and the citation the Materials Project asks for.
+  My Phases (the sheet's second page, `MyPhasesView`): each phase's name and notes, its source and credit, Reset to Source and
+  Delete. `PhaseLatticeFields`, for a room's inspector: a field for each lattice parameter the phase's symmetry leaves free
+  (DiffractoKit's `editingLattice`; the tied ones follow, a change of Laue class is refused), an edit marking the phase
+  edited, and Reset to Source reading its source again.
 
 Since 0.3.2: 0.4.0 (2026-10-29) brought the shared EDS room; 0.5.0 (2026-11-01) `ImageViewport`, the keyboard and zoom routes,
 the narrowed EDS room API and the deletion of the superseded map tile API; 0.5.1 (2026-11-05) the EDS sheet and header fixes.

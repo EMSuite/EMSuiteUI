@@ -82,6 +82,8 @@ public struct MaterialsProjectSettingsSections: View {
                     .accessibilityIdentifier("materialsProject.doi")
             }
         }
+        // Whether a key is stored, read off the main actor (EMSuiteUI#233).
+        .task { await model.refresh() }
     }
 
     @ViewBuilder private var testResult: some View {

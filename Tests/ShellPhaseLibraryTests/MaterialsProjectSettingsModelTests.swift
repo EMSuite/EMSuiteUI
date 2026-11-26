@@ -17,6 +17,7 @@ final class MaterialsProjectSettingsModelTests: XCTestCase {
 
     @MainActor func testAPastedKeyIsSavedTrimmedAndNeverShown() async {
         let (model, store) = make(StubTransport())
+        await model.refresh()
         XCTAssertFalse(model.hasKey)
         XCTAssertFalse(model.canSave)
         model.draft = "  abc123\n"
@@ -30,6 +31,7 @@ final class MaterialsProjectSettingsModelTests: XCTestCase {
     @MainActor func testTheStoredKeyIsTestedWithOneKeyedRequest() async throws {
         let stub = StubTransport { _ in (Data(#"{"data":[],"errors":[]}"#.utf8), 200, [:]) }
         let (model, _) = make(stub, key: "abc123")
+        await model.refresh()
         XCTAssertTrue(model.hasKey)
         await model.testKey()
         XCTAssertEqual(model.test, .accepted)
@@ -42,6 +44,7 @@ final class MaterialsProjectSettingsModelTests: XCTestCase {
     @MainActor func testARefusedKeyIsSaidAndAPastedKeyIsTestedBeforeTheStoredOne() async throws {
         let stub = StubTransport { _ in (Data(), 401, [:]) }
         let (model, _) = make(stub, key: "old")
+        await model.refresh()
         model.draft = "new"
         await model.testKey()
         XCTAssertEqual(stub.sent.first?.value(forHTTPHeaderField: MaterialsProjectClient.keyHeader), "new")
@@ -52,6 +55,7 @@ final class MaterialsProjectSettingsModelTests: XCTestCase {
     @MainActor func testNoKeyToTestSendsNothing() async {
         let stub = StubTransport()
         let (model, _) = make(stub)
+        await model.refresh()
         await model.testKey()
         XCTAssertEqual(stub.sent.count, 0)
         XCTAssertEqual(model.test, .failed("Paste a key first."))
@@ -59,6 +63,7 @@ final class MaterialsProjectSettingsModelTests: XCTestCase {
 
     @MainActor func testRemoveForgetsTheKey() async {
         let (model, store) = make(StubTransport(), key: "abc123")
+        await model.refresh()
         await model.remove()
         XCTAssertNil(store.key)
         XCTAssertFalse(model.hasKey)
