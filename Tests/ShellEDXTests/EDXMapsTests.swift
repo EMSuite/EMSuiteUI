@@ -84,6 +84,33 @@ nonisolated final class EDXMapsTests: XCTestCase {
         XCTAssertTrue(session.shownTiles.allSatisfy { $0.mode == .net && $0.footer == nil })
     }
 
+    /// An intensities-only spectrum image (an SEM map of a bulk sample) draws no composition map: wt%, at% and mass thickness are refused
+    /// with the reason, net counts stay, and clearing the mark brings the maps back. Red before: the table dropped the at% while the
+    /// maps still drew thin-film wt% and at% on an SEM map (review 2026-11-26).
+    @MainActor func testAnIntensitiesOnlyImageDrawsNoCompositionMaps() async throws {
+        let session = await openRoom()
+        type(session)
+        let reason = "SEM map: line intensities only, as exSpy gives them"
+        session.setMapMode(.weight)
+        await session.settled()
+        XCTAssertEqual(session.mapsState, .done)
+        session.setIntensitiesOnly(reason)
+        await session.settled()
+        XCTAssertEqual(session.mapsState, .blocked(EDXSession.mapsRefusal(reason)))
+        XCTAssertNil(session.quantMaps)
+        for mode in [EDXMapMode.atomic, .massThickness] {
+            session.setMapMode(mode)
+            await session.settled()
+            XCTAssertEqual(session.mapsState, .blocked(EDXSession.mapsRefusal(reason)), "\(mode)")
+        }
+        session.setMapMode(.net)
+        XCTAssertEqual(session.shownTiles, session.tiles, "net counts are intensities: still drawn")
+        session.setIntensitiesOnly(nil)
+        session.setMapMode(.weight)
+        await session.settled()
+        XCTAssertEqual(session.mapsState, .done)
+    }
+
     /// One quantified spectrum and a small map against the previous path: the room's pooled fit of the left pixel with the same typed
     /// k, and the left pixel of the map. The two estimate the same line areas (the fit's, the window's), so they agree within the bound
     /// below, which is the fit's own bias on this spectrum (SpectroKit gates: areas within 3 % of planted) carried through the
