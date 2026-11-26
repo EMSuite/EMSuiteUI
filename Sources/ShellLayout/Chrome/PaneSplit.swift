@@ -36,6 +36,8 @@ public struct PaneSplit<Leading: View, Trailing: View>: View {
     private let resizeLabel: String
     private let leadingName: String
     private let minimumPane: CGFloat
+    /// Where a double click on the divider puts it back; nil (the default) keeps the divider drag-only, as it always was.
+    private let resetFraction: Double?
 
     /// `storageKey` names the scene-storage slot the divider's position lives
     /// in, so the science split and the process area's split each remember
@@ -46,11 +48,16 @@ public struct PaneSplit<Leading: View, Trailing: View>: View {
     ///   - leadingName: The leading pane's name in the divider's VoiceOver value ("Diffraction pane" reads "Diffraction
     ///     pane 50 percent").
     ///   - minimumPane: Neither pane is driven below this while there is room for two of them.
+    ///   - defaultFraction: The leading pane's share before the user moves the divider (a window that stored nothing).
+    ///   - resetsOnDoubleClick: A double click on the divider (and VoiceOver's "Reset" action) puts it back at
+    ///     `defaultFraction`. Off by default, so existing splits behave as before (`WorkspaceCentre` turns it on).
     public init(
         storageKey: String = ShellStorageKeys.paneSplitFraction,
         resizeLabel: String = "Resize the panes",
         leadingName: String = "Left pane",
         minimumPane: CGFloat = LayoutPolicy.imagePaneMinimum,
+        defaultFraction: Double = 0.5,
+        resetsOnDoubleClick: Bool = false,
         @ViewBuilder leading: () -> Leading,
         @ViewBuilder trailing: () -> Trailing
     ) {
@@ -59,7 +66,8 @@ public struct PaneSplit<Leading: View, Trailing: View>: View {
         self.resizeLabel = resizeLabel
         self.leadingName = leadingName
         self.minimumPane = minimumPane
-        self._storedFraction = SceneStorage(wrappedValue: 0.5, storageKey)
+        self.resetFraction = resetsOnDoubleClick ? defaultFraction : nil
+        self._storedFraction = SceneStorage(wrappedValue: defaultFraction, storageKey)
     }
 
     /// The divider's position as a fraction of the usable width. Where a
@@ -128,6 +136,7 @@ public struct PaneSplit<Leading: View, Trailing: View>: View {
                     }
                     .onEnded { _ in fractionAtDragStart = nil }
             )
+            .modifier(DividerReset(fraction: resetFraction) { reset in fraction = CGFloat(reset) })
             .accessibilityLabel(resizeLabel)
             // A route without the mouse: Tab to the divider, then Left/Right; and for
             // VoiceOver an adjustable value, Up/Down on the rotor's adjust. Both move it `DividerNudge.step`.
@@ -153,6 +162,23 @@ public struct PaneSplit<Leading: View, Trailing: View>: View {
 
     private func nudge(_ points: CGFloat, usable: CGFloat, smallest: CGFloat) {
         fraction = DividerNudge.paneFraction(from: fraction, by: points, usable: usable, smallest: smallest)
+    }
+}
+
+/// A double click on a divider puts it back at its default, and VoiceOver gets the same as a named action ("Reset").
+/// With no default the divider is left exactly as it was: no gesture, no action.
+struct DividerReset: ViewModifier {
+    let fraction: Double?
+    let apply: (Double) -> Void
+
+    func body(content: Content) -> some View {
+        if let fraction {
+            content
+                .simultaneousGesture(TapGesture(count: 2).onEnded { apply(fraction) })
+                .accessibilityAction(named: "Reset") { apply(fraction) }
+        } else {
+            content
+        }
     }
 }
 

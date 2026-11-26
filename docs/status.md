@@ -1,14 +1,20 @@
-# Status: EMSuiteUI 0.16.0 <!-- x-release-please-version -->
+# Status: EMSuiteUI 0.19.0 <!-- x-release-please-version -->
 
-What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by version range and build on it.
+What is live. Both apps take EMSuiteUI by version range and build on it. Since 0.18.1 the manifest names the kits
+at `github.com/EMSuite/...` (the old org address only redirected).
 
-- The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, `LayoutPolicy`,
+- The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, the centre's one or two
+  panels (`WorkspaceCentre`: a remembered divider that a double click resets; `CentrePanel`: title, controls, readout), `LayoutPolicy`,
   `MenuActionRelay`, `ActivityLog` (each recorded event is also said to VoiceOver), `UITestingPlacement`; `InspectorSection` can start closed and draws a status glyph.
+  The centre column's bottom area (`WorkspaceColumn`) shows its panes side by side with a toggle each (`ProcessAreaStyle.panes`, the
+  default, 4DSTEM Studio) or as tabs, one at full width under a segmented header with one toggle for the area (`.tabs`, Electron
+  Microscopy Studio; the selection is `PanelNavigation.selectedProcessPane`, `selectProcessPane` opens a shut area).
 - The controls (`ShellControls`, `ShellInspector`): zoom and pan (the wheel zooms or pans by Settings, `ScrollWheelMode`; View > Pan Left, Right, Up, Down with ⌃⌘ and an arrow), `NumericField` (typing the shown text over a finer stored
   value sets it), `PaneFooter`, `ScaleBar`, colorbar, `HistogramChart`, `SegmentedControl` and `SegmentedPicker` (a segment can be
   disabled, with its reason), the inspector row kit.
 - The Metal image view (`ShellMetal`): `MetalEngine`, `MetalImageView` (raw pixels at their own bit depth, a linear or log
-  display transfer drawn in the shader), `MetalDisplayTransform`, the shared colormaps and their shader (compiled from source
+  display transfer drawn in the shader; `sampling: .linear` draws a coarse simulated scan smooth, its values blended
+  bilinearly in the shader, while recorded data stay `.nearest`, the default; RGBA and figure exports stay nearest), `MetalDisplayTransform`, the shared colormaps and their shader (compiled from source
   when the bundle has no metallib); `ImageViewport`, one zoomable container for every room picture.
 - The spectroscopy room (`ShellSpectroscopy`): map tiles (with an overlay slot) and the fitted map grid, the colour mix, regions
   (draw, edit, list, a keyboard route; Esc returns to the arrow tool), spectrum and profile panes, the periodic table, the map display popover.
@@ -21,7 +27,10 @@ What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by
   in, orientation changes out; its own element colours in one file; a still mode and an offscreen snapshot.
 - Figures (`ShellExport`, since 0.14.0): a figure as one value, `FigureScene` (a picture at its own pixels, paths,
   markers in six shapes, one-line labels, a ruled table, a legend; 90, 140 or 190 mm wide, 7 pt Helvetica), drawn by
-  `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Core
+  `FigureRenderer` as PDF and SVG with live text and as PNG, each carrying its title, software line and methods record. Two shared
+  layouts (`FigurePlot`): a spectrum as one path in a framed plot with round ticks, titles and labelled lines, and a map as its
+  picture with a vector scale bar and a key (colour boxes or a ramp), and maps side by side as panels (`FigurePlot.panels`),
+  which the EDS room writes as Maps PDF… and Maps SVG… beside Spectrum PDF… and Spectrum SVG…. Core
   Graphics and Core Text only, off the main actor. The methods record (`MethodsRecord`, schema `emsuite.methods/1`,
   `docs/schema/emsuite.methods-1.schema.json`): app, kit and reference versions, sources by file name, size and SHA-256 with
   their calibrations as FormatoCore's `FormatoMetadataEntry` and `FormatoProvenance`, phases with source and licence, steps
@@ -31,7 +40,11 @@ What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by
   an agent on this Mac looks at the app's open windows; each app registers its own tools. The app is the MCP server itself,
   over HTTP at `/mcp`; Claude desktop connects through the extension in `DesktopExtension/` (`docs/agent-door.md`). Since
   0.7.0: typed inputs and tools that act (`AgentParameter`, `AgentTool(acts:)`), behind a second switch, "Let agents run
-  analyses" (`runsAllowed`).
+  analyses" (`runsAllowed`). The EDS room's tools are written once for both apps (`ShellEDXAgent`): `get_eds`, `set_eds`,
+  `run_eds`, and `EDXDisplayAgentTools` for how the maps are drawn: `get_eds_display` (each map's colour, window, gamma,
+  histogram and percentiles, the colour mix), `set_eds_display` (named colours, a colour-blind-safe set, colormap, window,
+  percentile clip, gamma, Reset Range, the mix, the figure's switches) and `get_eds_figure` (the maps as Maps as PNG… draws them,
+  all or a chosen few side by side).
 - Snapshot tests (`ShellSnapshotTesting`, test support for this package and the apps): a view drawn in light and dark and
   compared with its committed PNG on CI's macos-26 leg; new and changed pictures are attached to the pull request.
 - The Help menu (`ShellHelp`, since 0.14.0; the crash and hang reports since 0.15.0): `HelpCommands` puts the support page, the documentation and Report a Problem… in place of the
@@ -47,7 +60,10 @@ What is live. 0.15.0 (2026-11-24) is the latest tag; both apps take EMSuiteUI by
   typing, a day's cache in memory, short timeouts, offline fails at once) with or without the person's own key, which
   `APIKeyStore` keeps in the login keychain.
   The Add Phase sheet (`ShellPhaseViews`, first slice): search as you type (element symbols or a formula, always on
-  the open service), the matches most stable first, a preview of the chosen entry with its id and CC BY 4.0, Add, and
+  the open service), the exact match first (the elements alone, such as Si for "Si"), then fewer elements, then the most stable, each match's formula written as the preview names it (GaAs, not the
+  service's AsGa), a preview of the chosen entry with a still picture of its unit cell
+  (the crystal view's still mode, with the kit's bonds and a spoken description), a note that its cell is the Materials
+  Project's computed one, its id and CC BY 4.0, Add, and
   Open CIF… (the sheet closes before the app's file dialog); each empty, offline or failed state says what to do next.
   The Materials Project settings pane (`MaterialsProjectSettingsPane`): an optional key pasted, tested with one request
   and removed, one sentence on what is sent, and the citation the Materials Project asks for.

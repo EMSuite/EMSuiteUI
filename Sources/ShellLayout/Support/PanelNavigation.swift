@@ -81,6 +81,16 @@ public final class PanelNavigation {
         }
     }
 
+    /// The tab the process area shows in `.tabs` style (`ProcessAreaStyle`); `.panes` reads `shownProcessPanes`
+    /// instead. Not persisted. A selection the room did not register shows as Output (`ProcessAreaLayout.shownTab`).
+    public var selectedProcessPane: ProcessPaneID = .output
+
+    /// Choosing a tab: it becomes the selection, and a shut area opens to show it. An open area keeps its height.
+    public func selectProcessPane(_ id: ProcessPaneID) {
+        selectedProcessPane = id
+        if !showProcessArea { showProcessArea = true }
+    }
+
     /// The user's INTENT for each side panel — what the toggles, the menu
     /// items and the scene storage read and write.
     public var showSidebarPane = true

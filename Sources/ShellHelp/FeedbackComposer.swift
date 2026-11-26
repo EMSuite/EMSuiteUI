@@ -31,6 +31,14 @@ public nonisolated enum FeedbackComposer {
         return first.count > 80 ? String(first.prefix(79)) + "…" : first
     }
 
+    /// `URLComponents` leaves "+" in a query as it is, and a page that reads the query as form data (GitHub's new-issue page) takes
+    /// "+" for a space: "Si+Ge" would arrive as "Si Ge". Written as %2B it is a plus for every reader.
+    static func formSafe(_ link: URLComponents) -> URLComponents {
+        var link = link
+        link.percentEncodedQuery = link.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        return link
+    }
+
     /// The email draft.
     public static func mail(message: String, summary: DiagnosticsSummary, to destination: FeedbackDestination) -> URL? {
         var link = URLComponents()
@@ -40,7 +48,7 @@ public nonisolated enum FeedbackComposer {
             URLQueryItem(name: "subject", value: subject(message: message, summary: summary)),
             URLQueryItem(name: "body", value: body(message: message, summary: summary)),
         ]
-        return link.url
+        return formSafe(link).url
     }
 
     /// The GitHub issue draft: the new-issue page of the app's repository with title and body filled in. Nothing is filed until the
@@ -55,6 +63,6 @@ public nonisolated enum FeedbackComposer {
             URLQueryItem(name: "title", value: subject(message: message, summary: summary)),
             URLQueryItem(name: "body", value: body(message: message, summary: summary)),
         ]
-        return link.url
+        return formSafe(link).url
     }
 }

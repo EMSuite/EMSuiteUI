@@ -44,7 +44,7 @@ public enum EDXAgentTools {
                           + "remove take element symbols (comma-separated); fit_only and quantify set an element's role. region: whole "
                           + "(the whole map), rectangle or ellipse (x0, y0, x1, y1 in scan pixels, ends exclusive), polygon (vertices), "
                           + "or pin (a kept region, by name). keep keeps the selected region as Pin Region does (named by name, or "
-                          + "the next \"Region n\"); line draws a line profile as the Line tool does. Once Quantify has run, the fit follows every change. Wait until get_eds says not busy.",
+                          + "the next \"Region n\"); line draws a line profile as the Line tool does. Every argument is checked before anything changes: a refused call changes nothing. Once Quantify has run, the fit follows every change. Wait until get_eds says not busy.",
                       input: .window,
                       parameters: [
                           AgentParameter("add", .text, summary: "Elements to pick, e.g. \"Fe, Ni\" (role quantify)."),
@@ -75,59 +75,63 @@ public enum EDXAgentTools {
                 func symbols(_ key: String) -> [String] {
                     (a[key] ?? "").split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
                 }
+                // Every check runs before the first change (#230): a refused call leaves the picks, roles, region, kept regions and lines as they were.
                 let unknown = (symbols("add") + symbols("remove") + symbols("fit_only") + symbols("quantify"))
                     .filter { EDXElements.z(of: $0) == nil }
                 guard unknown.isEmpty else {
                     return .refusal(status: 400, message: "Not element symbols: \(unknown.joined(separator: ", ")).")
                 }
-                // Taken out first, so "remove all, add these" in one call ends with these.
-                for symbol in symbols("remove") where s.picks.contains(where: { $0.symbol == symbol }) { s.toggle(symbol) }
                 for symbol in symbols("add") {
                     if let reason = EDXElements.unavailableReason(symbol: symbol) {
                         return .refusal(status: 409, message: "\(symbol): \(reason)")
                     }
-                    if !s.picks.contains(where: { $0.symbol == symbol }) { s.toggle(symbol) }
                 }
-                for (key, role) in [("fit_only", EDXRole.fitOnly), ("quantify", .quantify)] {
-                    for symbol in symbols(key) {
-                        guard s.picks.contains(where: { $0.symbol == symbol }) else {
-                            return .refusal(status: 409, message: "\(symbol) is not picked; add it first.")
-                        }
-                        s.setRole(role, of: symbol)
-                    }
+                // The picks as they will be: taken out first, so "remove all, add these" in one call ends with these.
+                let removed = Set(symbols("remove"))
+                let willBePicked = Set(s.picks.map(\.symbol)).subtracting(removed).union(symbols("add"))
+                for symbol in symbols("fit_only") + symbols("quantify") where !willBePicked.contains(symbol) {
+                    return .refusal(status: 409, message: "\(symbol) is not picked; add it first.")
                 }
+                enum RegionChange { case whole, pin(EDXPin), polygon([PixelPoint]), rectangle(PixelRect), ellipse(PixelRect) }
+                var regionChange: RegionChange?
                 if let region = a["region"] {
                     if region != "whole", region != "pin", s.isSingleSpectrum {
                         return .refusal(status: 409, message: "This file is one spectrum: it has no map to draw a region on.")
                     }
                     switch region {
-                    case "whole": s.selectWholeMap()
+                    case "whole": regionChange = .whole
                     case "pin":
                         guard let name = a["pin"], let pin = s.pins.first(where: { $0.name == name }) else {
                             return .refusal(status: 404, message: "No kept region \(a["pin"] ?? ""); the room keeps "
                                 + (s.pins.isEmpty ? "none." : s.pins.map(\.name).joined(separator: ", ") + "."))
                         }
-                        s.selectPin(pin.id)
+                        regionChange = .pin(pin)
                     case "polygon":
                         guard let vertices = points(a["vertices"]), vertices.count >= 3 else {
                             return .refusal(status: 400, message: "A polygon needs three or more x,y vertices, separated by ;.")
                         }
-                        s.drawPolygon(vertices)
-                        guard s.region == .polygon(vertices) else {
+                        // The mask is worked out on the main actor, vertices × pixels: a drawn outline has tens of vertices.
+                        guard vertices.count <= maximumPolygonVertices else {
+                            return .refusal(status: 400, message: "A polygon takes at most \(maximumPolygonVertices) vertices; "
+                                + "this one has \(vertices.count).")
+                        }
+                        guard s.holdsPixels(.polygon(vertices)) else {
                             return .refusal(status: 409, message: "That polygon holds no pixel of the scan.")
                         }
+                        regionChange = .polygon(vertices)
                     default:
                         guard let x0 = a["x0"].flatMap(Int.init), let y0 = a["y0"].flatMap(Int.init),
                               let x1 = a["x1"].flatMap(Int.init), let y1 = a["y1"].flatMap(Int.init), x1 > x0, y1 > y0 else {
                             return .refusal(status: 400, message: "A rectangle or ellipse needs x0 < x1 and y0 < y1.")
                         }
                         let rect = PixelRect(x0: x0, y0: y0, x1: x1, y1: y1)
-                        if region == "rectangle" { s.drawRectangle(rect) } else { s.drawEllipse(rect) }
+                        guard s.holdsPixels(.rectangle(rect)) else {
+                            return .refusal(status: 409, message: "That \(region) holds no pixel of the scan.")
+                        }
+                        regionChange = region == "rectangle" ? .rectangle(rect) : .ellipse(rect)
                     }
                 }
-                if a["keep"] == "true" {
-                    s.pinRegion(named: a["name"])
-                }
+                var lineEnds: [PixelPoint]?
                 if let text = a["line"] {
                     guard !s.isSingleSpectrum else {
                         return .refusal(status: 409, message: "This file is one spectrum: it has no map to draw a line on.")
@@ -135,10 +139,35 @@ public enum EDXAgentTools {
                     guard let ends = points(text.replacingOccurrences(of: ";", with: ",")), ends.count == 2 else {
                         return .refusal(status: 400, message: "A line needs its two ends, x0,y0, x1,y1.")
                     }
-                    guard s.drawLine(from: ends[0], to: ends[1]) != nil else {
+                    guard s.lineIsLongEnough(from: ends[0], to: ends[1]) else {
                         return .refusal(status: 409, message: "That line is shorter than a pixel inside the scan.")
                     }
+                    lineEnds = ends
                 }
+
+                // Every check passed: the changes, in the order the room's controls make them.
+                for symbol in symbols("remove") where s.picks.contains(where: { $0.symbol == symbol }) { s.toggle(symbol) }
+                for symbol in symbols("add") where !s.picks.contains(where: { $0.symbol == symbol }) { s.toggle(symbol) }
+                for (key, role) in [("fit_only", EDXRole.fitOnly), ("quantify", .quantify)] {
+                    for symbol in symbols(key) { s.setRole(role, of: symbol) }
+                }
+                switch regionChange {
+                case .whole: s.selectWholeMap()
+                case .pin(let pin): s.selectPin(pin.id)
+                case .polygon(let vertices): s.drawPolygon(vertices)
+                case .rectangle(let rect): s.drawRectangle(rect)
+                case .ellipse(let rect): s.drawEllipse(rect)
+                case nil: break
+                }
+                if a["keep"] == "true" {
+                    // A region drawn above is kept already, as "Region n" (a drawing on the map is): keep's name names that pin (#230).
+                    if let pin = s.selectedPin, let name = a["name"] {
+                        s.renamePin(pin.id, to: name)
+                    } else {
+                        s.pinRegion(named: a["name"])
+                    }
+                }
+                if let ends = lineEnds { s.drawLine(from: ends[0], to: ends[1]) }
                 return .json(summary(of: s))
             },
             AgentTool(name: "run_eds", title: "EDS room action",
@@ -172,6 +201,8 @@ public enum EDXAgentTools {
     }
 
     /// "x,y; x,y; …" (or "x,y, x,y" when every number is a comma apart): the points, or nil when a number does not read or one is odd.
+    static let maximumPolygonVertices = 1000
+
     static func points(_ text: String?) -> [PixelPoint]? {
         guard let text else { return nil }
         let numbers = text.split(whereSeparator: { $0 == "," || $0 == ";" }).map { Double($0.trimmingCharacters(in: .whitespaces)) }

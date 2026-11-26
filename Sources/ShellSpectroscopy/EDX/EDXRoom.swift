@@ -183,7 +183,7 @@ public struct EDXExportFile: FileDocument {
     /// Every type an export passes to the save panel, the MSA one among them: a type missing here made the panel fall back to CSV, with the CSV's
     /// name and format for "Spectrum as MSA…" (#106). macTEM's EELS room writes its MSA through this file too.
     public static var readableContentTypes: [UTType] {
-        [.commaSeparatedText, .json, .png, .plainText, EDXExportKind.msa]
+        [.commaSeparatedText, .json, .png, .pdf, .svg, .plainText, EDXExportKind.msa]
     }
     public var data: Data
 

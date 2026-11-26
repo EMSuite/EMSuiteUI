@@ -55,6 +55,8 @@ a key light from the upper left with a shadow and a fill from the lower right, b
 - `simd_quatf()` is the zero quaternion, not the identity.
 - `OrthographicCameraComponent.scale` is the half-height of the view volume.
 - `RealityRenderer` has no default light; the view carries its own lights, so window and snapshot match.
+- The camera stands 2 r + 0.1 from the centre (at least 2) with its far plane 2 r + 1 beyond (at least 10), r the scene's radius,
+  so a long block or a slab is never clipped (#232). A slab's outline is drawn in place of the cell.
 
 Later: space filling,
 polyhedra and perspective (MU4, 2.4); the slab and its box (2.5).

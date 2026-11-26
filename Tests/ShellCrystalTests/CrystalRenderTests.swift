@@ -46,6 +46,31 @@ nonisolated final class CrystalRenderTests: XCTestCase {
         XCTAssertEqual(CrystalEntities.orthographicScale(radius: 1, aspect: 0.5), 2.16, accuracy: 1e-6)
     }
 
+    /// A 50 nm block of silicon (100 × 1 × 1 cells) sits wholly between the camera's near and far planes in any turn; before #232
+    /// the camera stood 2 (200 Å) from the centre and dropped every atom more than 200 Å in front of it. A single cell keeps the
+    /// distance 2 and far plane 10 it had.
+    func testCameraHoldsALongBlockWhole() {
+        let block = CrystalGeometryTests.silicon(repeats: [100, 1, 1])
+        let radius = Float(block.boundingRadius) * CrystalEntities.unit
+        XCTAssertGreaterThan(radius, 2, "the block reaches past the old camera")
+        let depth = CrystalEntities.depth(radius: radius)
+        XCTAssertGreaterThan(depth.distance - radius, 0.001, "nothing in front of the near plane")
+        XCTAssertLessThan(depth.distance + radius, depth.far, "nothing behind the far plane")
+        let cell = CrystalEntities.depth(radius: Float(CrystalGeometryTests.silicon().boundingRadius) * CrystalEntities.unit)
+        XCTAssertEqual(cell.distance, 2)
+        XCTAssertEqual(cell.far, 10)
+    }
+
+    /// A slab's outline is the box drawn in place of the cell (#232: it was documented so but only framed the view); a unit cell's
+    /// box is its cell.
+    func testSlabOutlineIsTheDrawnBox() {
+        let slab = CrystalScene(atoms: [CrystalAtom(position: [1, 2, 3], atomicNumber: 14)], cell: simd_double3x3(diagonal: [5.43, 5.43, 5.43]),
+                                outline: [400, 38.4, 38.4])
+        XCTAssertEqual(slab.box, simd_double3x3(diagonal: [400, 38.4, 38.4]))
+        XCTAssertEqual(CrystalGeometryTests.silicon().box, CrystalGeometryTests.silicon().cell)
+        XCTAssertNil(CrystalScene(atoms: []).box)
+    }
+
     /// Si down [110] renders: the picture is not empty stage, and its atoms carry silicon's colour (an inside-out mesh or a
     /// missing light would leave the stage or black).
     func testSiliconRendersOnTheStage() async throws {

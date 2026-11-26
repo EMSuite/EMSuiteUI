@@ -88,6 +88,62 @@ final class AddPhaseModelTests: XCTestCase {
         XCTAssertNil(sent.value(forHTTPHeaderField: MaterialsProjectClient.keyHeader))
     }
 
+    /// Electron-Microscopy-Studio#1029: "Si" listed ternaries first and elemental Si not at all (the service's page of every entry
+    /// holding Si did not reach it). The exact system is searched first and the rows are ranked: the exact match, then fewer
+    /// elements, then the most stable. Red before: one search, and the rows in the kit's stability order only.
+    @MainActor func testASingleElementListsItsElementFirstThenFewerElementsThenTheMostStable() async throws {
+        let broad = Data("""
+        {"data":[
+          {"id":"mp-1","type":"structures","attributes":{"nsites":4,"chemical_formula_reduced":"SiU3","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}},
+          {"id":"mp-2","type":"structures","attributes":{"nsites":5,"chemical_formula_reduced":"Co2ErSi2","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}},
+          {"id":"mp-3","type":"structures","attributes":{"nsites":3,"chemical_formula_reduced":"NiSi2","_mp_stability":{"r2scan":{"energy_above_hull":0.2}}}}
+        ],"meta":{"data_available":154387,"more_data_available":true}}
+        """.utf8)
+        let exact = Data("""
+        {"data":[
+          {"id":"mp-165","type":"structures","attributes":{"nsites":2,"chemical_formula_reduced":"Si","_mp_stability":{"r2scan":{"energy_above_hull":0.3}}}},
+          {"id":"mp-149","type":"structures","attributes":{"nsites":2,"chemical_formula_reduced":"Si","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}}
+        ],"meta":{"data_available":154387,"more_data_available":false}}
+        """.utf8)
+        // The exact search's filter holds the element count (OPTIMADE's nelements); the broad one does not.
+        let stub = StubTransport { request in
+            (request.url!.absoluteString.contains("nelements") ? exact : broad, 200, [:])
+        }
+        let (model, _) = make(stub)
+        model.text = "Si"
+        await model.search()
+        guard case .results(let rows, let more) = model.status else { return XCTFail("\(model.status)") }
+        XCTAssertEqual(rows.map(\.materialID), ["mp-149", "mp-165", "mp-1", "mp-3", "mp-2"])
+        XCTAssertTrue(more)
+        XCTAssertEqual(stub.sent.count, 2)
+
+        // Only These Elements is one search, as before.
+        let only = StubTransport { _ in (exact, 200, [:]) }
+        let (narrow, _) = make(only)
+        narrow.text = "Si"
+        narrow.onlyTheseElements = true
+        await narrow.search()
+        XCTAssertEqual(only.sent.count, 1)
+    }
+
+    func testTheRankingIsExactThenFewerElementsThenStability() throws {
+        let data = Data("""
+        {"data":[
+          {"id":"mp-11","type":"structures","attributes":{"nsites":6,"chemical_formula_reduced":"Al2Cu3Mg","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}},
+          {"id":"mp-12","type":"structures","attributes":{"nsites":2}},
+          {"id":"mp-13","type":"structures","attributes":{"nsites":3,"chemical_formula_reduced":"CuAl2","_mp_stability":{"r2scan":{"energy_above_hull":0.1}}}},
+          {"id":"mp-14","type":"structures","attributes":{"nsites":1,"chemical_formula_reduced":"Al","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}},
+          {"id":"mp-15","type":"structures","attributes":{"nsites":3,"chemical_formula_reduced":"Al2Cu","_mp_stability":{"r2scan":{"energy_above_hull":0.0}}}}
+        ],"meta":{"data_available":154387,"more_data_available":false}}
+        """.utf8)
+        guard case .rows(let rows, _) = try MaterialsProjectOptimade.decodeSearch(data) else { return XCTFail("no rows") }
+        XCTAssertEqual(rows.count, 5)
+        XCTAssertEqual(AddPhaseModel.ranked(rows, for: .elements(["Al", "Cu"], only: false)).map(\.materialID), ["mp-15", "mp-13", "mp-14", "mp-11", "mp-12"])
+        XCTAssertEqual(AddPhaseModel.ranked(rows + [rows[0]], for: .formula("Al2Cu")).map(\.materialID), ["mp-15", "mp-13", "mp-14", "mp-11", "mp-12"],
+                       "a row listed twice is kept once")
+        XCTAssertEqual(AddPhaseModel.elements(ofFormula: "Co2ErSi2"), ["Co", "Er", "Si"])
+    }
+
     @MainActor func testTheSameTextIsAnsweredOnceAndRetrySearchesAgain() async {
         let stub = StubTransport { _ in throw URLError(.notConnectedToInternet) }
         let (model, _) = make(stub)
@@ -175,6 +231,110 @@ final class AddPhaseModelTests: XCTestCase {
         XCTAssertFalse(model.canAdd)
         XCTAssertNil(try model.add(), "a second Add adds nothing")
         XCTAssertEqual(library.phases.count, 1)
+    }
+
+    /// A phase added by its id with no search (the agent door's add_phase) is named by its reduced formula, not "mp-134", and the
+    /// id stays in the source. Mutation: the name back to `structure.name` (the id) - red.
+    @MainActor func testAPhaseAddedByIdWithoutASearchIsNamedByItsFormula() async throws {
+        let entry = try Self.entry()
+        let stub = StubTransport { _ in (entry, 200, [:]) }
+        let (model, library) = make(stub)
+        model.selection = "mp-134"
+        await model.loadPreview()
+        guard case .ready(let preview) = model.preview else { return XCTFail("\(model.preview)") }
+        XCTAssertEqual(preview.name, "Al")
+        let added = try XCTUnwrap(try model.add())
+        XCTAssertEqual(added.name, "Al")
+        XCTAssertEqual(added.id, "mp-134")
+        XCTAssertEqual(added.source.attribution, "Materials Project · mp-134 · CC BY 4.0")
+        XCTAssertEqual(library.phases.map(\.name), ["Al"])
+    }
+
+    /// One name for both paths: after a search whose row spells the formula another way, the name is still the structure's.
+    /// Mutation: the row's formula preferred - red.
+    @MainActor func testTheNameComesFromTheStructureEvenAfterASearch() async throws {
+        let entry = try Self.entry()
+        let rows = Data(#"{"data":[{"id":"mp-134","type":"structures","attributes":{"nsites":1,"chemical_formula_reduced":"O2Si"}}],"meta":{"data_available":1,"more_data_available":false}}"#.utf8)
+        let stub = StubTransport { request in request.url!.path.hasSuffix("/structures/mp-134") ? (entry, 200, [:]) : (rows, 200, [:]) }
+        let (model, _) = make(stub)
+        model.text = "Al"
+        await model.search()
+        model.selection = "mp-134"
+        await model.loadPreview()
+        guard case .ready(let preview) = model.preview else { return XCTFail("\(model.preview)") }
+        XCTAssertEqual(preview.name, "Al")
+    }
+
+    /// Where another phase of the library has the formula, the new one carries its space-group symbol; the one already there keeps
+    /// its name. Mutation: the symbol added to every phase, or never - red.
+    @MainActor func testASecondPhaseOfTheSameFormulaCarriesItsSpaceGroup() async throws {
+        let entry = try Self.entry()
+        let stub = StubTransport { _ in (entry, 200, [:]) }
+        let (model, library) = make(stub)
+        let before = Phase(id: "mp-other", name: "Al", source: .materialsProject(id: "mp-other", fetched: Date()), structure: CrystalPresets.aluminum)
+        try library.add(before, source: Data("{}".utf8), sourceExtension: "json")
+        model.selection = "mp-134"
+        await model.loadPreview()
+        let added = try XCTUnwrap(try model.add())
+        XCTAssertTrue(added.name.hasPrefix("Al ("), added.name)
+        XCTAssertEqual(library.phases.first { $0.id == "mp-other" }?.name, "Al", "existing names are not migrated")
+    }
+
+    func testTheReducedFormulaAndTheLibraryName() {
+        XCTAssertEqual(AddPhaseModel.libraryName(formula: "Si", symbol: "Fd-3m", id: "mp-149", existing: []), "Si")
+        XCTAssertEqual(AddPhaseModel.libraryName(formula: "Si", symbol: "Fd-3m", id: "mp-149", existing: ["Al", "Si Nitride"]), "Si",
+                       "another formula that starts the same is no clash")
+        XCTAssertEqual(AddPhaseModel.libraryName(formula: "Si", symbol: "P6_3/mmc", id: "mp-1", existing: ["Si"]), "Si (P6_3/mmc)")
+        XCTAssertEqual(AddPhaseModel.libraryName(formula: "Si", symbol: "P6_3/mmc", id: "mp-1", existing: ["Si", "Si (P6_3/mmc)"]),
+                       "Si (mp-1)", "the same symbol twice falls back to the id")
+        XCTAssertEqual(AddPhaseModel.libraryName(formula: "Si", symbol: nil, id: "mp-1", existing: ["Si"]), "Si (mp-1)")
+        XCTAssertEqual(AddPhaseModel.libraryName(formula: "mp-1", symbol: "Fm-3m", id: "mp-1", existing: ["mp-1"]), "mp-1")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: CrystalPresets.silicon), "Si")
+    }
+
+    /// The elements come in pymatgen's `reduced_formula` order, by increasing electronegativity, counts reduced. Mutation: alphabetical
+    /// order ("O2Si") - red.
+    func testTheFormulaIsOrderedByElectronegativityAsPymatgenWritesIt() {
+        func structure(_ counts: [(Int, Int)]) -> CrystalStructure {
+            let sites = counts.flatMap { z, n in (0 ..< n).map { i in AtomSite(z: z, fractional: SIMD3(Double(i) / 10, 0, 0)) } }
+            return CrystalStructure(cell: UnitCell(a: 5, b: 5, c: 5, alphaDeg: 90, betaDeg: 90, gammaDeg: 90), sites: sites, operations: [.identity])
+        }
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(14, 4), (8, 8)])), "SiO2")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(26, 4), (8, 6)])), "Fe2O3")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(30, 2), (8, 2)])), "ZnO")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(13, 2), (8, 3)])), "Al2O3")
+        XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(31, 2), (7, 2)])), "GaN")
+    }
+
+    /// #1115: a search row writes the service's alphabetical formula in the order of the preview's name, so "GaAs" lists as GaAs, not
+    /// AsGa. Red before: the rows showed the service's form.
+    func testARowsFormulaIsWrittenInThePreviewNamesOrder() {
+        XCTAssertEqual(AddPhaseModel.displayFormula("AsGa"), "GaAs")
+        XCTAssertEqual(AddPhaseModel.displayFormula("AsGa3"), "Ga3As")
+        XCTAssertEqual(AddPhaseModel.displayFormula("O2Si"), "SiO2")
+        XCTAssertEqual(AddPhaseModel.displayFormula("Fe2O3"), "Fe2O3")
+        XCTAssertEqual(AddPhaseModel.displayFormula("FeO3Ti"), "TiFeO3")
+        XCTAssertEqual(AddPhaseModel.displayFormula("Au"), "Au")
+        XCTAssertEqual(AddPhaseModel.displayFormula("Al2Cu3Mg"), "MgAl2Cu3")
+        for garbage in ["", "mp-149", "asga", "Ga As", "GaGa", "Ga0As", "3Ga", "GaAs!"] {
+            XCTAssertEqual(AddPhaseModel.displayFormula(garbage), garbage, "not a formula: shown as it came")
+        }
+    }
+
+    /// The row and the preview's name agree for the same entry: the same element counts through `reducedFormula(of:)` (the
+    /// preview) and through the service's alphabetical formula (the row) give one text.
+    func testTheRowAndThePreviewNameAgree() {
+        func structure(_ counts: [(Int, Int)]) -> CrystalStructure {
+            let sites = counts.flatMap { z, n in (0 ..< n).map { i in AtomSite(z: z, fractional: SIMD3(Double(i) / 10, 0, 0)) } }
+            return CrystalStructure(cell: UnitCell(a: 5, b: 5, c: 5, alphaDeg: 90, betaDeg: 90, gammaDeg: 90), sites: sites, operations: [.identity])
+        }
+        let cases: [(served: String, counts: [(Int, Int)])] = [
+            ("AsGa", [(31, 4), (33, 4)]), ("AsGa3", [(31, 3), (33, 1)]), ("O2Si", [(14, 4), (8, 8)]),
+            ("FeO3Ti", [(26, 2), (8, 6), (22, 2)]), ("Al2Cu3Mg", [(13, 2), (29, 3), (12, 1)]),
+        ]
+        for (served, counts) in cases {
+            XCTAssertEqual(AddPhaseModel.displayFormula(served), AddPhaseModel.reducedFormula(of: structure(counts)), served)
+        }
     }
 
     @MainActor func testWithAKeyTheEntryComesFromTheKeyedServiceAndAFailureIsSaid() async throws {

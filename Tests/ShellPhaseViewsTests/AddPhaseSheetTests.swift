@@ -1,6 +1,7 @@
 //
 //  AddPhaseSheetTests.swift
 //  EMSuiteUI#189: the Add Phase sheet's order of closing and opening, its row text, and its snapshots in light and dark.
+//  EMSuiteUI#195: the preview's still unit-cell picture, what it draws and what VoiceOver says for it.
 //  The snapshots compare only on CI's macos-26 leg (SNAPSHOTS=1); a new picture is attached to the pull request and
 //  committed under __Snapshots__/AddPhaseSheetTests/ once reviewed. The entry fixture is DiffractoKit 0.20.0's recorded
 //  OPTIMADE answer for mp-134 (Al), copied unchanged.
@@ -8,8 +9,10 @@
 
 import DiffractoCore
 import Foundation
+import ShellCrystal
 import ShellPhaseLibrary
 import ShellSnapshotTesting
+import simd
 import SwiftUI
 import XCTest
 @testable import ShellPhaseViews
@@ -49,6 +52,59 @@ nonisolated final class AddPhaseSheetTests: XCTestCase {
         XCTAssertEqual(AddPhaseRow.stability(nil), "No stability data")
         XCTAssertEqual(AddPhaseRow.sites(1), "1 site")
         XCTAssertEqual(AddPhaseRow.sites(4), "4 sites")
+    }
+
+    /// #1115: a row writes its formula as the preview names the entry (GaAs, not the service's AsGa), and its id when it has none.
+    /// The row's VoiceOver label is its combined text, so it says the same. Red before: the row showed "AsGa".
+    @MainActor func testARowWritesItsFormulaAsThePreviewNamesIt() throws {
+        let data = Data("""
+        {"data":[
+          {"id":"mp-2534","type":"structures","attributes":{"nsites":2,"chemical_formula_reduced":"AsGa"}},
+          {"id":"mp-1184232","type":"structures","attributes":{"nsites":4,"chemical_formula_reduced":"AsGa3"}},
+          {"id":"mp-12","type":"structures","attributes":{"nsites":2}}
+        ],"meta":{"data_available":154387,"more_data_available":false}}
+        """.utf8)
+        guard case .rows(let rows, _) = try MaterialsProjectOptimade.decodeSearch(data) else { return XCTFail("no rows") }
+        // By id: the decoder orders the rows itself, and that order is not this test's subject.
+        let titles = Dictionary(uniqueKeysWithValues: rows.map { ($0.materialID, AddPhaseRow.title($0)) })
+        XCTAssertEqual(titles, ["mp-2534": "GaAs", "mp-1184232": "Ga3As", "mp-12": "mp-12"])
+    }
+
+    /// #1115: the preview says its cell is the Materials Project's computed one.
+    @MainActor func testThePreviewSaysTheCellIsComputed() {
+        XCTAssertEqual(AddPhasePreview.computedCellNote,
+                       "The Materials Project's computed (relaxed) cell; lattice parameters can differ from measured ones by a percent or two.")
+    }
+
+    // MARK: The unit-cell picture (#195)
+
+    /// The preview of mp-134 (aluminium, served primitive, shown conventional) draws its unit cell: every atom aluminium, the
+    /// cell's sites on each face they touch, the cell box, and words for VoiceOver. Red before: the preview had no picture.
+    @MainActor func testThePreviewDrawsTheEntrysUnitCellWithWordsForVoiceOver() async throws {
+        let model = try makeModel()
+        model.text = "Al"
+        await model.search()
+        model.selection = "mp-134"
+        await model.loadPreview()
+        guard case .ready(let preview) = model.preview else { return XCTFail("no preview: \(model.preview)") }
+
+        let scene = AddPhaseCrystal.scene(preview.structure)
+        XCTAssertNotNil(scene.cell, "the cell box is drawn")
+        XCTAssertGreaterThan(scene.atoms.count, preview.structure.sites.count, "a site on a face is drawn on every face it touches")
+        XCTAssertTrue(scene.atoms.allSatisfy { $0.atomicNumber == 13 })
+        let words = CrystalDescription.value(scene, showsUnitCell: true)
+        XCTAssertTrue(words.hasPrefix("\(scene.atoms.count) atoms: \(scene.atoms.count) aluminium"), words)
+        XCTAssertTrue(words.hasSuffix("unit cell shown"), words)
+        XCTAssertEqual(AddPhaseCrystal.label(name: "Al", materialID: "mp-134", formula: "Al"), "Unit cell of Al (mp-134)")
+        XCTAssertEqual(AddPhaseCrystal.label(name: "Corundum", materialID: "mp-1143", formula: "Al2O3"),
+                       "Unit cell of Corundum (mp-1143), Al2O3")
+
+        // A still view: a proper rotation, looking down c turned toward a and b, so the box reads in 3D.
+        let o = AddPhaseCrystal.orientation(preview.structure)
+        XCTAssertEqual(simd_determinant(o), 1, accuracy: 1e-12)
+        let c = simd_normalize(preview.structure.cell.realLattice[2])
+        XCTAssertGreaterThan(simd_dot(o.columns.2, c), 0.9)
+        XCTAssertLessThan(simd_dot(o.columns.2, c), 0.999)
     }
 
     // MARK: Snapshots

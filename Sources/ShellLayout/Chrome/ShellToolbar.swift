@@ -127,6 +127,19 @@ public nonisolated enum ToolbarDisplayFormat {
         "\(file) · \(room) · \(detail)"
     }
 
+    /// The idle line at each length, longest first: the whole line, then the detail's " · " parts dropped from its end one at a
+    /// time, then the file and the room alone. The display shows the first that fits, so a narrow toolbar loses the last facts
+    /// whole and never cuts a word mid-way ("863…nts", EMSuite/Electron-Microscopy-Studio#1090); only the last level truncates.
+    public static func idleLevels(file: String, room: String, detail: String) -> [String] {
+        let parts = detail.components(separatedBy: " · ").filter { !$0.isEmpty }
+        var out: [String] = []
+        for kept in stride(from: parts.count, through: 0, by: -1) {
+            let head = "\(file) · \(room)"
+            out.append(kept == 0 ? head : head + " · " + parts.prefix(kept).joined(separator: " · "))
+        }
+        return out
+    }
+
     /// The running line: the operation, then elapsed (and ETA once known), "Virtual detector · 0:53". An ETA the run
     /// cannot yet estimate is absent, never invented.
     public static func busy(operation: String, elapsed: TimeInterval?, eta: TimeInterval?) -> String {
@@ -173,12 +186,19 @@ public struct ToolbarRunDisplay: View {
             Group {
                 switch state {
                 case let .idle(file, room, detail, help):
-                    Text(ToolbarDisplayFormat.idle(file: file, room: room, detail: detail))
-                        .font(.subheadline)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .help(help ?? "")
-                        .accessibilityIdentifier("toolbar.display.idle")
+                    let levels = ToolbarDisplayFormat.idleLevels(file: file, room: room, detail: detail)
+                    let whole = ToolbarDisplayFormat.idle(file: file, room: room, detail: detail)
+                    ViewThatFits(in: .horizontal) {
+                        ForEach(levels.indices, id: \.self) { i in
+                            Text(levels[i]).lineLimit(1).truncationMode(.middle)
+                        }
+                    }
+                    .font(.subheadline)
+                    // The whole line on hover where a part was left out; the path where the app gives one.
+                    .help(help ?? whole)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(whole)
+                    .accessibilityIdentifier("toolbar.display.idle")
                 case let .busy(operation, progress, metrics):
                     busy(operation: operation, progress: progress, metrics: metrics)
                 }

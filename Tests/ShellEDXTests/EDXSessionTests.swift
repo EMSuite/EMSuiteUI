@@ -332,6 +332,16 @@ nonisolated final class EDXSessionTests: XCTestCase {
         XCTAssertFalse(session.isOpening)
     }
 
+    /// The open's status line names the file, as the other rooms' lines do, and a one-pixel file leaves out its 1 × 1 grid
+    /// (Electron-Microscopy-Studio#1026). Red before: "Opened — 1 × 1 px, 1024 channels".
+    func testTheOpenedLineNamesTheFile() {
+        XCTAssertEqual(EDXSession.openedLine(fileName: "EDS_SEM_TM002.hspy", width: 1, height: 1, channels: 1024),
+                       "Opened EDS_SEM_TM002.hspy — 1024 channels")
+        XCTAssertEqual(EDXSession.openedLine(fileName: "map.emd", width: 215, height: 926, channels: 4096),
+                       "Opened map.emd — 215 × 926 px, 4096 channels")
+        XCTAssertEqual(EDXSession.openedLine(fileName: "", width: 4, height: 3, channels: 8), "Opened — 4 × 3 px, 8 channels")
+    }
+
     /// A real Velox spectrum stream (SpectroKit's planted file: 4 x 3 pixels, 4096 channels of 20 eV from -1932.21348 eV) opens
     /// through the room: the grid, the axis and the sum are the file's. Red under: the reader not reached; the grid transposed.
     @MainActor func testAVeloxSpectrumStreamOpens() async throws {
@@ -351,7 +361,7 @@ nonisolated final class EDXSessionTests: XCTestCase {
         XCTAssertEqual(session.totalCounts, source.sum(mask: nil).reduce(0, +))
         XCTAssertGreaterThan(session.totalCounts, 0)
         XCTAssertEqual(events.first, "Opening velox-stream-spectrum.emd…")
-        XCTAssertTrue(events.contains { $0.hasPrefix("Opened — 4 × 3 px") }, "\(events)")
+        XCTAssertTrue(events.contains { $0.hasPrefix("Opened velox-stream-spectrum.emd — 4 × 3 px") }, "\(events)")
         XCTAssertNotEqual(SpectrumImageOpener.kind(ofFileAt: url.path), .other)
         session.close()
         XCTAssertFalse(session.hasImage)
@@ -550,7 +560,7 @@ nonisolated final class EDXSessionTests: XCTestCase {
     }
 
     /// A find the kit could not confirm (its K or L line outside the fitted range: `ElementCandidate.unconfirmable`) is listed as uncorroborated and never
-    /// added; a proposed pick by an M line whose L line the kit confirmed is added (Pt by Mα on the owner's 1456, reported by its stronger Lα group).
+    /// added (offered under "Also possible", EMSuiteUI#255); a proposed pick by an M line whose L line the kit confirmed is added (Pt by Mα on the owner's 1456, reported by its stronger Lα group).
     func testUnconfirmableFindsAreUncorroboratedAndConfirmedOnesAreAdded() {
         func c(_ el: String, _ group: String, _ e: Double, unconfirmable: Bool) -> ElementCandidate {
             ElementCandidate(element: el, group: group, energyKeV: e, net: 20_000, sigma: 10, sigmaZero: 10, criticalLevel: 500, detectionLimit: 1000,
@@ -598,8 +608,9 @@ nonisolated final class EDXSessionTests: XCTestCase {
 
     /// A near miss is offered, never added (EMSuiteUI#143, Paul 18 Nov: "suggest them, one click to add"): Mg on AlMgSi passes L_C and
     /// L_D but loses to the fit-gain bar (gain 81 < 100), so the kit lists it as possible. The outcome carries it as "Also possible",
-    /// not among the suggestions; a listed element, an unconfirmable find and one beside a listed line are not offered; a phase region
-    /// that proposes it moves it to the suggestions. Red under: no `possible` (the near miss shown nowhere but the notes).
+    /// not among the suggestions; a listed element and one beside a listed line are not offered; an unconfirmable find (Au by Lα) is offered,
+    /// strongest first, saying it is unconfirmed (EMSuiteUI#255); a phase region that proposes it moves it to the suggestions. Red under: no
+    /// `possible` (the near miss shown nowhere but the notes), and under the old rule that kept an unconfirmable find out of it.
     func testANearMissIsOfferedNotAdded() throws {
         func candidate(_ el: String, _ group: String, _ e: Double, net: Double, reason: String?, unconfirmable: Bool = false) -> ElementCandidate {
             ElementCandidate(element: el, group: group, energyKeV: e, net: net, sigma: 60, sigmaZero: 51.5, criticalLevel: 84.7, detectionLimit: 172,
@@ -614,17 +625,47 @@ nonisolated final class EDXSessionTests: XCTestCase {
         let settings = FitSettings.standard(elements: [], axis: axis, resolutionMnKaEV: 130, beamEnergy: 200)
         let o = EDXCompute.outcome(of: r, settings: settings, axis: axis, computedK: true, regionName: "Whole map")
         XCTAssertEqual(o.suggestions.map(\.symbol), ["Al"], "Auto ID adds only what passed")
-        XCTAssertEqual(o.possible.map(\.symbol), ["Mg"], "Au is unconfirmable, shown apart")
-        XCTAssertTrue(o.possible[0].reason.contains("Adding it improves the fit by 81"), o.possible[0].reason)
+        XCTAssertEqual(o.possible.map(\.symbol), ["Au", "Mg"], "Au (5.9 L_D, unconfirmable) is offered ahead of Mg (3.2 L_D)")
+        XCTAssertTrue(o.possible[0].reason.hasPrefix("unconfirmed, fit only (no computed k for L/M lines), by Au L"), o.possible[0].reason)
+        XCTAssertTrue(o.possible[1].reason.contains("Adding it improves the fit by 81"), o.possible[1].reason)
+        // Au Lα has no Kα in a 20 keV range for the computed k: offered fit only, so its lines leave the continuum and at% stays the others'
+        // (the YAlO₃ grid's Au L lift the continuum under Y Kα and cut its net by a fifth). Mg is quantified on its Kα. A typed k takes L lines.
+        XCTAssertEqual(o.possible.map(\.role), [.fitOnly, .quantify])
+        XCTAssertEqual(EDXCompute.outcome(of: r, settings: settings, axis: axis, computedK: false, regionName: "R").possible.first?.role, .quantify)
+        XCTAssertEqual(o.uncorroborated.count, 1, "the note stays")
 
         let listed = FitSettings.standard(elements: ["Mg"], axis: axis, resolutionMnKaEV: 130, beamEnergy: 200)
-        XCTAssertTrue(EDXCompute.outcome(of: r, settings: listed, axis: axis, computedK: true, regionName: "R").possible.isEmpty, "a listed element is not offered")
+        XCTAssertEqual(EDXCompute.outcome(of: r, settings: listed, axis: axis, computedK: true, regionName: "R").possible.map(\.symbol), ["Au"],
+                       "a listed element is not offered")
 
         let phase = EDXCompute.AutoIDOutcome(region: "beta''", suggestions: [EDXCompute.Suggestion(symbol: "Mg", role: .quantify, reason: "6.1 \u{00D7} L_D")],
                                              suspects: [], excesses: [], notes: [])
         let both = o.adding(phase)
         XCTAssertEqual(both.suggestions.map(\.symbol), ["Al", "Mg"])
-        XCTAssertTrue(both.possible.isEmpty, "found in a phase: a suggestion, no longer a near miss")
+        XCTAssertEqual(both.possible.map(\.symbol), ["Au"], "Mg found in a phase: a suggestion, no longer a near miss")
+    }
+
+    /// One peak is offered once (EMSuiteUI#255, the YAlO₃ spectrum's grid peaks): Au found by its Lα at 9.713 keV (unconfirmable, its K line past the
+    /// range) and Pt, a weaker near miss by Lα 9.442 keV under the same peak, 271 eV away (within 2 FWHM(E), 321 eV at 130 eV Mn Kα). "Also possible"
+    /// offers Au and not Pt; Au stays in the uncorroborated note and is never added. Red under: the old rule (Pt offered, Au not).
+    func testAnUnconfirmableLFindIsOfferedAndItsWeakerNeighbourIsNot() {
+        func candidate(_ el: String, _ group: String, _ e: Double, net: Double, reason: String?, unconfirmable: Bool = false) -> ElementCandidate {
+            ElementCandidate(element: el, group: group, energyKeV: e, net: net, sigma: 60, sigmaZero: 51.5, criticalLevel: 84.7, detectionLimit: 172,
+                             conflicts: [], suggestedRole: .quantify, holeRegionNote: nil, misfit: 1, possibleReason: reason, unconfirmable: unconfirmable)
+        }
+        let al = candidate("Al", "Al_Ka", 1.486, net: 26_000, reason: nil)
+        let au = candidate("Au", "Au_La", 9.713, net: 1014, reason: "Found by its L\u{03B1} alone.", unconfirmable: true)
+        let pt = candidate("Pt", "Pt_La", 9.442, net: 160, reason: "Adding it improves the fit by 40, below the 100 a new line needs.")
+        let mg = candidate("Mg", "Mg_Ka", 1.254, net: 544.1, reason: "Adding it improves the fit by 81, below the 100 a new line needs.")
+        let r = ProposalResult(candidates: [al, pt, mg, au], sumPeaks: [], refused: [], currie: .standard, notes: [], passes: 1, settled: true)
+        XCTAssertTrue(r.possible.contains { $0.element == "Pt" }, "setup: the kit lists Pt as possible")
+        let axis = EnergyAxis(offset: 0, scale: 0.01, size: 2000)
+        let settings = FitSettings.standard(elements: [], axis: axis, resolutionMnKaEV: 130, beamEnergy: 200)
+        let o = EDXCompute.outcome(of: r, settings: settings, axis: axis, computedK: true, regionName: "Whole map")
+        XCTAssertEqual(o.suggestions.map(\.symbol), ["Al"], "Auto ID never adds an unconfirmable find")
+        XCTAssertEqual(o.possible.map(\.symbol), ["Au", "Mg"], "Pt sits under Au's peak and is weaker: not offered twice")
+        XCTAssertTrue(o.possible[0].reason.hasPrefix("unconfirmed, fit only (no computed k for L/M lines), by Au L"), o.possible[0].reason)
+        XCTAssertTrue(o.uncorroborated.first?.hasPrefix("Au by") == true, "\(o.uncorroborated)")
     }
 
     /// The compute cache is bounded and least-recently-used first: past the budget the oldest map goes, a read keeps a map, the newest is

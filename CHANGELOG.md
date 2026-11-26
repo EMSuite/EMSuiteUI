@@ -2,6 +2,63 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.19.0](https://github.com/EMSuite/EMSuiteUI/compare/0.18.1...0.19.0) (2026-11-26)
+
+
+### Features
+
+* the bottom area can show its panes as tabs, one at full width with one toggle ([#266](https://github.com/EMSuite/EMSuiteUI/issues/266)) ([0b0ad86](https://github.com/EMSuite/EMSuiteUI/commit/0b0ad86e496f6f45cd3c998d4d10ce6a5628bc0a))
+* the image view can draw an image smooth, for coarse simulated scans ([#269](https://github.com/EMSuite/EMSuiteUI/issues/269)) ([e6a249f](https://github.com/EMSuite/EMSuiteUI/commit/e6a249ff8cae48ad1c3f519d2e3be95f547d6d38))
+
+
+### Bug Fixes
+
+* Add Phase lists formulas as the preview names them, and says the cell is a computed one ([#268](https://github.com/EMSuite/EMSuiteUI/issues/268)) ([536d320](https://github.com/EMSuite/EMSuiteUI/commit/536d3203ed39738fac7807d9018b32e65ebd8625))
+
+## [0.18.1](https://github.com/EMSuite/EMSuiteUI/compare/0.18.0...0.18.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* the package manifest names the kits at the EMSuite org ([#264](https://github.com/EMSuite/EMSuiteUI/issues/264)) ([91250ed](https://github.com/EMSuite/EMSuiteUI/commit/91250edf50b830976a46e050a411419a027b7d89))
+
+## [0.18.0](https://github.com/EMSuite/EMSuiteUI/compare/0.17.0...0.18.0) (2026-11-25)
+
+
+### Features
+
+* a unit-cell picture in the Add Phase preview ([#245](https://github.com/EMSuite/EMSuiteUI/issues/245)) ([274c373](https://github.com/EMSuite/EMSuiteUI/commit/274c373dd9705191f5803cc3cb549ebd6d18abd2))
+* agent door tools read and set how the EDS maps are drawn and show the maps figure ([#248](https://github.com/EMSuite/EMSuiteUI/issues/248)) ([3452406](https://github.com/EMSuite/EMSuiteUI/commit/3452406179af90af40e70d10eec693dc72b4129d))
+* one shared centre with two panels for every room ([#262](https://github.com/EMSuite/EMSuiteUI/issues/262)) ([2b70c82](https://github.com/EMSuite/EMSuiteUI/commit/2b70c8200833faa4b82a9b78ed1855f41acea8cd))
+
+
+### Bug Fixes
+
+* a library phase still named by its Materials Project id takes its formula on load ([#259](https://github.com/EMSuite/EMSuiteUI/issues/259)) ([1e32fb0](https://github.com/EMSuite/EMSuiteUI/commit/1e32fb0fd460b0c71da92e708265ccafab9db619))
+* a Materials Project search lists the exact match first, then fewer elements, then the most stable ([#252](https://github.com/EMSuite/EMSuiteUI/issues/252)) ([3186159](https://github.com/EMSuite/EMSuiteUI/commit/3186159cc4516679e69b60d0879f11f3f106b704))
+* a refused set_eds call changes nothing ([#244](https://github.com/EMSuite/EMSuiteUI/issues/244)) ([f7a466f](https://github.com/EMSuite/EMSuiteUI/commit/f7a466fd9db425b4bfe59dc0c844dc2273c426e3))
+* Add for an L-line near miss with no computed k adds it fit only ([#258](https://github.com/EMSuite/EMSuiteUI/issues/258)) ([13cd33d](https://github.com/EMSuite/EMSuiteUI/commit/13cd33da11bd9a5a2edd00e0e4fa9d07455b00e3))
+* EDS Auto ID offers an L-line find such as Au under Also possible, not its weaker neighbour ([#255](https://github.com/EMSuite/EMSuiteUI/issues/255)) ([#256](https://github.com/EMSuite/EMSuiteUI/issues/256)) ([e54da4f](https://github.com/EMSuite/EMSuiteUI/commit/e54da4f22f0aea8cb346cc1eb3429d42acdb27d6))
+* Materials Project phases are named by their reduced formula, with the space group only where two share it ([#250](https://github.com/EMSuite/EMSuiteUI/issues/250)) ([15d21c6](https://github.com/EMSuite/EMSuiteUI/commit/15d21c67df8893e646c0ed05e1416855d0af66b8))
+* the EDS header says at% not computed, and why, instead of a Quantified check ([290f2c9](https://github.com/EMSuite/EMSuiteUI/commit/290f2c9b8e716f2502d7727ff347b622f439e1b9))
+* the EDS open's status line names the file and leaves out a one-pixel grid ([290f2c9](https://github.com/EMSuite/EMSuiteUI/commit/290f2c9b8e716f2502d7727ff347b622f439e1b9))
+* the toolbar's idle line drops its last facts whole where it does not fit, never cutting a word ([#260](https://github.com/EMSuite/EMSuiteUI/issues/260)) ([f73a061](https://github.com/EMSuite/EMSuiteUI/commit/f73a061ba880118e9019273a4456cb3c288a1e05))
+* VoiceOver names the agent switches and the histogram's limit readouts ([290f2c9](https://github.com/EMSuite/EMSuiteUI/commit/290f2c9b8e716f2502d7727ff347b622f439e1b9))
+
+## [0.17.0](https://github.com/EMSuite/EMSuiteUI/compare/0.16.0...0.17.0) (2026-11-24)
+
+
+### Features
+
+* ShellExport lays out a spectrum and a map as vector figures ([#238](https://github.com/EMSuite/EMSuiteUI/issues/238)) ([0d17c76](https://github.com/EMSuite/EMSuiteUI/commit/0d17c7667bb5731058d7f7ad8b394f5bdf4ddc89))
+* the EDS room writes its spectrum and maps as PDF or SVG figures ([#241](https://github.com/EMSuite/EMSuiteUI/issues/241)) ([c643113](https://github.com/EMSuite/EMSuiteUI/commit/c6431131716cd268786326e15e8a0991f1f1cf3c))
+
+
+### Bug Fixes
+
+* crystal view keeps long slabs whole and draws a slab's outline ([#235](https://github.com/EMSuite/EMSuiteUI/issues/235)) ([2a8a15c](https://github.com/EMSuite/EMSuiteUI/commit/2a8a15c564c6171b068de28ceecfe638bc3cd581))
+* set_eds keeps a named region in one call, feedback drafts keep a plus sign, and two diagnostic deliveries in a second keep every report ([#240](https://github.com/EMSuite/EMSuiteUI/issues/240)) ([b73360d](https://github.com/EMSuite/EMSuiteUI/commit/b73360d6a64137a17e81270c65d74898dbe72aac))
+
 ## [0.16.0](https://github.com/EMSuite/EMSuiteUI/compare/0.15.0...0.16.0) (2026-11-24)
 
 

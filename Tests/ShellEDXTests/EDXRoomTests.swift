@@ -30,6 +30,18 @@ nonisolated final class EDXRoomTests: XCTestCase {
         XCTAssertEqual(EDXRoomFormat.statusText(quantified: true, hasPicks: true), "Quantified · live ✓")
     }
 
+    /// A fit whose composition was refused shows no success check, and the results header names the refusal where the at% dashes
+    /// are (Electron-Microscopy-Studio#1027). Red before: "Quantified · live ✓" over a column of dashes, the reason only in the notes.
+    func testARefusedCompositionIsNotAQuantifiedCheck() throws {
+        XCTAssertEqual(EDXRoomFormat.statusText(quantified: true, hasPicks: true, atPercentRefused: true), "Fitted · at% not computed")
+        XCTAssertEqual(EDXRoomFormat.statusText(quantified: false, hasPicks: true, atPercentRefused: true), "Identified")
+        let format = squeezed(try source("Sources/ShellSpectroscopy/EDX/EDXRoomFormat.swift"))
+        XCTAssertTrue(format.contains("let refused = session.fit.map { !$0.hasAbundance } ?? false"))
+        let panel = squeezed(try source("Sources/ShellSpectroscopy/EDX/EDXResultsPanel.swift"))
+        XCTAssertTrue(panel.contains("if let fit, !fit.hasAbundance {"))
+        XCTAssertTrue(panel.contains(".accessibilityIdentifier(\"edx.atPercentRefused\")"))
+    }
+
     /// Quantify is the room's one verb, in the app's toolbar; the header holds no button for it or for Stop. Red under: the header's
     /// Quantify or Stop button back in `EDXRoom.swift`.
     func testQuantifyAndStopLeaveTheHeader() throws {
@@ -366,7 +378,8 @@ nonisolated final class EDXRoomTests: XCTestCase {
     // MARK: Export kinds
 
     func testTheExportKindsNameTheirFiles() {
-        XCTAssertEqual(EDXExportKind.allCases.map(\.suffix), [" quantification", " method", " spectrum", " spectrum", " pins", " maps", " composition by class"])
+        XCTAssertEqual(EDXExportKind.allCases.map(\.suffix), [" quantification", " method", " spectrum", " spectrum", " pins", " maps", " composition by class",
+                                                             " spectrum", " spectrum", " maps", " maps"])
         XCTAssertEqual(EDXExportKind.method.contentType, .json)
         XCTAssertEqual(EDXExportKind.results.contentType, .commaSeparatedText)
         XCTAssertEqual(EDXExportKind.spectrum.contentType, .commaSeparatedText)

@@ -2,7 +2,8 @@
 //  AddPhaseSheet.swift
 //  Role: the Add Phase sheet both apps show (EMSuiteUI#189, plan section 5.2), first slice: a search field that has the
 //        focus, the matches, a preview of the chosen entry with its id and licence, Add, and Open CIF…, which closes the
-//        sheet before the app shows its file dialog. Resizable. Everything it says comes from `AddPhaseModel`. Its second
+//        sheet before the app shows its file dialog. Resizable. Everything it says comes from `AddPhaseModel`.
+//        The preview opens with a still picture of the entry's unit cell (EMSuiteUI#195, `AddPhaseCellPicture`). Its second
 //        page is My Phases (EMSuiteUI#191): the library's phases, their names, notes, Reset to Source and Delete.
 //
 
@@ -197,7 +198,7 @@ struct AddPhaseRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(row.formula ?? row.materialID).font(.body.weight(.medium))
+                Text(Self.title(row)).font(.body.weight(.medium))
                 Text(row.materialID).font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
             Spacer()
@@ -213,6 +214,11 @@ struct AddPhaseRow: View {
 
     static func sites(_ n: Int) -> String { n == 1 ? "1 site" : "\(n) sites" }
 
+    /// The row's formula in the order the preview's name writes it ("GaAs", not the service's "AsGa"; #1115), else its id.
+    static func title(_ row: MaterialsProjectOptimade.Row) -> String {
+        row.formula.map { AddPhaseModel.displayFormula($0) } ?? row.materialID
+    }
+
     /// "Stable" on the hull, else its height above it in eV per atom.
     static func stability(_ energy: Double?) -> String {
         guard let energy else { return "No stability data" }
@@ -221,7 +227,8 @@ struct AddPhaseRow: View {
     }
 }
 
-/// The chosen entry: name, id and licence, cell and symmetry, as the kit read them.
+/// The chosen entry: a still picture of its unit cell, name, id and licence, cell and symmetry, as the kit read them, and a note
+/// that the cell is a computed one.
 struct AddPhasePreview: View {
     let state: AddPhaseModel.PreviewState
     let inLibrary: Bool
@@ -252,6 +259,9 @@ struct AddPhasePreview: View {
         let cell = p.structure.cell
         return Form {
             Section {
+                AddPhaseCellPicture(preview: p)
+            }
+            Section {
                 LabeledContent("Name", value: p.name)
                 LabeledContent("Formula", value: p.structure.formula)
                 if let number = p.structure.spaceGroupNumber { LabeledContent("Space group", value: "No. \(number)") }
@@ -264,6 +274,7 @@ struct AddPhasePreview: View {
                 if p.converted {
                     Text("Served as a primitive cell; shown as the conventional cell.").font(.caption).foregroundStyle(.secondary)
                 }
+                Text(Self.computedCellNote).font(.caption).foregroundStyle(.secondary)
             }
             Section {
                 if let url = URL(string: "https://next-gen.materialsproject.org/materials/\(p.materialID)") {
@@ -276,4 +287,9 @@ struct AddPhasePreview: View {
         }
         .formStyle(.grouped)
     }
+
+    /// Every preview is a Materials Project entry (a CIF of the person's own opens after the sheet has closed, never here), and
+    /// its cell is the one the Materials Project computed (#1115).
+    static let computedCellNote =
+        "The Materials Project's computed (relaxed) cell; lattice parameters can differ from measured ones by a percent or two."
 }

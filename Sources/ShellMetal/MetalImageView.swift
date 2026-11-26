@@ -124,10 +124,33 @@ public struct MetalImageView {
     public var gamma: Float
     /// Where the image sits in the pane; nil = the whole image over the view.
     public var displayTransform: MetalDisplayTransform?
+    /// How a magnified pane pixel reads the image: the nearest pixel (the default, right for recorded data: a pixel is a
+    /// pixel), or the values of the four around it blended. Zoomed out, the pane's footprint average is the same in both.
+    public var sampling: Sampling = .nearest
+
+    /// How the scalar image is read between pixel centres.
+    ///
+    /// `.linear` blends the DATA values bilinearly before the transfer, window, gamma and colormap, with pixel centres at
+    /// (i + 0.5) / n and the edge pixels clamped (no wrap, no dark border), as abTEM and matplotlib show a coarse simulated
+    /// scan sampled at the Nyquist step. A masked or non-finite pixel among the four is not blended: that read stays nearest,
+    /// so a mask keeps its edge. Packed RGBA (`rgba`: colour wheels, composites coloured elsewhere) always draws nearest.
+    /// The view cannot tell a wrapped phase, a label map or a categorical image from intensities: opt in for intensities only.
+    /// A figure export draws its own `FigureRaster` nearest at its own pixels (ShellExport), not this view: it does not follow.
+    public nonisolated enum Sampling: Equatable, Sendable {
+        case nearest
+        case linear
+    }
 
     public func displayTransform(_ transform: MetalDisplayTransform) -> MetalImageView {
         var copy = self
         copy.displayTransform = transform
+        return copy
+    }
+
+    /// This view drawing its image with `sampling` (`.linear` for a coarse simulated scan).
+    public func sampling(_ sampling: Sampling) -> MetalImageView {
+        var copy = self
+        copy.sampling = sampling
         return copy
     }
 
@@ -143,8 +166,10 @@ public struct MetalImageView {
         gamma: Float = 1,
         pixelScale: PixelScale = .normalized,
         nativePixels: NativePixels? = nil,
-        transfer: DisplayTransfer = .linear
+        transfer: DisplayTransfer = .linear,
+        sampling: Sampling = .nearest
     ) {
+        self.sampling = sampling
         self.pixelScale = pixelScale
         self.nativePixels = nativePixels
         self.transfer = transfer
@@ -181,6 +206,8 @@ public struct MetalImageView {
         var hasNativePixels: Bool
         /// A change of transfer redraws the same image: nothing is rebuilt.
         var transfer: DisplayTransfer
+        /// So is a change of sampling.
+        var sampling: Sampling
     }
 
     /// The state this view asks the coordinator to show.
@@ -190,7 +217,42 @@ public struct MetalImageView {
             colormap: colormap, displayLo: displayLo, displayHi: displayHi,
             effectiveGamma: max(gamma, 0.05), hasRGBA: rgba != nil,
             displayTransform: displayTransform, pixelScale: pixelScale, hasNativePixels: nativePixels != nil,
-            transfer: transfer)
+            transfer: transfer, sampling: sampling)
+    }
+
+    /// The four pixels and the weights a linear read at image `uv` blends, as `Colormaps.metal`'s `linearScalarColor` takes
+    /// them: the cell is floor(uv * n - 0.5) (pixel centres at (i + 0.5) / n), the weights its fraction, and each neighbour
+    /// is clamped to [0, n - 1].
+    nonisolated struct LinearTaps: Equatable, Sendable {
+        var x0: Int
+        var x1: Int
+        var y0: Int
+        var y1: Int
+        var wx: Float
+        var wy: Float
+    }
+
+    /// `LinearTaps` at a finite `uv` in a `width` × `height` image (both at least 1), in the shader's Float32 arithmetic.
+    nonisolated static func linearTaps(uv: SIMD2<Float>, width: Int, height: Int) -> LinearTaps {
+        let px = min(max(uv.x, 0), 1) * Float(width) - 0.5
+        let py = min(max(uv.y, 0), 1) * Float(height) - 0.5
+        let cx = px.rounded(.down), cy = py.rounded(.down)
+        let ix = Int(cx), iy = Int(cy)
+        return LinearTaps(x0: min(max(ix, 0), width - 1), x1: min(max(ix + 1, 0), width - 1),
+                          y0: min(max(iy, 0), height - 1), y1: min(max(iy + 1, 0), height - 1),
+                          wx: px - cx, wy: py - cy)
+    }
+
+    /// The display value a linear read at `uv` blends from row-major `pixels`, the shader's `linearScalarColor` before its
+    /// colour; nil when a pixel among the four is masked (negative) or not finite, where the shader reads the nearest pixel.
+    nonisolated static func linearSample(_ pixels: [Float], width: Int, height: Int, uv: SIMD2<Float>) -> Float? {
+        let t = linearTaps(uv: uv, width: width, height: height)
+        let v00 = pixels[t.y0 * width + t.x0], v10 = pixels[t.y0 * width + t.x1]
+        let v01 = pixels[t.y1 * width + t.x0], v11 = pixels[t.y1 * width + t.x1]
+        guard [v00, v10, v01, v11].allSatisfy({ $0.isFinite && $0 >= 0 }) else { return nil }
+        let top = v00 + (v10 - v00) * t.wx
+        let bottom = v01 + (v11 - v01) * t.wx
+        return top + (bottom - top) * t.wy
     }
 
     fileprivate func makeMetalView(_ coordinator: Coordinator) -> MTKView {
@@ -207,6 +269,7 @@ public struct MetalImageView {
         coordinator.view = view
         // The shader samples the data texture nearest, so zoomed data pixels
         // stay crisp; this keeps the layer itself from interpolating either.
+        // `.linear` sampling blends in the shader, on a drawable the pane's size, so the layer stays nearest for it too.
         view.layer?.magnificationFilter = .nearest
         Self.tagColorSpace(view.layer as? CAMetalLayer)
         return view
@@ -231,6 +294,7 @@ public struct MetalImageView {
         coordinator.displayRange = SIMD2<Float>(displayLo, displayHi)
         coordinator.gamma = max(gamma, 0.05)
         coordinator.transfer = transfer
+        coordinator.sampling = sampling
         coordinator.displayTransform = displayTransform
         // Redraw only when something the pane shows changed (a size or scale
         // change redraws through `drawableSizeWillChange` and the window hooks).
@@ -314,6 +378,7 @@ public struct MetalImageView {
         var displayRange = SIMD2<Float>(0, 1)
         var gamma: Float = 1
         var transfer: DisplayTransfer = .linear
+        var sampling: Sampling = .nearest
         var displayTransform: MetalDisplayTransform?
 
         private var dataImage: DisplayImage?
@@ -433,6 +498,11 @@ public struct MetalImageView {
             return SIMD4<Float>(1, range.lowerBound, range.upperBound - range.lowerBound, 0)
         }
 
+        /// The shader's display parameters: (lo, hi, gamma, sampling), sampling 0 for nearest and 1 for linear.
+        nonisolated static func displayParameters(range: SIMD2<Float>, gamma: Float, sampling: Sampling) -> SIMD4<Float> {
+            SIMD4<Float>(range.x, range.y, gamma, sampling == .linear ? 1 : 0)
+        }
+
         func rebuildLUTIfNeeded() {
             guard lutDirty || lutTexture == nil, let engine = MetalEngine.available else { return }
             lutTexture = engine.device.makeLUTTexture(
@@ -482,7 +552,7 @@ public struct MetalImageView {
             if let rgbaTexture {
                 encoder.setFragmentTexture(rgbaTexture, index: 0)
             } else {
-                var display = SIMD4<Float>(displayRange.x, displayRange.y, gamma, 0)
+                var display = Self.displayParameters(range: displayRange, gamma: gamma, sampling: sampling)
                 encoder.setFragmentBytes(
                     &display, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
                 if let dataImage {

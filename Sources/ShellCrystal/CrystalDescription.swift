@@ -14,7 +14,8 @@ public nonisolated enum CrystalDescription {
         let parts = counts.map { "\($0.count) \(CrystalElements.name(z: $0.atomicNumber).lowercased())" }
         var text = "\(total) \(total == 1 ? "atom" : "atoms"): " + parts.joined(separator: ", ")
         if !scene.bonds.isEmpty { text += ", \(scene.bonds.count) \(scene.bonds.count == 1 ? "bond" : "bonds")" }
-        if showsUnitCell, scene.cell != nil { text += ", unit cell shown" }
+        if showsUnitCell, scene.outline != nil { text += ", slab box shown" }
+        else if showsUnitCell, scene.cell != nil { text += ", unit cell shown" }
         return text
     }
 

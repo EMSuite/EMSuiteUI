@@ -199,6 +199,9 @@ public struct HistogramChart: View {
             .allowsHitTesting(false)
     }
 
+    /// The edge readout's spoken name: "Low limit" or "High limit", its value read after it.
+    nonisolated static func edgeAccessibilityLabel(isLow: Bool) -> String { isLow ? "Low limit" : "High limit" }
+
     private func readout(_ label: String, _ value: Float) -> some View {
         VStack(spacing: 1) {
             Text(label).foregroundStyle(.tertiary)
@@ -230,6 +233,9 @@ public struct HistogramChart: View {
                     }
                     .buttonStyle(.plain)
                     .help("Click to type the window's \(isLow ? "low" : "high") value")
+                    // VoiceOver read the bare number ("0", "20109"): the limit's name, its value (Electron-Microscopy-Studio#1023).
+                    .accessibilityLabel(Self.edgeAccessibilityLabel(isLow: isLow))
+                    .accessibilityValue(valueText(edge))
                     .accessibilityIdentifier(isLow ? "histogram.min" : "histogram.max")
                 }
             }

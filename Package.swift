@@ -45,13 +45,13 @@ let package = Package(
     ],
     dependencies: [
         // ScaleBarMath (PaneFooter/ScaleBar). The apps pin exact tags.
-        .package(url: "https://github.com/mac4DSTEM/ImagoKit", from: "0.7.0"),
+        .package(url: "https://github.com/EMSuite/ImagoKit", from: "0.7.0"),
         // The shared EDS room (ShellEDXModel, ShellSpectroscopy/EDX): SpectroKit holds its numerics, FormatoKit the MSA writer and the
         // provenance. The two move together (one HDF5 lock); the apps pin exact tags.
-        .package(url: "https://github.com/mac4DSTEM/SpectroKit", from: "0.12.0"),
-        .package(url: "https://github.com/mac4DSTEM/FormatoKit", from: "0.11.0"),
+        .package(url: "https://github.com/EMSuite/SpectroKit", from: "0.12.0"),
+        .package(url: "https://github.com/EMSuite/FormatoKit", from: "0.11.0"),
         // The phase library's structures (CrystalStructure.Snapshot). The apps pin exact tags.
-        .package(url: "https://github.com/mac4DSTEM/DiffractoKit", from: "0.21.0"),
+        .package(url: "https://github.com/EMSuite/DiffractoKit", from: "0.21.0"),
     ],
     targets: [
         .target(name: "ShellMetal",
@@ -72,16 +72,18 @@ let package = Package(
                                .product(name: "ImagoFilters", package: "ImagoKit")],
                 swiftSettings: shellSettings),
         .target(name: "ShellSpectroscopy",
-                dependencies: ["ShellMetal", "ShellControls", "ShellInspector", "ShellLayout", "ShellEDXModel",
+                dependencies: ["ShellMetal", "ShellControls", "ShellInspector", "ShellLayout", "ShellEDXModel", "ShellExport",
                                .product(name: "SpectroCore", package: "SpectroKit"),
                                .product(name: "SpectroEDX", package: "SpectroKit")],
                 swiftSettings: shellSettings),
         // The agent door both apps share (docs/agent-door.md): a local, read-only API an agent on this Mac reaches through the
         // MCP server over HTTP. Network.framework only; each app registers its own tools.
         .target(name: "ShellAgentDoor", swiftSettings: shellSettings),
-        // The EDS room's agent tools, written once for both apps (each says how a window reaches its EDS session).
+        // The EDS room's agent tools, written once for both apps (each says how a window reaches its EDS session and, for the map
+        // display tools, the room's view state).
         .target(name: "ShellEDXAgent",
-                dependencies: ["ShellAgentDoor", "ShellEDXModel", .product(name: "SpectroEDX", package: "SpectroKit")],
+                dependencies: ["ShellAgentDoor", "ShellEDXModel", "ShellSpectroscopy", "ShellMetal",
+                               .product(name: "SpectroCore", package: "SpectroKit"), .product(name: "SpectroEDX", package: "SpectroKit")],
                 swiftSettings: shellSettings),
         // Snapshot tests: a view drawn in light and dark and compared with the PNG committed beside its test. AppKit hosts the view
         // (NSHostingView) so AppKit-backed controls draw; no XCTest, so app targets may link it.
@@ -101,10 +103,10 @@ let package = Package(
         // The phase library's model (docs: plan section 5.2): the record, the store, the key store and the Materials Project
         // client. No SwiftUI; the requests and the decoding are DiffractoKit's, this target sends and stores.
         .target(name: "ShellPhaseLibrary", dependencies: [.product(name: "DiffractoCore", package: "DiffractoKit")], swiftSettings: modelSettings),
-        // The phase library's views: the Add Phase sheet (EMSuiteUI#189), My Phases and the lattice fields a room's inspector
-        // shows for the phase in use (EMSuiteUI#191).
+        // The phase library's views: the Add Phase sheet (EMSuiteUI#189), its preview's unit-cell picture in the crystal view (#195),
+        // My Phases and the lattice fields a room's inspector shows for the phase in use (EMSuiteUI#191).
         .target(name: "ShellPhaseViews",
-                dependencies: ["ShellPhaseLibrary", "ShellInspector", .product(name: "DiffractoCore", package: "DiffractoKit")],
+                dependencies: ["ShellPhaseLibrary", "ShellInspector", "ShellCrystal", .product(name: "DiffractoCore", package: "DiffractoKit")],
                 swiftSettings: shellSettings),
         // Quick Look for both apps' extensions (EMSuiteUI#225): the thumbnail's pixels and the preview card with its scale bar, from
         // FormatoKit's Peek. A sandboxed extension links it: FormatoPeek, ImagoCore (ScaleBarMath) and SwiftUI's ImageRenderer only.
@@ -128,7 +130,7 @@ let package = Package(
         .testTarget(name: "ShellPhaseLibraryTests", dependencies: ["ShellPhaseLibrary", .product(name: "DiffractoCore", package: "DiffractoKit")],
                     resources: [.copy("Fixtures")], swiftSettings: modelSettings),
         .testTarget(name: "ShellPhaseViewsTests",
-                    dependencies: ["ShellPhaseViews", "ShellPhaseLibrary", "ShellInspector", "ShellSnapshotTesting",
+                    dependencies: ["ShellPhaseViews", "ShellPhaseLibrary", "ShellInspector", "ShellSnapshotTesting", "ShellCrystal",
                                    .product(name: "DiffractoCore", package: "DiffractoKit")],
                     exclude: ["__Snapshots__"], resources: [.copy("Fixtures")], swiftSettings: shellSettings),
         .testTarget(name: "ShellAgentDoorTests", dependencies: ["ShellAgentDoor"], swiftSettings: shellSettings),
@@ -138,7 +140,7 @@ let package = Package(
                                    .product(name: "ImagoCore", package: "ImagoKit")],
                     swiftSettings: modelSettings),
         .testTarget(name: "ShellEDXTests",
-                    dependencies: ["ShellEDXModel", "ShellSpectroscopy", "ShellLayout", "ShellEDXAgent", "ShellAgentDoor",
+                    dependencies: ["ShellEDXModel", "ShellSpectroscopy", "ShellLayout", "ShellEDXAgent", "ShellAgentDoor", "ShellExport",
                                    .product(name: "FormatoCore", package: "FormatoKit"),
                                    .product(name: "FormatoMSA", package: "FormatoKit"),
                                    .product(name: "SpectroCore", package: "SpectroKit"),

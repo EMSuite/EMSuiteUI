@@ -331,7 +331,7 @@ public final class EDXSession {
         method.beamEnergyKeV = nil
         method.elements = []
         let meta = source.metadata
-        onEvent?("Opened — \(meta.scanWidth) × \(meta.scanHeight) px, \(meta.channelCount) channels")
+        onEvent?(Self.openedLine(fileName: meta.fileName, width: meta.scanWidth, height: meta.scanHeight, channels: meta.channelCount))
         let first = refresh()
         let chain = Task { [weak self] in
             await first?.value
@@ -340,6 +340,15 @@ public final class EDXSession {
         }
         bindTask = chain
         return chain
+    }
+
+    /// The status line of an open, naming the file as the other rooms' lines do ("Opened <name> — …", Electron-Microscopy-Studio#1026):
+    /// "Opened map.emd — 215 × 926 px, 4096 channels", and for a one-pixel file "Opened EDS_SEM_TM002.hspy — 1024 channels" (its grid
+    /// says nothing).
+    package nonisolated static func openedLine(fileName: String, width: Int, height: Int, channels: Int) -> String {
+        let opened = fileName.isEmpty ? "Opened" : "Opened \(fileName)"
+        let grid = width * height == 1 ? "" : "\(width) × \(height) px, "
+        return "\(opened) — \(grid)\(channels) channels"
     }
 
     public func close() {
@@ -397,10 +406,11 @@ public final class EDXSession {
         (autoID.outcome?.possible ?? []).filter { s in !picks.contains { $0.symbol == s.symbol } }
     }
 
-    /// Adds one of `alsoPossible` as a pick by hand (Quantify), as a click on the periodic table does.
+    /// Adds one of `alsoPossible` as a pick by hand, in the role Auto ID gives it: Quantify, or Fit only for an element found by an L or M line
+    /// with no Kα for the computed k (Au Lα: its lines are fitted and at% stays the others').
     public func addPossible(_ symbol: String) {
-        guard hasImage, alsoPossible.contains(where: { $0.symbol == symbol }) else { return }
-        add(symbol, role: .quantify, manual: true)
+        guard hasImage, let suggestion = alsoPossible.first(where: { $0.symbol == symbol }) else { return }
+        add(symbol, role: suggestion.role, manual: true)
     }
 
     public func setRole(_ role: EDXRole, of symbol: String) {
@@ -535,6 +545,25 @@ public final class EDXSession {
         let before = pins.count
         pinRegion()
         if pins.count != before { refreshPinData() }
+    }
+
+    /// Whether a shape drawn on a map would select pixels of the scan, as `selectRectangle`, `selectEllipse` and `selectPolygon` judge it: the agent
+    /// door checks a whole call before it changes anything (EMSuiteUI#230).
+    package func holdsPixels(_ shape: EDXRegion) -> Bool {
+        guard let source else { return false }
+        switch shape {
+        case .rectangle(let r), .ellipse(let r): return clipped(r) != nil
+        case .polygon(let v): return v.count >= 3 && shape.pixelCount(nx: source.nx, ny: source.ny) > 0
+        default: return true
+        }
+    }
+
+    /// Whether `drawLine` would keep a line between these ends: at least a pixel long once clamped to the scan.
+    package func lineIsLongEnough(from a: PixelPoint, to b: PixelPoint) -> Bool {
+        guard let source else { return false }
+        func clamp(_ p: PixelPoint) -> PixelPoint { PixelPoint(x: min(max(p.x, 0), Double(source.nx)), y: min(max(p.y, 0), Double(source.ny))) }
+        let (p, q) = (clamp(a), clamp(b))
+        return ((q.x - p.x) * (q.x - p.x) + (q.y - p.y) * (q.y - p.y)).squareRoot() >= 1
     }
 
     private func clipped(_ rect: PixelRect) -> PixelRect? {
