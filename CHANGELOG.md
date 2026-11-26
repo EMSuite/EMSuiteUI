@@ -2,6 +2,13 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.18.1](https://github.com/EMSuite/EMSuiteUI/compare/0.18.0...0.18.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* the package manifest names the kits at the EMSuite org ([#264](https://github.com/EMSuite/EMSuiteUI/issues/264)) ([91250ed](https://github.com/EMSuite/EMSuiteUI/commit/91250edf50b830976a46e050a411419a027b7d89))
+
 ## [0.18.0](https://github.com/EMSuite/EMSuiteUI/compare/0.17.0...0.18.0) (2026-11-25)
 
 
