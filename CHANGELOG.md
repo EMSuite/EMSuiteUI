@@ -2,6 +2,13 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.20.1](https://github.com/EMSuite/EMSuiteUI/compare/0.20.0...0.20.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* an intensities-only spectrum image draws no wt%, at% or mass-thickness map ([#276](https://github.com/EMSuite/EMSuiteUI/issues/276)) ([163785f](https://github.com/EMSuite/EMSuiteUI/commit/163785fe06d9062fd26c0f49ca391e090cdf28f2))
+
 ## [0.20.0](https://github.com/EMSuite/EMSuiteUI/compare/0.19.0...0.20.0) (2026-11-26)
 
 
