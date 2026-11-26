@@ -47,7 +47,13 @@ struct EDXResultsPanel: View {
                 }
                 // No composition: the header says so and why, where the at% column's dashes are (Electron-Microscopy-Studio#1027);
                 // the reason was only in the notes' popover.
-                if let fit, !fit.hasAbundance {
+                // A spectrum the app marks intensities-only (an SEM spectrum: exSpy gives its line intensities only) says so in words.
+                if fit != nil, let why = session.intensitiesOnly {
+                    Text("Line intensities only")
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        .help(why).accessibilityLabel("Line intensities only: \(why)")
+                        .accessibilityIdentifier("edx.intensitiesOnly")
+                } else if let fit, !fit.hasAbundance {
                     Text("at% not computed")
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         .help(fit.abundanceRefusal.map { "at% not computed: \($0)" } ?? "at% not computed")

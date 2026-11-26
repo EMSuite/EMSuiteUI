@@ -249,6 +249,7 @@ public enum EDXAgentTools {
         case .idle: break
         }
         if let csv = s.resultsCSV { out["results_csv"] = csv }
+        if let why = s.intensitiesOnly { out["intensities_only"] = why }
         if let failure = s.fitFailure { out["fit_failure"] = failure }
         return out
     }

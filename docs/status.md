@@ -21,7 +21,8 @@ at `github.com/EMSuite/...` (the old org address only redirected).
 - The shared EDS room (`ShellEDXModel` and `EDXRoom` in `ShellSpectroscopy`, 0.4.0): the model and session (`EDXSession`, regions,
   pins, maps, exports) that both apps showed as copies; each app passes `EDXRoomHost`, `EDXRoomActions` and its Open panel
   extensions. Results name the kept region, carry the whole value and its sigma, and say no "unvalidated"; the typed-k and
-  factors sheets read either decimal separator and keep their accessibility identifiers.
+  factors sheets read either decimal separator and keep their accessibility identifiers. An app can mark a spectrum
+  intensities-only (`setIntensitiesOnly`, an SEM spectrum as exSpy treats it): the fit shows net counts and no at%.
 - The crystal view (`ShellCrystal`, `docs/crystal-view.md`): a phase's unit cell in 3D with RealityKit, seen down the beam in
   parallel projection, turned by drag, ⌥ drag, the arrow keys and VoiceOver actions; plain atoms, a cell and an orientation
   in, orientation changes out; its own element colours in one file; a still mode and an offscreen snapshot.
