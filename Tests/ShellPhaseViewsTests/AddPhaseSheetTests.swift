@@ -54,6 +54,26 @@ nonisolated final class AddPhaseSheetTests: XCTestCase {
         XCTAssertEqual(AddPhaseRow.sites(4), "4 sites")
     }
 
+    /// #1115: a row writes its formula as the preview names the entry (GaAs, not the service's AsGa), and its id when it has none.
+    /// The row's VoiceOver label is its combined text, so it says the same. Red before: the row showed "AsGa".
+    @MainActor func testARowWritesItsFormulaAsThePreviewNamesIt() throws {
+        let data = Data("""
+        {"data":[
+          {"id":"mp-2534","type":"structures","attributes":{"nsites":2,"chemical_formula_reduced":"AsGa"}},
+          {"id":"mp-1184232","type":"structures","attributes":{"nsites":4,"chemical_formula_reduced":"AsGa3"}},
+          {"id":"mp-12","type":"structures","attributes":{"nsites":2}}
+        ],"meta":{"data_available":154387,"more_data_available":false}}
+        """.utf8)
+        guard case .rows(let rows, _) = try MaterialsProjectOptimade.decodeSearch(data) else { return XCTFail("no rows") }
+        XCTAssertEqual(rows.map { AddPhaseRow.title($0) }, ["GaAs", "Ga3As", "mp-12"])
+    }
+
+    /// #1115: the preview says its cell is the Materials Project's computed one.
+    @MainActor func testThePreviewSaysTheCellIsComputed() {
+        XCTAssertEqual(AddPhasePreview.computedCellNote,
+                       "The Materials Project's computed (relaxed) cell; lattice parameters can differ from measured ones by a percent or two.")
+    }
+
     // MARK: The unit-cell picture (#195)
 
     /// The preview of mp-134 (aluminium, served primitive, shown conventional) draws its unit cell: every atom aluminium, the
