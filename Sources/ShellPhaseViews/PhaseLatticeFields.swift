@@ -18,6 +18,7 @@ public struct PhaseLatticeFields: View {
     let onChange: (Phase) -> Void
     @State private var problem: String?
     @State private var resetting = false
+    @State private var freeParameters = FreeParameters()
 
     /// `onChange` gets the phase as written after each edit or reset.
     public init(library: PhaseLibrary, phaseID: String, onChange: @escaping (Phase) -> Void = { _ in }) {
@@ -28,11 +29,12 @@ public struct PhaseLatticeFields: View {
 
     public var body: some View {
         if let phase = library.phases.first(where: { $0.id == phaseID }) {
-            let structure = phase.structure()
-            let free = Self.fields(for: structure)
+            // The values from the stored cell; the free parameters once per fingerprint, since finding them rebuilds the
+            // structure and runs its symmetry search.
+            let free = freeParameters.free(for: phase.snapshot)
             ForEach(free, id: \.self) { parameter in
                 InspectorRow(Self.label(parameter)) {
-                    OptionalNumericField(title: "\(Self.spoken(parameter)) of \(phase.name)", value: Self.value(parameter, of: structure.cell),
+                    OptionalNumericField(title: "\(Self.spoken(parameter)) of \(phase.name)", value: Self.value(parameter, of: phase.snapshot.cell),
                                          format: FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...5)),
                                          unit: Self.isLength(parameter) ? "Å" : "°") { set(parameter, to: $0) }
                         .help(Self.help(parameter, free: free))
@@ -86,6 +88,39 @@ public struct PhaseLatticeFields: View {
     }
 
     /// "a; b and c follow it" for a parameter that moves others.
+    nonisolated static func value(_ p: LatticeParameter, of cell: CrystalStructure.Snapshot.Cell) -> Double {
+        switch p {
+        case .a: cell.a
+        case .b: cell.b
+        case .c: cell.c
+        case .alpha: cell.alphaDeg
+        case .beta: cell.betaDeg
+        case .gamma: cell.gammaDeg
+        }
+    }
+
+    /// The free parameters of the last snapshot asked about, kept until its fingerprint changes. A reference held in state, so
+    /// filling it while the body is drawn changes no state SwiftUI watches.
+    final class FreeParameters {
+        private var fingerprint: String?
+        private var cached: [LatticeParameter] = []
+        private let compute: (CrystalStructure.Snapshot) -> [LatticeParameter]
+        private(set) var computations = 0
+
+        init(compute: @escaping (CrystalStructure.Snapshot) -> [LatticeParameter] = { PhaseLatticeFields.fields(for: $0.structure()) }) {
+            self.compute = compute
+        }
+
+        func free(for snapshot: CrystalStructure.Snapshot) -> [LatticeParameter] {
+            if snapshot.fingerprint != fingerprint {
+                cached = compute(snapshot)
+                fingerprint = snapshot.fingerprint
+                computations += 1
+            }
+            return cached
+        }
+    }
+
     nonisolated static func help(_ p: LatticeParameter, free: [LatticeParameter]) -> String {
         let tiedLengths = isLength(p) ? [LatticeParameter.a, .b, .c].filter { $0 != p && !free.contains($0) } : []
         guard !tiedLengths.isEmpty else { return "Set \(p.description); the atoms keep their fractional positions" }

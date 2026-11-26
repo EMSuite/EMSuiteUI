@@ -268,8 +268,8 @@ struct AddPhasePreview: View {
                 if let system = p.structure.crystalSystem { LabeledContent("Crystal system", value: "\(system)".capitalized) }
             }
             Section("Cell") {
-                LabeledContent("a, b, c", value: String(format: "%.4f, %.4f, %.4f Å", cell.a, cell.b, cell.c))
-                LabeledContent("α, β, γ", value: String(format: "%.2f°, %.2f°, %.2f°", cell.alphaDeg, cell.betaDeg, cell.gammaDeg))
+                LabeledContent("a, b, c", value: LatticeText.lengths(cell.a, cell.b, cell.c))
+                LabeledContent("α, β, γ", value: LatticeText.angles(cell.alphaDeg, cell.betaDeg, cell.gammaDeg))
                 LabeledContent("Atoms in cell", value: "\(p.structure.sites.count)")
                 if p.converted {
                     Text("Served as a primitive cell; shown as the conventional cell.").font(.caption).foregroundStyle(.secondary)

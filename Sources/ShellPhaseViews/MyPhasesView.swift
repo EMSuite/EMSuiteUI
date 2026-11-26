@@ -94,7 +94,8 @@ struct PhaseDetails: View {
 
     var body: some View {
         if let phase = library.phases.first(where: { $0.id == phaseID }) {
-            let cell = phase.structure().cell
+            // The stored cell as it is: rebuilding the structure would run its symmetry search again on every pass.
+            let cell = phase.snapshot.cell
             Form {
                 Section {
                     TextField("Name", text: $name)
@@ -117,8 +118,8 @@ struct PhaseDetails: View {
                     LabeledContent("Added", value: phase.added.formatted(date: .abbreviated, time: .omitted))
                 }
                 Section("Lattice") {
-                    LabeledContent("a, b, c", value: String(format: "%.4f, %.4f, %.4f Å", cell.a, cell.b, cell.c))
-                    LabeledContent("α, β, γ", value: String(format: "%.2f°, %.2f°, %.2f°", cell.alphaDeg, cell.betaDeg, cell.gammaDeg))
+                    LabeledContent("a, b, c", value: LatticeText.lengths(cell.a, cell.b, cell.c))
+                    LabeledContent("α, β, γ", value: LatticeText.angles(cell.alphaDeg, cell.betaDeg, cell.gammaDeg))
                     Text(phase.isEdited ? "Edited in a room's inspector." : "As its source gives it. Edit it in a room's inspector.")
                         .font(.caption).foregroundStyle(.secondary)
                     if phase.isEdited {

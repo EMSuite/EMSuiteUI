@@ -40,6 +40,28 @@ nonisolated final class MyPhasesTests: XCTestCase {
         XCTAssertEqual(PhaseLatticeFields.spoken(.gamma), "Angle gamma")
     }
 
+    /// The fields find the free parameters once per fingerprint, not on every drawing pass, and again after an edit; the values
+    /// they show are the stored cell's.
+    @MainActor func testTheFreeParametersAreFoundOncePerFingerprint() throws {
+        let library = try library(edited: false)
+        let before = try XCTUnwrap(library.phases.first).snapshot
+        let memo = PhaseLatticeFields.FreeParameters()
+        XCTAssertEqual(memo.free(for: before), [.a])
+        XCTAssertEqual(memo.free(for: before), [.a])
+        XCTAssertEqual(memo.computations, 1)
+        try library.setLattice([.a: 4.0495], of: "mp-134")
+        let after = try XCTUnwrap(library.phases.first).snapshot
+        XCTAssertEqual(memo.free(for: after), [.a])
+        XCTAssertEqual(memo.computations, 2)
+        XCTAssertEqual(PhaseLatticeFields.value(.a, of: after.cell), 4.0495, accuracy: 1e-9)
+    }
+
+    /// The preview and My Phases write a cell the same way.
+    func testTheCellReadsAlikeOnBothPages() {
+        XCTAssertEqual(LatticeText.lengths(4.0495, 4.0495, 4.0495), "4.0495, 4.0495, 4.0495 Å")
+        XCTAssertEqual(LatticeText.angles(90, 90, 120), "90.00°, 90.00°, 120.00°")
+    }
+
     @MainActor func testTheSourceReadsAsItsIdOrFile() {
         XCTAssertEqual(MyPhasesRow.source(.materialsProject(id: "mp-134", fetched: Date())), "mp-134")
         XCTAssertEqual(MyPhasesRow.source(.cif(fileName: "beta.cif")), "beta.cif")
