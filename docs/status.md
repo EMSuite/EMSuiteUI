@@ -1,6 +1,7 @@
 # Status: EMSuiteUI 0.18.0 <!-- x-release-please-version -->
 
-What is live. 0.16.0 is the latest tag; both apps take EMSuiteUI by version range and build on it.
+What is live. Both apps take EMSuiteUI by version range and build on it. Since 0.18.1 the manifest names the kits
+at `github.com/EMSuite/...` (the old org address only redirected).
 
 - The window shell (`ShellLayout`): rooms, toolbar, sidebar and inspector frames, the centre column, the centre's one or two
   panels (`WorkspaceCentre`: a remembered divider that a double click resets; `CentrePanel`: title, controls, readout), `LayoutPolicy`,
