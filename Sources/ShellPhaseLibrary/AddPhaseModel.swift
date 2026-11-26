@@ -304,16 +304,20 @@ public final class AddPhaseModel {
     }
 
     /// The phase's name before it is added: the reduced formula of the structure read ("Si", never the bare id "mp-149"), the same
-    /// whether the entry was found by a search or added by its id; the search row's formula and then the id only when the
-    /// structure gives none (partial occupancy). The rows of the results keep the formula the service sends.
+    /// whether the entry was found by a search or added by its id; the search row's formula (in `displayFormula` order) and then
+    /// the id only when the structure gives none (partial occupancy). The rows of the results write their formula in the same
+    /// order (#1115), so a row and its preview read alike.
     private func name(for id: String, _ structure: CrystalStructure) -> String {
         if let formula = Self.reducedFormula(of: structure) { return formula }
-        if case .results(let rows, _) = status, let formula = rows.first(where: { $0.materialID == id })?.formula { return formula }
+        if case .results(let rows, _) = status, let formula = rows.first(where: { $0.materialID == id })?.formula {
+            return Self.displayFormula(formula)
+        }
         return structure.name ?? id
     }
 
     /// The reduced formula of the structure's content, elements by increasing electronegativity as pymatgen's `reduced_formula` writes it (SiO2,
-    /// Fe2O3, GaN; `PaulingElectronegativity`) and a count of 1 left out. The search rows keep the OPTIMADE form the service sends; nil when the counts are not whole numbers (partial occupancy).
+    /// Fe2O3, GaN; `PaulingElectronegativity`) and a count of 1 left out; nil when the counts are not whole numbers (partial occupancy).
+    /// The search rows write the service's formula in the same order (`displayFormula`).
     nonisolated static func reducedFormula(of structure: CrystalStructure) -> String? {
         var counts: [String: Double] = [:]
         for site in structure.sites {
@@ -333,6 +337,28 @@ public final class AddPhaseModel {
             let n = whole[symbol]! / divisor
             return n == 1 ? symbol : "\(symbol)\(n)"
         }.joined()
+    }
+
+    /// A search row's formula as the sheet writes it (#1115): the service's reduced formula, which OPTIMADE writes in alphabetical
+    /// order ("AsGa", "AsGa3"), with its elements in the order `reducedFormula(of:)` gives the preview's name ("GaAs", "Ga3As"). Each
+    /// count stays as the service wrote it; nothing is reduced or sent. Text that is not element symbols with counts (a symbol
+    /// twice, a stray character, a count that starts with 0) comes back unchanged.
+    public nonisolated static func displayFormula(_ formula: String) -> String {
+        var parts: [(symbol: String, count: String)] = []
+        var rest = formula[...]
+        while let first = rest.first {
+            guard first.isASCII, first.isUppercase else { return formula }
+            var symbol = String(first)
+            rest = rest.dropFirst()
+            while let ch = rest.first, ch.isASCII, ch.isLowercase { symbol.append(ch); rest = rest.dropFirst() }
+            var count = ""
+            while let ch = rest.first, ch.isASCII, ch.isNumber { count.append(ch); rest = rest.dropFirst() }
+            guard symbol.count <= 3, !count.hasPrefix("0") else { return formula }
+            parts.append((symbol: symbol, count: count))
+        }
+        let counts = Dictionary(parts.map { ($0.symbol, $0.count) }, uniquingKeysWith: { first, _ in first })
+        guard !parts.isEmpty, counts.count == parts.count else { return formula }
+        return PaulingElectronegativity.ordered(Array(counts.keys)).map { $0 + (counts[$0] ?? "") }.joined()
     }
 
     /// The name the library stores: the formula, and the space-group symbol after it only where another phase of the library

@@ -306,6 +306,37 @@ final class AddPhaseModelTests: XCTestCase {
         XCTAssertEqual(AddPhaseModel.reducedFormula(of: structure([(31, 2), (7, 2)])), "GaN")
     }
 
+    /// #1115: a search row writes the service's alphabetical formula in the order of the preview's name, so "GaAs" lists as GaAs, not
+    /// AsGa. Red before: the rows showed the service's form.
+    func testARowsFormulaIsWrittenInThePreviewNamesOrder() {
+        XCTAssertEqual(AddPhaseModel.displayFormula("AsGa"), "GaAs")
+        XCTAssertEqual(AddPhaseModel.displayFormula("AsGa3"), "Ga3As")
+        XCTAssertEqual(AddPhaseModel.displayFormula("O2Si"), "SiO2")
+        XCTAssertEqual(AddPhaseModel.displayFormula("Fe2O3"), "Fe2O3")
+        XCTAssertEqual(AddPhaseModel.displayFormula("FeO3Ti"), "TiFeO3")
+        XCTAssertEqual(AddPhaseModel.displayFormula("Au"), "Au")
+        XCTAssertEqual(AddPhaseModel.displayFormula("Al2Cu3Mg"), "MgAl2Cu3")
+        for garbage in ["", "mp-149", "asga", "Ga As", "GaGa", "Ga0As", "3Ga", "GaAs!"] {
+            XCTAssertEqual(AddPhaseModel.displayFormula(garbage), garbage, "not a formula: shown as it came")
+        }
+    }
+
+    /// The row and the preview's name agree for the same entry: the same element counts through `reducedFormula(of:)` (the
+    /// preview) and through the service's alphabetical formula (the row) give one text.
+    func testTheRowAndThePreviewNameAgree() {
+        func structure(_ counts: [(Int, Int)]) -> CrystalStructure {
+            let sites = counts.flatMap { z, n in (0 ..< n).map { i in AtomSite(z: z, fractional: SIMD3(Double(i) / 10, 0, 0)) } }
+            return CrystalStructure(cell: UnitCell(a: 5, b: 5, c: 5, alphaDeg: 90, betaDeg: 90, gammaDeg: 90), sites: sites, operations: [.identity])
+        }
+        let cases: [(served: String, counts: [(Int, Int)])] = [
+            ("AsGa", [(31, 4), (33, 4)]), ("AsGa3", [(31, 3), (33, 1)]), ("O2Si", [(14, 4), (8, 8)]),
+            ("FeO3Ti", [(26, 2), (8, 6), (22, 2)]), ("Al2Cu3Mg", [(13, 2), (29, 3), (12, 1)]),
+        ]
+        for (served, counts) in cases {
+            XCTAssertEqual(AddPhaseModel.displayFormula(served), AddPhaseModel.reducedFormula(of: structure(counts)), served)
+        }
+    }
+
     @MainActor func testWithAKeyTheEntryComesFromTheKeyedServiceAndAFailureIsSaid() async throws {
         let stub = StubTransport { _ in (Data(#"{"data":[],"errors":[]}"#.utf8), 200, [:]) }
         let (model, _) = make(stub, key: "my-key")
