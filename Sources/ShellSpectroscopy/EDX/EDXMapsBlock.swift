@@ -94,7 +94,7 @@ struct EDXMapsBlock: View {
             } else {
                 AnchoredMapsBlock(anchor: composition.anchor, items: composition.rest, aspect: CGFloat(max(nx, 1)) / CGFloat(max(ny, 1)), storageKey: "edx.mapsSplit",
                                   solo: $state.soloTile, soloEnabled: false) { item, size, isAnchor in
-                    EDXMapTileHost(item: item, size: size, isAnchor: isAnchor, nx: nx, ny: ny, mapsState: mapsState,
+                    EDXMapTileHost(item: item, size: size, nx: nx, ny: ny, mapsState: mapsState,
                                    regions: isAnchor ? regions : nil, session: session, state: state, overlay: overlay)
                 }
                 // The maps are what the room zooms: the View menu's Zoom commands act on them.
@@ -109,7 +109,6 @@ struct EDXMapsBlock: View {
 struct EDXMapTileHost: View {
     let item: EDXGridItem
     let size: CGSize
-    let isAnchor: Bool
     let nx: Int
     let ny: Int
     let mapsState: EDXMapsState

@@ -22,7 +22,7 @@
     ".": {
       "package-name": "MacEMUI",
       "changelog-path": "CHANGELOG.md",
-      "extra-files": ["docs/status.md"]
+      "extra-files": ["docs/status.md", "README.md"]
     }
   }
 }

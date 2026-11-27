@@ -1,10 +1,11 @@
 // swift-tools-version: 6.2
 // SPDX-License-Identifier: GPL-3.0-only
-// MacEMUI: the window shell, controls and Metal image view that mac4DSTEM and macTEM share.
+// EMSuiteUI (package name MacEMUI until the module rename): the window shell, controls and Metal image view that
+// 4DSTEM Studio and Electron Microscopy Studio share.
 // An app package, not a kit: it has UI, Metal and (named, minimal) AppKit. Kits stay pure Swift; imported here are ImagoCore for
 // `ScaleBarMath` (ShellControls), for the shared EDS room SpectroKit, FormatoKit and ImagoFilters, and FormatoCore's PNG writer
 // (ShellExport). No numerics live here.
-// Settings: Swift 6 language mode and MainActor default isolation, as macTEM; mac4DSTEM (Swift 5 mode) consumes it unchanged.
+// Settings: Swift 6 language mode and MainActor default isolation, as Electron Microscopy Studio; 4DSTEM Studio (Swift 5 mode) consumes it unchanged.
 import PackageDescription
 
 let shellSettings: [SwiftSetting] = [

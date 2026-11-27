@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-MacEMUI is pre-1.0. Security fixes go into the latest released version only.
+EMSuiteUI is pre-1.0. Security fixes go into the latest released version only.
 
 ## Reporting a vulnerability
 
