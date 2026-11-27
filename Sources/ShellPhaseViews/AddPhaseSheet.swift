@@ -191,7 +191,7 @@ public struct AddPhaseSheet: View {
     }
 }
 
-/// One match: formula, id, energy above the hull and site count.
+/// One match: formula, id and space group, energy above the hull and site count.
 struct AddPhaseRow: View {
     let row: MaterialsProjectOptimade.Row
 
@@ -199,7 +199,7 @@ struct AddPhaseRow: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(Self.title(row)).font(.body.weight(.medium))
-                Text(row.materialID).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                Text(Self.caption(row)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
@@ -213,6 +213,20 @@ struct AddPhaseRow: View {
     }
 
     static func sites(_ n: Int) -> String { n == 1 ? "1 site" : "\(n) sites" }
+
+    /// The row's symmetry, so polymorphs tell apart before one is chosen (zincblende and wurtzite GaAs; #1115): the space group's
+    /// short symbol and IT number as the kit reads them from the row's atoms, or the crystal system where no group shows; nil
+    /// where the answer carried no structure.
+    static func symmetry(_ row: MaterialsProjectOptimade.Row) -> String? {
+        guard let symmetry = row.symmetry else { return nil }
+        if let symbol = symmetry.symbol, let number = symmetry.number { return "\(symbol) (\(number))" }
+        return symmetry.crystalSystem
+    }
+
+    /// The caption under the formula: the id, then the symmetry where there is one ("mp-2534 · F-43m (216)").
+    static func caption(_ row: MaterialsProjectOptimade.Row) -> String {
+        symmetry(row).map { "\(row.materialID) · \($0)" } ?? row.materialID
+    }
 
     /// The row's formula in the order the preview's name writes it ("GaAs", not the service's "AsGa"; #1115), else its id.
     static func title(_ row: MaterialsProjectOptimade.Row) -> String {

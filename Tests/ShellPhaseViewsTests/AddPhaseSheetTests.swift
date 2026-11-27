@@ -71,6 +71,23 @@ nonisolated final class AddPhaseSheetTests: XCTestCase {
     }
 
     /// #1115: the preview says its cell is the Materials Project's computed one.
+    /// EMSuiteUI#283 (#1115): a row names its space group as the kit reads it from the atoms, or its crystal system where no
+    /// group shows, beside the id, so zincblende and wurtzite GaAs tell apart before one is chosen. Red before: the caption was
+    /// the id alone.
+    @MainActor func testARowNamesItsSpaceGroupOrItsCrystalSystem() {
+        func row(_ id: String, _ symmetry: MaterialsProjectSymmetry?) -> MaterialsProjectOptimade.Row {
+            MaterialsProjectOptimade.Row(materialID: id, formula: "AsGa", siteCount: 2, energyAboveHull: [:], symmetry: symmetry)
+        }
+        let zincblende = row("mp-2534", MaterialsProjectSymmetry(crystalSystem: "Cubic", symbol: "F-43m", number: 216))
+        let wurtzite = row("mp-8883", MaterialsProjectSymmetry(crystalSystem: "Hexagonal", symbol: "P6_3mc", number: 186))
+        let systemOnly = row("mp-1", MaterialsProjectSymmetry(crystalSystem: "Orthorhombic"))
+        let none = row("mp-2", nil)
+        XCTAssertEqual(AddPhaseRow.caption(zincblende), "mp-2534 · F-43m (216)")
+        XCTAssertEqual(AddPhaseRow.caption(wurtzite), "mp-8883 · P6_3mc (186)")
+        XCTAssertEqual(AddPhaseRow.caption(systemOnly), "mp-1 · Orthorhombic")
+        XCTAssertEqual(AddPhaseRow.caption(none), "mp-2")
+    }
+
     @MainActor func testThePreviewSaysTheCellIsComputed() {
         XCTAssertEqual(AddPhasePreview.computedCellNote,
                        "The Materials Project's computed (relaxed) cell; lattice parameters can differ from measured ones by a percent or two.")
