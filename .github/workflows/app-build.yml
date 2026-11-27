@@ -66,8 +66,11 @@ jobs:
           cp candidate/tools/app-build/point-app.sh "$RUNNER_TEMP/point-app.sh"
           "$RUNNER_TEMP/point-app.sh" app candidate "$NAMES"
       - name: Build the app
+        # Either name: the app's project and scheme are renamed from macTEM to EMStudio (Electron-Microscopy-Studio#1125).
         run: |
-          xcodebuild build -project app/macTEM.xcodeproj -scheme macTEM -configuration Debug -destination 'platform=macOS' \
+          proj=app/EMStudio.xcodeproj; scheme=EMStudio
+          [ -d "$proj" ] || { proj=app/macTEM.xcodeproj; scheme=macTEM; }
+          xcodebuild build -project "$proj" -scheme "$scheme" -configuration Debug -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/DerivedData" CODE_SIGNING_ALLOWED=NO > "$RUNNER_TEMP/build.log" 2>&1 && rc=0 || rc=$?
           grep -E "error:|: error|BUILD (SUCCEEDED|FAILED)" "$RUNNER_TEMP/build.log" | tail -60 || true
           exit $rc
