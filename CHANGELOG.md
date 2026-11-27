@@ -2,6 +2,14 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.22.0](https://github.com/EMSuite/EMSuiteUI/compare/0.21.0...0.22.0) (2026-11-27)
+
+
+### Features
+
+* Add Phase match rows show their space group ([#283](https://github.com/EMSuite/EMSuiteUI/issues/283)) ([2b441dd](https://github.com/EMSuite/EMSuiteUI/commit/2b441dd3a0b7af07c72f1855f5ec116e2c27b2e8))
+* Add Phase match rows show their space group ([#284](https://github.com/EMSuite/EMSuiteUI/issues/284)) ([2b441dd](https://github.com/EMSuite/EMSuiteUI/commit/2b441dd3a0b7af07c72f1855f5ec116e2c27b2e8))
+
 ## [0.21.0](https://github.com/EMSuite/EMSuiteUI/compare/0.20.1...0.21.0) (2026-11-27)
 
 
