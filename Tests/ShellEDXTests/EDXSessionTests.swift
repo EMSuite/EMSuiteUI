@@ -247,8 +247,11 @@ nonisolated final class EDXSessionTests: XCTestCase {
         // so these numbers move only when the kit's fit does, and then in a commit of their own with the reason.
         // Re-pinned 2026-11-02 for SpectroKit 0.13: the continuum step at the absorption edges is now broadened by the detector
         // resolution by default (SpectroKit#65). Was Al 987 084.19, Mg 49 511.78, Si 9 741.18 (SpectroKit 0.12).
+        // Re-pinned 2026-11-27 for SpectroKit 0.17.2: the energy-axis refinement reads from 0.6 keV, so C and O K-alpha no longer
+        // tilt the gain (SpectroKit#145). Was Al 987 248.63, Mg 49 506.71, Si 9 730.95 (SpectroKit 0.17.1); the kit-equality
+        // checks above and the 3 % bound on the planted areas hold unchanged.
         let truth = Self.planted.areas
-        let pinned: [(element: String, fitted: Double)] = [("Al", 987_248.6317845077), ("Mg", 49_506.708818394676), ("Si", 9_730.952542984644)]
+        let pinned: [(element: String, fitted: Double)] = [("Al", 987_302.5165502217), ("Mg", 49_506.01108543527), ("Si", 9_729.96221876264)]
         for (element, expected) in pinned {
             let row = try XCTUnwrap(fit.rows.first { $0.element == element }, element)
             let area = try XCTUnwrap(truth[element])
