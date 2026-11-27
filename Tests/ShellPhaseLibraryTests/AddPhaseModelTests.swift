@@ -351,3 +351,15 @@ final class AddPhaseModelTests: XCTestCase {
         XCTAssertFalse(model.canAdd)
     }
 }
+
+/// EMSuiteUI#283: the search answer is decoded off the main actor, since the kit now reads each row's space group from its atoms
+/// (a symmetry detection per row, up to 500 rows). Red before: the model, which is `@MainActor`, decoded inline.
+nonisolated final class AddPhaseModelDecodeOffMainTests: XCTestCase {
+    func testTheSearchIsDecodedOffTheMainActor() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let model = try String(contentsOf: root.appendingPathComponent("Sources/ShellPhaseLibrary/AddPhaseModel.swift"), encoding: .utf8)
+        XCTAssertTrue(model.contains("@concurrent nonisolated static func decodeSearch(_ data: Data) async throws"))
+        XCTAssertFalse(model.contains("try MaterialsProjectOptimade.decodeSearch(try await"), "an inline decode on the main actor")
+    }
+}

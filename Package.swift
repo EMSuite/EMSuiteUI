@@ -52,7 +52,7 @@ let package = Package(
         .package(url: "https://github.com/EMSuite/SpectroKit", from: "0.12.0"),
         .package(url: "https://github.com/EMSuite/FormatoKit", from: "0.11.0"),
         // The phase library's structures (CrystalStructure.Snapshot). The apps pin exact tags.
-        .package(url: "https://github.com/EMSuite/DiffractoKit", from: "0.21.0"),
+        .package(url: "https://github.com/EMSuite/DiffractoKit", from: "0.26.0"),
     ],
     targets: [
         .target(name: "ShellMetal",

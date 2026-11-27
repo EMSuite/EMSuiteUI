@@ -132,10 +132,10 @@ public final class AddPhaseModel {
             var exact: MaterialsProjectOptimade.SearchAnswer?
             if case .elements(let symbols, only: false) = query {
                 let exactRequest = try MaterialsProjectOptimade.searchRequest(.elements(symbols, only: true))
-                exact = try MaterialsProjectOptimade.decodeSearch(try await client.search(exactRequest, key: nil))
+                exact = try await Self.decodeSearch(try await client.search(exactRequest, key: nil))
                 if exact == .serviceEmpty { status = .serviceEmpty; answered = key; return }
             }
-            let answer = try MaterialsProjectOptimade.decodeSearch(try await client.search(request, key: nil))
+            let answer = try await Self.decodeSearch(try await client.search(request, key: nil))
             switch (answer, exact) {
             case (.rows(let rows, let more), .rows(let exactRows, let exactMore)?):
                 status = .results(Self.ranked(exactRows + rows, for: query), more: more || exactMore)
@@ -156,6 +156,12 @@ public final class AddPhaseModel {
             status = Self.status(for: error)
             answered = key
         }
+    }
+
+    /// The kit's decoding of a search answer, off the main actor: it reads each row's space group from its atoms, a symmetry
+    /// detection per row for up to 500 rows (EMSuiteUI#283).
+    @concurrent nonisolated static func decodeSearch(_ data: Data) async throws -> MaterialsProjectOptimade.SearchAnswer {
+        try MaterialsProjectOptimade.decodeSearch(data)
     }
 
     /// The rows in the order the sheet lists them (#1029): an exact match first (an entry of exactly the typed elements, such as
