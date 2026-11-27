@@ -13,9 +13,11 @@ public nonisolated struct HistogramStatistics: Sendable, Equatable {
     }
 }
 
-/// A pure drawing of an intensity histogram: the bars, two draggable contrast-window handles over dimmed tails, the Log y-axis
-/// switch, and the min · mean · max readouts (low · mean · high while the window is narrowed). It counts nothing and knows no app: the bins and the statistics come from the
-/// caller (computed once per image, off the main actor), the window is two bindings, and the number text is a closure.
+/// A pure drawing of an intensity histogram: the bars, two draggable contrast-window handles over dimmed tails, the data's
+/// min · mean · max (always those words, always the data's own numbers), the window's two edges beneath them (click one to type
+/// it), and a footer with the Log y-axis switch and, while the window is narrowed, Reset Range (EMSuiteUI#253). It counts
+/// nothing and knows no app: the bins and the statistics come from the caller (computed once per image, off the main actor),
+/// the window is two bindings, and the number text is a closure.
 ///
 /// The window is held as FRACTIONS of the data range in [0, 1] (`rangeLo`, `rangeHi`), as a contrast window is applied to the
 /// image; a caller that keeps raw values passes a Binding that maps them. The log toggle only scales the BAR HEIGHTS, so the two
@@ -95,33 +97,46 @@ public struct HistogramChart: View {
             }
 
             if let statistics {
+                // The data's extremes and mean, captioned the same in every room whatever the window (EMSuiteUI#253: the
+                // captions used to turn into "low" / "high" while the window was narrowed, which read as two vocabularies).
                 HStack {
-                    edgeReadout(isLow: true, statistics: statistics)
+                    readout(HistogramWindowRules.statisticsCaptions[0], statistics.minimum)
                     Spacer()
-                    readout("mean", statistics.mean)
+                    readout(HistogramWindowRules.statisticsCaptions[1], statistics.mean)
                     Spacer()
-                    edgeReadout(isLow: false, statistics: statistics)
+                    readout(HistogramWindowRules.statisticsCaptions[2], statistics.maximum)
                 }
                 .font(.caption2.monospaced())
                 .foregroundStyle(.secondary)
+
+                if statistics.maximum > statistics.minimum {
+                    // The window's two edges, under the extremes they start at; a click types one.
+                    HStack(alignment: .firstTextBaseline) {
+                        edgeReadout(isLow: true, statistics: statistics)
+                        Spacer()
+                        Text(HistogramWindowRules.windowCaption).foregroundStyle(.tertiary)
+                        Spacer()
+                        edgeReadout(isLow: false, statistics: statistics)
+                    }
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.secondary)
+                }
             }
 
-            // The footer, under the plot it changes (control-placement §5, EMSuiteUI#126). Label leading, switch at the trailing
-            // edge — the inspector's one alignment rule.
-            HStack {
-                Text("Log y-axis")
-                    .accessibilityHidden(true)   // the switch carries the same label
-                Spacer()
-                Toggle("Log y-axis", isOn: $useLog)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-            }
-
-            if isWindowed {
-                // Its own line, trailing: it used to sit on the Log y-axis row, beside a switch it has nothing to do with.
-                HStack {
-                    Spacer()
+            // The footer, under the plot it changes (control-placement §5: "A log switch for the histogram sits in its
+            // footer"). One line: the small Log y-axis switch leading, Reset Range trailing while the window is narrowed. As a
+            // row of its own it read as a second "Log" beside the picture's (EMSuiteUI#253).
+            HStack(spacing: 8) {
+                Toggle(isOn: $useLog) {
+                    Text(HistogramWindowRules.logSwitchTitle)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("histogram.log")
+                Spacer(minLength: 0)
+                if isWindowed {
                     Button("Reset Range") {
                         if let reset { reset() } else { rangeLo.wrappedValue = 0; rangeHi.wrappedValue = 1 }
                     }
@@ -209,38 +224,30 @@ public struct HistogramChart: View {
         }
     }
 
-    /// The low / high readout. With a real span it shows the contrast window's
-    /// edge — the data's own min / max while the window is full, captioned
-    /// "min" / "max", else "low" / "high" — and a click turns it into a numeric
-    /// field in the same units (Return or blur commits, Escape cancels).
+    /// One edge of the contrast window, in the readouts' units (the data's min or max while the window is full); a click
+    /// turns it into a numeric field in the same units (Return or blur commits, Escape cancels). Shown only with a real span.
     @ViewBuilder
     private func edgeReadout(isLow: Bool, statistics: HistogramStatistics) -> some View {
-        let label = HistogramWindowRules.edgeCaption(isLow: isLow, isWindowed: isWindowed)
-        if statistics.maximum > statistics.minimum {
-            let own = isLow ? rangeLo : rangeHi
-            let other = isLow ? rangeHi : rangeLo
-            let edge = HistogramWindowRules.edge(fraction: own.wrappedValue,
-                                                 dataMin: statistics.minimum, dataMax: statistics.maximum)
-            VStack(spacing: 1) {
-                Text(label).foregroundStyle(.tertiary)
-                if editingLow == isLow {
-                    edgeField(edge: edge, own: own, other: other, isLow: isLow, statistics: statistics)
-                } else {
-                    Button {
-                        editingLow = isLow
-                    } label: {
-                        Text(valueText(edge))
-                    }
-                    .buttonStyle(.plain)
-                    .help("Click to type the window's \(isLow ? "low" : "high") value")
-                    // VoiceOver read the bare number ("0", "20109"): the limit's name, its value (Electron-Microscopy-Studio#1023).
-                    .accessibilityLabel(Self.edgeAccessibilityLabel(isLow: isLow))
-                    .accessibilityValue(valueText(edge))
-                    .accessibilityIdentifier(isLow ? "histogram.min" : "histogram.max")
+        let own = isLow ? rangeLo : rangeHi
+        let other = isLow ? rangeHi : rangeLo
+        let edge = HistogramWindowRules.edge(fraction: own.wrappedValue,
+                                             dataMin: statistics.minimum, dataMax: statistics.maximum)
+        Group {
+            if editingLow == isLow {
+                edgeField(edge: edge, own: own, other: other, isLow: isLow, statistics: statistics)
+            } else {
+                Button {
+                    editingLow = isLow
+                } label: {
+                    Text(valueText(edge))
                 }
+                .buttonStyle(.plain)
+                .help("Click to type the window's \(isLow ? "low" : "high") value")
+                // VoiceOver read the bare number ("0", "20109"): the limit's name, its value (Electron-Microscopy-Studio#1023).
+                .accessibilityLabel(Self.edgeAccessibilityLabel(isLow: isLow))
+                .accessibilityValue(valueText(edge))
+                .accessibilityIdentifier(isLow ? "histogram.min" : "histogram.max")
             }
-        } else {
-            readout(label, isLow ? statistics.minimum : statistics.maximum)
         }
     }
 
@@ -301,12 +308,12 @@ public struct HistogramChart: View {
 /// The window edge a typed value maps to — pure, so the rules are testable without a view. (The readouts' text is the caller's
 /// formatter, or `HistogramChart.defaultValueText`.)
 public nonisolated enum HistogramWindowRules {
-    /// The caption over an edge readout: "min"/"max" while the window covers the full range (the edge is the data extreme),
-    /// "low"/"high" once it is narrowed (the edge is the window edge, not the data extreme).
-    public static func edgeCaption(isLow: Bool, isWindowed: Bool) -> String {
-        if isWindowed { return isLow ? "low" : "high" }
-        return isLow ? "min" : "max"
-    }
+    /// The captions over the data's three numbers, fixed whatever the window (EMSuiteUI#253).
+    public static let statisticsCaptions = ["min", "mean", "max"]
+    /// The word between the window's two edges.
+    public static let windowCaption = "window"
+    /// The footer switch's words: it scales the bars' heights, not the picture.
+    public static let logSwitchTitle = "Log y-axis"
 
     /// A non-positive scale is meaningless; 1 stands in.
     public static func safeScale(_ scale: Float) -> Float { scale > 0 ? scale : 1 }

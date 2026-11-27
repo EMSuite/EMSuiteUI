@@ -35,16 +35,11 @@ nonisolated final class HistogramWindowRulesTests: XCTestCase {
         XCTAssertEqual(HistogramWindowRules.safeScale(4120), 4120)
     }
 
-    /// The edge readouts show the window edges, not the data extremes, once the window is narrowed: "min"/"max" there named
-    /// numbers that were not the data minimum and maximum.
-    func testEdgeCaptionsReadLowAndHighWhileWindowed() {
-        XCTAssertEqual(HistogramWindowRules.edgeCaption(isLow: true, isWindowed: true), "low")
-        XCTAssertEqual(HistogramWindowRules.edgeCaption(isLow: false, isWindowed: true), "high")
-    }
-
-    func testEdgeCaptionsReadMinAndMaxOverTheFullRange() {
-        XCTAssertEqual(HistogramWindowRules.edgeCaption(isLow: true, isWindowed: false), "min")
-        XCTAssertEqual(HistogramWindowRules.edgeCaption(isLow: false, isWindowed: false), "max")
+    /// The data's three numbers keep their captions whatever the window (EMSuiteUI#253). Red before: "min" / "max" turned into
+    /// "low" / "high" once the window was narrowed, which read as an inconsistency between rooms.
+    func testTheStatisticsCaptionsAreFixed() {
+        XCTAssertEqual(HistogramWindowRules.statisticsCaptions, ["min", "mean", "max"])
+        XCTAssertEqual(HistogramWindowRules.windowCaption, "window")
     }
 }
 
@@ -88,7 +83,20 @@ nonisolated final class HistogramAccessibilityTests: XCTestCase {
         XCTAssertEqual(HistogramChart.edgeAccessibilityLabel(isLow: true), "Low limit")
         XCTAssertEqual(HistogramChart.edgeAccessibilityLabel(isLow: false), "High limit")
         let chart = try source("Sources/ShellControls/HistogramChart.swift")
-        XCTAssertTrue(chart.contains(".accessibilityLabel(Self.edgeAccessibilityLabel(isLow: isLow))\n                    .accessibilityValue(valueText(edge))"))
+        XCTAssertTrue(chart.contains(".accessibilityLabel(Self.edgeAccessibilityLabel(isLow: isLow))\n                .accessibilityValue(valueText(edge))"))
+    }
+
+    /// The log switch sits in the footer line beside Reset Range (control-placement §5, EMSuiteUI#253). Red before: it was a
+    /// row of its own, "Log y-axis" in a label and a switch, and Reset Range a line beneath it.
+    func testTheLogSwitchSitsInTheFooterBesideResetRange() throws {
+        let chart = try source("Sources/ShellControls/HistogramChart.swift")
+        XCTAssertEqual(HistogramWindowRules.logSwitchTitle, "Log y-axis")
+        let footer = try XCTUnwrap(chart.range(of: "HStack(spacing: 8) {\n                Toggle(isOn: $useLog)"))
+        let reset = try XCTUnwrap(chart.range(of: "Button(\"Reset Range\")"))
+        let between = String(chart[footer.upperBound..<reset.lowerBound])
+        XCTAssertFalse(between.contains("HStack"), "Reset Range is on the footer line, not a line of its own")
+        XCTAssertTrue(between.contains(".controlSize(.mini)"))
+        XCTAssertFalse(chart.contains("Text(\"Log y-axis\")"), "no separate label row")
     }
 
     func testTheAgentSwitchesAreLabelled() throws {

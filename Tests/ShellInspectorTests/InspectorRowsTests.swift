@@ -88,3 +88,25 @@ nonisolated final class InspectorActionRowLayoutTests: XCTestCase {
         XCTAssertEqual(InspectorActionRowLayout.rowWidths(ideal: [], width: 100, spacing: 6), [])
     }
 }
+
+/// One on/off row for both apps (control-placement §3, EMSuiteUI#253): the title once, at the leading edge; a switch with its
+/// label hidden; the title its spoken name. Red before: there was no such row, and the apps drew `Aperture ☐ Objective aperture`.
+nonisolated final class InspectorSwitchRowTests: XCTestCase {
+    @MainActor func testTheRowKeepsItsTitle() {
+        XCTAssertEqual(InspectorSwitchRow("Frozen phonons", isOn: .constant(true)).title, "Frozen phonons")
+    }
+
+    func testTheSwitchIsASwitchWithItsLabelHiddenAndTheTitleSpoken() throws {
+        let root = URL(fileURLWithPath: #filePath).resolvingSymlinksInPath()
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let rows = try String(contentsOf: root.appendingPathComponent("Sources/ShellInspector/InspectorRows.swift"), encoding: .utf8)
+        let expected = [
+            "        InspectorRow(title) {",
+            "            Toggle(title, isOn: isOn)",
+            "                .toggleStyle(.switch)",
+            "                .labelsHidden()",
+            "                .accessibilityLabel(title)",
+        ].joined(separator: "\n")
+        XCTAssertTrue(rows.contains(expected))
+    }
+}
