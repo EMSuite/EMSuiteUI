@@ -2,6 +2,18 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). MacEMUI follows semantic versioning; before 1.0.0 a minor version may break the API, and its Migration paragraph says how.
 
+## [0.21.0](https://github.com/EMSuite/EMSuiteUI/compare/0.20.1...0.21.0) (2026-11-27)
+
+
+### Features
+
+* a shared inspector switch row, the histogram's log switch in its footer and fixed min / max captions ([#282](https://github.com/EMSuite/EMSuiteUI/issues/282)) ([7c064b5](https://github.com/EMSuite/EMSuiteUI/commit/7c064b50713aefcc743c48663d7af4f30bb78117))
+
+
+### Bug Fixes
+
+* the EDS room's fit pins follow SpectroKit 0.17.2, and the consumer build accepts the app's project as EMStudio or macTEM ([#279](https://github.com/EMSuite/EMSuiteUI/issues/279)) ([256d95c](https://github.com/EMSuite/EMSuiteUI/commit/256d95ce8e13ea0086aaeacd0aaa9e527b2d1e41))
+
 ## [0.20.1](https://github.com/EMSuite/EMSuiteUI/compare/0.20.0...0.20.1) (2026-11-26)
 
 

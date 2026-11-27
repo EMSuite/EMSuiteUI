@@ -38,7 +38,7 @@ Requirements: macOS 26, Swift 6.2 tools or newer. It builds with Xcode 27 and wi
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/EMSuite/EMSuiteUI", from: "0.20.1"), // x-release-please-version
+    .package(url: "https://github.com/EMSuite/EMSuiteUI", from: "0.21.0"), // x-release-please-version
 ],
 targets: [
     .target(name: "MyApp", dependencies: [
