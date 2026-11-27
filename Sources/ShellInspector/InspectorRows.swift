@@ -273,6 +273,29 @@ public struct InspectorRow<Content: View>: View {
     }
 }
 
+/// An on/off in a row (control-placement §3: "An on/off is a switch in a row; a checkbox only inside a list"): the row's
+/// title at the leading edge, a switch at the trailing edge with its own label hidden, the title its accessibility label.
+/// Both apps drew this by hand (`Aperture ☐ Objective aperture`, the noun twice); this is the one shape (EMSuiteUI#253).
+public struct InspectorSwitchRow: View {
+    /// The row's words: drawn once, at the leading edge, and the switch's spoken name.
+    public let title: String
+    private let isOn: Binding<Bool>
+
+    public init(_ title: String, isOn: Binding<Bool>) {
+        self.title = title
+        self.isOn = isOn
+    }
+
+    public var body: some View {
+        InspectorRow(title) {
+            Toggle(title, isOn: isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .accessibilityLabel(title)
+        }
+    }
+}
+
 /// A read-only fact: label leading, the value trailing in the secondary
 /// label colour, selectable (a value the reader may paste into a notebook)
 /// and in monospaced digits so a column of these keeps its numerals aligned.

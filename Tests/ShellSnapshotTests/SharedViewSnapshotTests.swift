@@ -8,6 +8,7 @@ import ShellLayout
 import ShellMetal
 import ShellSnapshotTesting
 import AppKit
+import Foundation
 import SwiftUI
 import XCTest
 
@@ -49,6 +50,28 @@ nonisolated final class SharedViewSnapshotTests: XCTestCase {
                 InspectorValueRow("Source", "sha256:4f2a9c1e", mono: true)
                 InspectorNote("Set from the gold ring standard.")
                 InspectorWarning("Not quantitative: the pattern is saturated.")
+            }
+            .padding()
+        }
+    }
+
+    /// The histogram with a narrowed window: the fixed min · mean · max, the window's edges, the footer's log switch beside Reset
+    /// Range (EMSuiteUI#253).
+    @MainActor func testHistogramChart() throws {
+        let counts = (0..<64).map { i in Int(1000 * exp(-pow(Double(i) - 22, 2) / 80)) + 3 }
+        try check("histogram-chart", size: CGSize(width: 280, height: 220)) {
+            HistogramChart(counts: counts, statistics: HistogramStatistics(minimum: 0, maximum: 4095, mean: 1402),
+                           rangeLo: .constant(0.1), rangeHi: .constant(0.8))
+                .padding()
+        }
+    }
+
+    /// The shared on/off row (EMSuiteUI#253).
+    @MainActor func testInspectorSwitchRow() throws {
+        try check("inspector-switch-row", size: CGSize(width: 280, height: 90)) {
+            VStack(alignment: .leading, spacing: 8) {
+                InspectorSwitchRow("Objective aperture", isOn: .constant(true))
+                InspectorSwitchRow("Frozen phonons", isOn: .constant(false))
             }
             .padding()
         }

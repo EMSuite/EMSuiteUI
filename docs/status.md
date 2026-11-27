@@ -10,8 +10,9 @@ at `github.com/EMSuite/...` (the old org address only redirected).
   default, 4DSTEM Studio) or as tabs, one at full width under a segmented header with one toggle for the area (`.tabs`, Electron
   Microscopy Studio; the selection is `PanelNavigation.selectedProcessPane`, `selectProcessPane` opens a shut area).
 - The controls (`ShellControls`, `ShellInspector`): zoom and pan (the wheel zooms or pans by Settings, `ScrollWheelMode`; View > Pan Left, Right, Up, Down with ⌃⌘ and an arrow), `NumericField` (typing the shown text over a finer stored
-  value sets it), `PaneFooter`, `ScaleBar`, colorbar, `HistogramChart`, `SegmentedControl` and `SegmentedPicker` (a segment can be
-  disabled, with its reason), the inspector row kit.
+  value sets it), `PaneFooter`, `ScaleBar`, colorbar, `HistogramChart` (the data's min · mean · max under fixed captions, the window's
+  edges beneath them, the Log y-axis switch in its footer), `SegmentedControl` and `SegmentedPicker` (a segment can be
+  disabled, with its reason), the inspector row kit (on/off rows are `InspectorSwitchRow`).
 - The Metal image view (`ShellMetal`): `MetalEngine`, `MetalImageView` (raw pixels at their own bit depth, a linear or log
   display transfer drawn in the shader; `sampling: .linear` draws a coarse simulated scan smooth, its values blended
   bilinearly in the shader, while recorded data stay `.nearest`, the default; RGBA and figure exports stay nearest), `MetalDisplayTransform`, the shared colormaps and their shader (compiled from source
